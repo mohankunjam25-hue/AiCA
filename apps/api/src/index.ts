@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -74,6 +75,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '64kb' })); // Max payload limit to prevent buffer overflow attacks
+app.use(cookieParser());
 
 // Healthcheck Route
 app.get('/health', (_, res) => {
