@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';
+import { AiCALogo } from './AiCALogo';
 
 interface TopHeaderProps {
   onOpenSidebar: () => void;
@@ -96,9 +97,7 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
 
           {/* Logo & Context Title */}
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-8 h-8 rounded-md bg-[#0d1117] border border-[#30363d] flex items-center justify-center p-1 shadow-xs group-hover:border-[#8b949e] transition">
-              <img src="/logo.png" alt="AiCA Logo" className="w-full h-full object-contain" />
-            </div>
+            <AiCALogo className="w-9 h-9 sm:w-10 sm:h-10" />
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm tracking-tight text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
                 AI Code Evolution Lab

@@ -63,7 +63,7 @@ export function DashboardPage() {
         const [subRes, heatRes, probRes] = await Promise.allSettled([
           api.get('/submissions/my?limit=8'),
           api.get('/submissions/activity-heatmap'),
-          api.get('/problems?page=1&limit=15&sortBy=popular')
+          api.get('/problems?page=1&limit=15&sortBy=latest')
         ]);
 
         if (isMounted) {
