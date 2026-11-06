@@ -37,6 +37,8 @@ const OptimizationJsonSchema = {
     spaceComplexity: { type: 'STRING' },
     spaceComplexityExplanation: { type: 'STRING' },
     readabilityScore: { type: 'NUMBER' },
+    overallScore: { type: 'NUMBER' },
+    qualityGrade: { type: 'STRING' },
     codeSmells: { type: 'ARRAY', items: { type: 'STRING' } },
     positivePractices: { type: 'ARRAY', items: { type: 'STRING' } },
     optimizationSuggestions: {
@@ -50,6 +52,51 @@ const OptimizationJsonSchema = {
           refactoredSnippet: { type: 'STRING' }
         },
         required: ['title', 'rationale', 'expectedTimeImpact', 'refactoredSnippet']
+      }
+    },
+    improvements: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          category: { type: 'STRING' },
+          suggestion: { type: 'STRING' },
+          codeSnippetBefore: { type: 'STRING' },
+          codeSnippetAfter: { type: 'STRING' }
+        },
+        required: ['category', 'suggestion']
+      }
+    },
+    solutionApproaches: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          approachNumber: { type: 'NUMBER' },
+          title: { type: 'STRING' },
+          paradigm: { type: 'STRING' },
+          isUserApproach: { type: 'BOOLEAN' },
+          timeComplexity: { type: 'STRING' },
+          spaceComplexity: { type: 'STRING' },
+          intuition: { type: 'STRING' },
+          pros: { type: 'ARRAY', items: { type: 'STRING' } },
+          cons: { type: 'ARRAY', items: { type: 'STRING' } },
+          pseudoCodeOrGuide: { type: 'STRING' }
+        },
+        required: ['approachNumber', 'title', 'paradigm', 'isUserApproach', 'timeComplexity', 'spaceComplexity', 'intuition']
+      }
+    },
+    comparisonMatrix: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          approach: { type: 'STRING' },
+          time: { type: 'STRING' },
+          space: { type: 'STRING' },
+          suitability: { type: 'STRING' }
+        },
+        required: ['approach', 'time', 'space', 'suitability']
       }
     }
   },
@@ -288,7 +335,12 @@ export class GeminiAnalysisClient {
             positivePractices: Array.isArray(parsed.positivePractices)
               ? parsed.positivePractices
               : (Array.isArray(parsed.positive_practices) ? parsed.positive_practices : []),
-            optimizationSuggestions: Array.isArray(parsed.optimizationSuggestions) ? parsed.optimizationSuggestions : []
+            optimizationSuggestions: Array.isArray(parsed.optimizationSuggestions) ? parsed.optimizationSuggestions : [],
+            improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+            solutionApproaches: Array.isArray(parsed.solutionApproaches) ? parsed.solutionApproaches : [],
+            comparisonMatrix: Array.isArray(parsed.comparisonMatrix) ? parsed.comparisonMatrix : [],
+            overallScore: typeof parsed.overallScore === 'number' ? parsed.overallScore : undefined,
+            qualityGrade: parsed.qualityGrade || undefined
           };
 
       return {
@@ -302,11 +354,16 @@ export class GeminiAnalysisClient {
         },
         codeQuality: {
           score: validated.readabilityScore,
+          qualityGrade: validated.qualityGrade,
+          overallScore: validated.overallScore,
           readabilityAnalysis: `Readability score ${validated.readabilityScore}/10 based on modular structure and variable semantics.`,
           codeSmells: validated.codeSmells,
           positivePractices: validated.positivePractices
         },
         optimizationSuggestions: validated.optimizationSuggestions,
+        improvements: validated.improvements,
+        solutionApproaches: validated.solutionApproaches,
+        comparisonMatrix: validated.comparisonMatrix,
         generatedAt: new Date().toISOString()
       };
     });

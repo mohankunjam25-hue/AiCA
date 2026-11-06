@@ -30,6 +30,8 @@ const EvaluationReportSchema = new Schema<EvaluationReportDocument>({
     },
     codeQuality: {
       score: { type: Number, default: 5 },
+      qualityGrade: { type: String, enum: ['A+', 'A', 'B', 'C', 'NEEDS_REFACTOR'] },
+      overallScore: { type: Number },
       readabilityAnalysis: { type: String, default: '' },
       codeSmells: [{ type: String }],
       positivePractices: [{ type: String }]
@@ -44,6 +46,30 @@ const EvaluationReportSchema = new Schema<EvaluationReportDocument>({
       rationale: { type: String },
       expectedTimeImpact: { type: String },
       refactoredSnippet: { type: String }
+    }],
+    improvements: [{
+      category: { type: String, enum: ['PERFORMANCE', 'CLEAN_CODE', 'MEMORY', 'SAFETY'] },
+      suggestion: { type: String },
+      codeSnippetBefore: { type: String },
+      codeSnippetAfter: { type: String }
+    }],
+    solutionApproaches: [{
+      approachNumber: { type: Number },
+      title: { type: String },
+      paradigm: { type: String },
+      isUserApproach: { type: Boolean, default: false },
+      timeComplexity: { type: String },
+      spaceComplexity: { type: String },
+      intuition: { type: String },
+      pros: [{ type: String }],
+      cons: [{ type: String }],
+      pseudoCodeOrGuide: { type: String }
+    }],
+    comparisonMatrix: [{
+      approach: { type: String },
+      time: { type: String },
+      space: { type: String },
+      suitability: { type: String }
     }],
     generatedAt: { type: String }
   },
