@@ -1,6 +1,7 @@
 // Constants
 export * from './constants/languages.js';
 export * from './constants/scoring.js';
+export * from './constants/canonical-approaches.js';
 
 // Domain Types
 export * from './types/auth.js';

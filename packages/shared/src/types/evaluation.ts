@@ -82,6 +82,19 @@ export interface EvaluationReportMetrics {
   percentileMemory: number;
 }
 
+export interface DeterministicAnalytics {
+  runtimePercentile: number;   // e.g. 92.4 (beats 92.4% of accepted submissions)
+  memoryPercentile: number;    // e.g. 84.1 (beats 84.1% of accepted submissions)
+  cyclomaticComplexity: number;
+  maxLoopDepth: number;
+  qualityScore: number;        // 1 - 100
+  qualityGrade: 'A+' | 'A' | 'B' | 'C' | 'NEEDS_REFACTOR';
+  codeSmells: string[];
+  positivePatterns: string[];
+  matchedApproachTitle?: string;
+  matchedApproachNumber?: number;
+}
+
 export interface EvaluationReport {
   id: string; // MongoDB ObjectId
   submissionId: string;
@@ -92,6 +105,7 @@ export interface EvaluationReport {
   pipelineStatus: PipelineStatus;
   summary: string;
   aiAnalysis: AIAnalysisReport;
+  deterministicAnalytics?: DeterministicAnalytics;
   metrics: EvaluationReportMetrics;
   createdAt: string;
 }

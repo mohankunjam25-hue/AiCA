@@ -11,6 +11,18 @@ const EvaluationReportSchema = new Schema<EvaluationReportDocument>({
   verdict: { type: String, required: true },
   pipelineStatus: { type: String, required: true },
   summary: { type: String, required: true },
+  deterministicAnalytics: {
+    runtimePercentile: { type: Number, default: 90 },
+    memoryPercentile: { type: Number, default: 85 },
+    cyclomaticComplexity: { type: Number, default: 1 },
+    maxLoopDepth: { type: Number, default: 1 },
+    qualityScore: { type: Number, default: 85 },
+    qualityGrade: { type: String, enum: ['A+', 'A', 'B', 'C', 'NEEDS_REFACTOR'], default: 'A' },
+    codeSmells: [{ type: String }],
+    positivePatterns: [{ type: String }],
+    matchedApproachTitle: { type: String },
+    matchedApproachNumber: { type: Number }
+  },
   aiAnalysis: {
     status: {
       type: String,

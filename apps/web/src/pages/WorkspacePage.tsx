@@ -30,6 +30,7 @@ import { EvaluationReportView } from '../components/EvaluationReportView';
 import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
 import { api } from '../services/api';
+import { useAuthStore } from '../store/useAuthStore';
 
 const FALLBACK_CATALOG_PROBLEMS: Record<string, Problem> = {
   'container-with-most-water': {
@@ -293,12 +294,20 @@ export function WorkspacePage() {
     if (!problem?.id) return;
     setLoadingPastSubmissions(true);
     try {
-      const [myRes, communityRes] = await Promise.allSettled([
-        api.get(`/submissions/my?problemId=${problem.id}&limit=20`),
+      const token = useAuthStore.getState().accessToken;
+      const requests: Promise<any>[] = [
         api.get(`/submissions/problem/${problem.id}/solutions`)
-      ]);
-      const mySubs = myRes.status === 'fulfilled' ? myRes.value.data?.data?.submissions || [] : [];
+      ];
+      if (token) {
+        requests.push(api.get(`/submissions/my?problemId=${problem.id}&limit=20`));
+      }
+
+      const results = await Promise.allSettled(requests);
+      const communityRes = results[0];
+      const myRes = token ? results[1] : null;
+
       const commSubs = communityRes.status === 'fulfilled' ? communityRes.value.data?.data || [] : [];
+      const mySubs = myRes && myRes.status === 'fulfilled' ? myRes.value.data?.data?.submissions || [] : [];
 
       const seenIds = new Set<string>();
       const combined: any[] = [];

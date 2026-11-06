@@ -1,4 +1,5 @@
 import { SupportedLanguage } from '../constants/languages.js';
+import { SolutionApproach, ApproachComparisonRow } from './evaluation.js';
 
 export type ProblemDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type ProblemLifecycleStatus = 'UNPUBLISHED' | 'PUBLISHED' | 'DEPRECATED' | 'ARCHIVED';
@@ -59,6 +60,8 @@ export interface Problem {
   benchmarks: ProblemBenchmarks;
   starterCode: Record<SupportedLanguage, string>;
   testCases?: TestCase[]; // Populated only for admin or internally by worker
+  solutionApproaches?: SolutionApproach[];
+  comparisonMatrix?: ApproachComparisonRow[];
   totalSubmissions: number;
   acceptedSubmissions: number;
   acceptanceRate?: number;
