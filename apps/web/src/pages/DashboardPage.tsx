@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BarChart2,
   CheckCircle2,
   XCircle,
   Flame,
@@ -9,10 +8,15 @@ import {
   Trophy,
   ArrowRight,
   User as UserIcon,
-  Zap,
-  Clock,
+  Sparkles,
+  Layers,
+  History,
+  TrendingUp,
+  GitCommit,
   ExternalLink,
-  Loader2
+  Loader2,
+  Compass,
+  ArrowUpRight
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { api } from '../services/api';
@@ -29,9 +33,21 @@ interface SubmissionItem {
   createdAt: string;
 }
 
+interface CatalogProblem {
+  id: string;
+  title: string;
+  slug: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  tags: string[];
+  totalSubmissions?: number;
+  acceptanceRate?: number;
+}
+
 export function DashboardPage() {
   const { user, profile } = useAuthStore();
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
+  const [catalogProblems, setCatalogProblems] = useState<CatalogProblem[]>([]);
+  const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [stats, setStats] = useState({
     solved: profile?.problemsSolved || 0,
     total: profile?.totalSubmissions || 0,
@@ -44,9 +60,10 @@ export function DashboardPage() {
     let isMounted = true;
     const fetchDashboardData = async () => {
       try {
-        const [subRes, heatRes] = await Promise.allSettled([
-          api.get('/submissions/my?limit=5'),
-          api.get('/submissions/activity-heatmap')
+        const [subRes, heatRes, probRes] = await Promise.allSettled([
+          api.get('/submissions/my?limit=8'),
+          api.get('/submissions/activity-heatmap'),
+          api.get('/problems?page=1&limit=15&sortBy=popular')
         ]);
 
         if (isMounted) {
@@ -61,10 +78,16 @@ export function DashboardPage() {
               streak: h.currentStreak ?? profile?.currentStreak ?? 0,
               longestStreak: h.longestStreak ?? 0
             });
+            if (h.activityByDate) {
+              setActivityMap(h.activityByDate);
+            }
+          }
+          if (probRes.status === 'fulfilled' && probRes.value.data?.data?.problems) {
+            setCatalogProblems(probRes.value.data.data.problems);
           }
         }
       } catch (err) {
-        console.warn('[Dashboard] Could not load metrics:', err);
+        console.warn('[Dashboard] Could not load live metrics:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -76,191 +99,531 @@ export function DashboardPage() {
     };
   }, [profile]);
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Welcome Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 shadow-xl text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+  // Generate 15-week (105 days) GitHub style contribution punchcard
+  const { contributionDays, totalPeriodActivity } = useMemo(() => {
+    const days: { date: string; count: number; dayOfWeek: number }[] = [];
+    const today = new Date();
+    const currentDayOfWeek = today.getDay();
+    const daysToAdd = 6 - currentDayOfWeek;
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + daysToAdd);
 
-        <div className="relative z-10 space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Student Dashboard
+    const totalDays = 15 * 7; // 15 columns of 7 days
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - (totalDays - 1));
+
+    let totalCount = 0;
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const count = activityMap[dateStr] || 0;
+      totalCount += count;
+      days.push({
+        date: dateStr,
+        count,
+        dayOfWeek: d.getDay()
+      });
+    }
+
+    return { contributionDays: days, totalPeriodActivity: totalCount };
+  }, [activityMap]);
+
+  // GitHub contribution square color generator
+  const getCellColor = (count: number) => {
+    if (count === 0) {
+      return 'bg-[#ebedf0] dark:bg-[#161b22] border border-[#d0d7de]/40 dark:border-[#30363d]/60';
+    }
+    if (count <= 2) {
+      return 'bg-[#9be9a8] dark:bg-[#0e4429] border border-[#4ac26b]/40 dark:border-[#006d32]/40';
+    }
+    if (count <= 4) {
+      return 'bg-[#40c463] dark:bg-[#006d32] border border-[#2ea043]/40 dark:border-[#26a641]/40';
+    }
+    if (count <= 6) {
+      return 'bg-[#30a14e] dark:bg-[#26a641] border border-[#238636]/40 dark:border-[#39d353]/40';
+    }
+    return 'bg-[#216e39] dark:bg-[#39d353] border border-[#1a7f37]/40 dark:border-[#56d364]/40';
+  };
+
+  const getDifficultyColor = (diff: string) => {
+    switch (diff) {
+      case 'EASY':
+        return 'text-[#1a7f37] dark:text-[#3fb950] bg-[#dafbe1] dark:bg-[#2ea04326] border-[#4ac26b66] dark:border-[#2ea0434d]';
+      case 'MEDIUM':
+        return 'text-[#9a6700] dark:text-[#d29922] bg-[#fff8c5] dark:bg-[#bb800926] border-[#d4a72c66] dark:border-[#bb80094d]';
+      case 'HARD':
+        return 'text-[#cf222e] dark:text-[#f85149] bg-[#ffebe9] dark:bg-[#f8514926] border-[#ff818266] dark:border-[#f851494d]';
+      default:
+        return 'text-[#57606a] dark:text-[#8b949e] bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d]';
+    }
+  };
+
+  const getDifficultyDot = (diff: string) => {
+    switch (diff) {
+      case 'EASY':
+        return 'bg-[#2ea043]';
+      case 'MEDIUM':
+        return 'bg-[#bb8009]';
+      case 'HARD':
+        return 'bg-[#f85149]';
+      default:
+        return 'bg-[#8b949e]';
+    }
+  };
+
+  // Identify recommended challenges: catalog problems not yet accepted
+  const acceptedProblemTitles = new Set(
+    submissions.filter((s) => s.verdict === 'ACCEPTED').map((s) => s.problemTitle)
+  );
+
+  const recommendedChallenges = catalogProblems
+    .filter((p) => !acceptedProblemTitles.has(p.title))
+    .slice(0, 3);
+
+  // Compute accuracy rate
+  const acceptedCount = submissions.filter((s) => s.verdict === 'ACCEPTED').length;
+  const accuracyRate = stats.total > 0 ? Math.round((acceptedCount / stats.total) * 100) : 0;
+  const catalogTotal = catalogProblems.length || 8;
+  const completionPercentage = Math.round((stats.solved / catalogTotal) * 100);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* 1. Header Strip: Clean Profile Bar (Zero Black Gimmick Banner) */}
+      <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* User Identity */}
+        <div className="flex items-center gap-3.5">
+          <div className="relative shrink-0">
+            {profile?.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={user?.username}
+                className="w-12 h-12 rounded-full object-cover border border-[#d0d7de] dark:border-[#30363d]"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] flex items-center justify-center">
+                <UserIcon className="w-6 h-6 text-[#0969da] dark:text-[#58a6ff]" />
+              </div>
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#2ea043] ring-2 ring-white dark:ring-[#161b22]" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-            Welcome back, {profile?.fullName || user?.username || 'Student'}!
-          </h1>
-          <p className="text-xs text-slate-300 font-normal">
-            Track real-time sandbox executions and algorithmic speedup metrics.
-          </p>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-bold text-[#1f2328] dark:text-[#f0f6fc] tracking-tight">
+                {profile?.fullName || user?.username || 'Developer'}
+              </h1>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d] font-semibold">
+                GV2 {user?.role || 'STUDENT'}
+              </span>
+            </div>
+            <p className="text-xs text-[#57606a] dark:text-[#8b949e] font-mono mt-0.5">
+              @{user?.username || 'student'} &bull; Real-time algorithmic performance & code evaluation workspace
+            </p>
+          </div>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0">
           <Link
             to="/profile"
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-md text-xs font-semibold border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] transition"
           >
-            <UserIcon className="w-3.5 h-3.5 text-emerald-400" />
-            Profile
+            Profile Settings
           </Link>
           <Link
             to="/problems"
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-[#1f883d] dark:bg-[#238636] hover:bg-[#1a7f37] dark:hover:bg-[#2ea043] text-white shadow-xs transition flex items-center gap-1.5"
           >
-            Solve Problems
+            Solve Next Problem
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
+      {/* 2. Key Metrics Row: 4 Compact GitHub Metric Tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Tile 1: Solved */}
+        <div className="p-4 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e]">
             <span className="text-xs font-bold uppercase tracking-wider">Problems Solved</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-[#1a7f37] dark:text-[#3fb950]" />
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{stats.solved}</div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Across catalog challenges</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[#1f2328] dark:text-[#f0f6fc]">
+              {stats.solved}
+            </span>
+            <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-mono">
+              / {catalogTotal} challenges
+            </span>
+          </div>
+          <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-1.5 rounded-full overflow-hidden">
+            <div
+              className="bg-[#2ea043] h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, Math.max(5, completionPercentage))}%` }}
+            />
+          </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Runs</span>
-            <Code2 className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+        {/* Tile 2: Executions */}
+        <div className="p-4 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e]">
+            <span className="text-xs font-bold uppercase tracking-wider">Sandbox Runs</span>
+            <Code2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{stats.total}</div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Judge0 sandbox evaluations</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[#1f2328] dark:text-[#f0f6fc]">
+              {stats.total}
+            </span>
+            <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-mono">
+              evaluations
+            </span>
+          </div>
+          <p className="text-[11px] text-[#57606a] dark:text-[#8b949e] truncate font-mono">
+            Linux Kernel Ephemeral Sandbox
+          </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Max Streak</span>
-            <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{stats.longestStreak} Days</div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Personal consistency record</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
+        {/* Tile 3: Streak */}
+        <div className="p-4 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e]">
             <span className="text-xs font-bold uppercase tracking-wider">Active Streak</span>
-            <Flame className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+            <Flame className="w-4 h-4 text-[#d29922]" />
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">{stats.streak} Days</div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Daily algorithmic consistency</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[#1f2328] dark:text-[#f0f6fc]">
+              {stats.streak}
+            </span>
+            <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-mono">
+              Days active
+            </span>
+          </div>
+          <p className="text-[11px] text-[#57606a] dark:text-[#8b949e] font-mono">
+            Best Record: {stats.longestStreak} Days
+          </p>
+        </div>
+
+        {/* Tile 4: Accuracy */}
+        <div className="p-4 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e]">
+            <span className="text-xs font-bold uppercase tracking-wider">Acceptance Rate</span>
+            <Trophy className="w-4 h-4 text-[#9a6700] dark:text-[#d29922]" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[#1f2328] dark:text-[#f0f6fc]">
+              {accuracyRate}%
+            </span>
+            <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-mono">
+              {acceptedCount} accepted
+            </span>
+          </div>
+          <p className="text-[11px] text-[#57606a] dark:text-[#8b949e] font-mono">
+            Deterministic AST Validated
+          </p>
         </div>
       </div>
 
-      {/* Recent Submissions */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Recent Submission History</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your latest algorithmic kernel test executions</p>
-          </div>
-          <Link
-            to="/profile"
-            className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1"
-          >
-            View Complete History
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+      {/* 3. Main Two-Column Layout (Left 65% / Right 35%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column (Span 2) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* A. GitHub Style Contribution Heatmap Card */}
+          <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GitCommit className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+                <h2 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                  Code Activity & Submission Punchcard
+                </h2>
+              </div>
+              <span className="text-xs font-mono text-[#57606a] dark:text-[#8b949e]">
+                {totalPeriodActivity} runs in last 15 weeks
+              </span>
+            </div>
 
-        {loading ? (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mb-2" />
-            <p className="text-xs">Loading submission history...</p>
+            {/* Contribution Squares Grid */}
+            <div className="overflow-x-auto pb-1 pt-2">
+              <div className="inline-grid grid-rows-7 grid-flow-col gap-1 min-w-[500px]">
+                {contributionDays.map((d) => (
+                  <div
+                    key={d.date}
+                    className={`w-3.5 h-3.5 rounded-xs transition-colors cursor-pointer ${getCellColor(
+                      d.count
+                    )}`}
+                    title={`${d.count} submission${d.count === 1 ? '' : 's'} on ${new Date(
+                      d.date
+                    ).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Heatmap Legend */}
+            <div className="flex items-center justify-between pt-2 border-t border-[#d0d7de]/60 dark:border-[#30363d]/60 text-[11px] text-[#57606a] dark:text-[#8b949e]">
+              <span>Daily execution density</span>
+              <div className="flex items-center gap-1.5">
+                <span>Less</span>
+                <span className="w-3 h-3 rounded-xs bg-[#ebedf0] dark:bg-[#161b22] border border-[#d0d7de]/40 dark:border-[#30363d]/60" />
+                <span className="w-3 h-3 rounded-xs bg-[#9be9a8] dark:bg-[#0e4429]" />
+                <span className="w-3 h-3 rounded-xs bg-[#40c463] dark:bg-[#006d32]" />
+                <span className="w-3 h-3 rounded-xs bg-[#30a14e] dark:bg-[#26a641]" />
+                <span className="w-3 h-3 rounded-xs bg-[#216e39] dark:bg-[#39d353]" />
+                <span>More</span>
+              </div>
+            </div>
           </div>
-        ) : submissions.length === 0 ? (
-          <div className="py-12 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-3">
-            <Code2 className="w-8 h-8 text-slate-400 mx-auto" />
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">No Submissions Recorded Yet</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              You haven't run any code submissions yet. Choose a problem from the catalog or formulate one with AI to get started.
-            </p>
-            <div className="pt-2">
+
+          {/* B. Recent Submissions: Flush GitHub Commit-List Style */}
+          <div className="rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs overflow-hidden">
+            <div className="p-3.5 sm:p-4 border-b border-[#d0d7de] dark:border-[#30363d] flex items-center justify-between bg-[#f6f8fa] dark:bg-[#161b22]">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-[#57606a] dark:text-[#8b949e]" />
+                <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                  Recent Submission History
+                </h3>
+              </div>
               <Link
-                to="/problems"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition"
+                to="/profile"
+                className="text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline flex items-center gap-1"
               >
-                Solve Your First Challenge
+                Complete History
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {submissions.map((sub) => {
-              const isAccepted = sub.verdict === 'ACCEPTED';
-              const formattedDate = new Date(sub.createdAt).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              });
 
-              return (
-                <div
-                  key={sub.id}
-                  className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    {isAccepted ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
-                    )}
-                    <div>
-                      <Link
-                        to={`/workspace/${sub.problemId}`}
-                        className="font-bold text-slate-900 dark:text-slate-100 text-sm hover:text-emerald-600 dark:hover:text-emerald-400 transition"
-                      >
-                        {sub.problemTitle}
-                      </Link>
-                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mt-0.5 font-mono text-[11px]">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300 uppercase font-semibold">
-                          {sub.language}
+            {loading ? (
+              <div className="py-12 flex flex-col items-center justify-center text-[#57606a] dark:text-[#8b949e]">
+                <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                <p className="text-xs font-mono">Syncing submissions...</p>
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="py-12 px-4 text-center space-y-2">
+                <Code2 className="w-8 h-8 text-[#8c959f] mx-auto" />
+                <h4 className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                  No Submissions Recorded Yet
+                </h4>
+                <p className="text-xs text-[#57606a] dark:text-[#8b949e] max-w-sm mx-auto">
+                  Pick a problem from the catalog to run your first benchmark.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    to="/problems"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1f883d] dark:bg-[#238636] text-white text-xs font-semibold hover:bg-[#1a7f37] dark:hover:bg-[#2ea043] transition"
+                  >
+                    Browse Catalog
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#d0d7de] dark:divide-[#30363d]">
+                {submissions.map((sub) => {
+                  const isAccepted = sub.verdict === 'ACCEPTED';
+                  const formattedDate = new Date(sub.createdAt).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+
+                  return (
+                    <div
+                      key={sub.id}
+                      className="p-3 sm:px-4 sm:py-3 flex items-center justify-between text-xs hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]/50 transition group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 pr-3">
+                        {isAccepted ? (
+                          <CheckCircle2 className="w-4 h-4 text-[#1a7f37] dark:text-[#3fb950] shrink-0" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-[#cf222e] dark:text-[#f85149] shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <Link
+                            to={`/workspace/${sub.problemId}`}
+                            className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] hover:text-[#0969da] dark:hover:text-[#58a6ff] transition truncate block"
+                          >
+                            {sub.problemTitle}
+                          </Link>
+                          <div className="flex items-center gap-2 text-[#57606a] dark:text-[#8b949e] font-mono text-[10px] mt-0.5">
+                            <span className="px-1.5 py-0.2 rounded bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] font-semibold">
+                              {sub.language}
+                            </span>
+                            <span>&bull;</span>
+                            <span>{formattedDate}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-right shrink-0 font-mono">
+                        <div className="hidden sm:block">
+                          <span className="text-[#1f2328] dark:text-[#e6edf3] font-bold block text-xs">
+                            {sub.executionTimeMs != null ? `${sub.executionTimeMs}ms` : '--'}
+                          </span>
+                          <span className="text-[#57606a] dark:text-[#8b949e] text-[10px]">
+                            {sub.memoryUsedKb != null
+                              ? `${Math.round(sub.memoryUsedKb / 1024)}MB`
+                              : '--'}
+                          </span>
+                        </div>
+                        <span
+                          className={`font-semibold px-2 py-0.5 rounded-full text-[10px] border ${
+                            isAccepted
+                              ? 'text-[#1a7f37] dark:text-[#3fb950] bg-[#dafbe1] dark:bg-[#2ea04326] border-[#4ac26b66] dark:border-[#2ea0434d]'
+                              : 'text-[#cf222e] dark:text-[#f85149] bg-[#ffebe9] dark:bg-[#f8514926] border-[#ff818266] dark:border-[#f851494d]'
+                          }`}
+                        >
+                          {sub.verdict}
                         </span>
-                        <span>&bull;</span>
-                        <span>{formattedDate}</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-6 text-right font-mono">
-                    <div>
-                      <span className="text-slate-900 dark:text-slate-100 font-bold block">
-                        {sub.executionTimeMs != null ? `${sub.executionTimeMs}ms` : '--'}
-                      </span>
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                        {sub.memoryUsedKb != null ? `${Math.round(sub.memoryUsedKb / 1024)}MB` : '--'}
-                      </span>
-                    </div>
-                    <div className="w-24">
-                      <span
-                        className={`font-bold px-2 py-0.5 rounded text-[11px] block ${
-                          isAccepted
-                            ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60'
-                            : 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60'
-                        }`}
-                      >
-                        {sub.verdict}
-                      </span>
-                      {sub.compositeScore != null && (
-                        <span className="text-slate-500 dark:text-slate-400 text-[10px] block mt-0.5">
-                          Score: {sub.compositeScore}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Right Column (Span 1) */}
+        <div className="space-y-6">
+          {/* C. Recommended Challenges */}
+          <div className="rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs overflow-hidden">
+            <div className="p-3.5 border-b border-[#d0d7de] dark:border-[#30363d] flex items-center justify-between bg-[#f6f8fa] dark:bg-[#161b22]">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#9a6700] dark:text-[#d29922]" />
+                <h3 className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] uppercase tracking-wider">
+                  Recommended Challenges
+                </h3>
+              </div>
+            </div>
+
+            <div className="p-3 space-y-2.5">
+              {recommendedChallenges.length === 0 ? (
+                <div className="text-xs text-[#57606a] dark:text-[#8b949e] py-3 text-center">
+                  All catalog challenges completed!
+                </div>
+              ) : (
+                recommendedChallenges.map((prob) => (
+                  <div
+                    key={prob.id || prob.slug}
+                    className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${getDifficultyDot(
+                            prob.difficulty
+                          )}`}
+                        />
+                        <span className="font-bold text-xs text-[#1f2328] dark:text-[#f0f6fc] truncate">
+                          {prob.title}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full border shrink-0 ${getDifficultyColor(
+                          prob.difficulty
+                        )}`}
+                      >
+                        {prob.difficulty}
+                      </span>
+                    </div>
+
+                    {prob.tags && prob.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {prob.tags.slice(0, 2).map((t) => (
+                          <span
+                            key={t}
+                            className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#57606a] dark:text-[#8b949e]"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <Link
+                      to={`/workspace/${prob.slug}`}
+                      className="w-full flex items-center justify-center gap-1.5 py-1 text-center rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] text-xs font-semibold transition"
+                    >
+                      Solve Challenge
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* D. Topic Mastery Breakdown */}
+          <div className="p-4 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs space-y-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+              <h3 className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] uppercase tracking-wider">
+                Topic Mastery
+              </h3>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e] font-mono mb-1">
+                  <span>Arrays & Hashing</span>
+                  <span>75%</span>
+                </div>
+                <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#2ea043] h-full rounded-full w-3/4" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e] font-mono mb-1">
+                  <span>Two Pointers & Sliding Window</span>
+                  <span>50%</span>
+                </div>
+                <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#0969da] h-full rounded-full w-1/2" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e] font-mono mb-1">
+                  <span>Dynamic Programming</span>
+                  <span>25%</span>
+                </div>
+                <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#bb8009] h-full rounded-full w-1/4" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* E. Quick Platform Jump */}
+          <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] space-y-2 text-xs">
+            <span className="font-bold text-[#57606a] dark:text-[#8b949e] text-[10px] uppercase tracking-wider">
+              Quick Shortcuts
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                to="/algorithms"
+                className="p-2 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] hover:border-[#0969da] dark:hover:border-[#58a6ff] transition font-semibold text-[#1f2328] dark:text-[#f0f6fc] flex items-center justify-between"
+              >
+                <span>Visualizer</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#57606a] dark:text-[#8b949e]" />
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="p-2 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] hover:border-[#0969da] dark:hover:border-[#58a6ff] transition font-semibold text-[#1f2328] dark:text-[#f0f6fc] flex items-center justify-between"
+              >
+                <span>Rankings</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#57606a] dark:text-[#8b949e]" />
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+export default DashboardPage;
