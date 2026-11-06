@@ -44,6 +44,32 @@ export function EvaluationReportView({
   const isFailed = ai?.status === 'FAILED';
   const isSkipped = ai?.status === 'SKIPPED';
 
+  // Auto-poll report while AI analysis is PENDING so user does not have to manually refresh
+  useEffect(() => {
+    if (!isPending || !report?.submissionId) return;
+
+    let count = 0;
+    const interval = setInterval(async () => {
+      count++;
+      if (count > 20) {
+        clearInterval(interval);
+        return;
+      }
+      try {
+        const res = await api.get(`/submissions/${report.submissionId}/report`);
+        if (res.data.data?.aiAnalysis?.status && res.data.data.aiAnalysis.status !== 'PENDING') {
+          setReport(res.data.data);
+          onReportUpdate?.(res.data.data);
+          clearInterval(interval);
+        }
+      } catch {
+        // silent retry
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isPending, report?.submissionId, onReportUpdate]);
+
   const handleRetryAi = async () => {
     setIsRetrying(true);
     setRetryMessage(null);
