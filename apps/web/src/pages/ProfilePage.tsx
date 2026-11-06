@@ -32,9 +32,13 @@ import {
   Lock,
   LogOut,
   KeyRound,
+  Sliders,
+  Type,
+  FileCode
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { api } from '../services/api';
 
 interface PastEvolution {
@@ -173,6 +177,7 @@ type ProfileTab = 'info' | 'settings' | 'activity' | 'logout';
 export function ProfilePage() {
   const { user, profile, updateProfile, logout } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
+  const editorPrefs = useEditorPreferencesStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -658,100 +663,318 @@ export function ProfilePage() {
         )}
 
         {/* ================================================================ */}
-        {/* TAB 2: SETTINGS (Theme, Notifications, Change Password)          */}
+        {/* TAB 2: SETTINGS (Theme, Monaco Editor, Notifications, Security)   */}
         {/* ================================================================ */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
-            {/* Section 1: Theme Preferences */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Sun className="w-4 h-4 text-amber-500" />
-                  Appearance & Theme
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Select your workspace theme mode. Themes persist across sessions and synchronize with Monaco.
-                </p>
+            {/* Header Description */}
+            <div className="border-b border-[#d0d7de] dark:border-[#30363d] pb-4">
+              <h2 className="text-base font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                <SettingsIcon className="w-5 h-5 text-[#0969da] dark:text-[#58a6ff]" />
+                Settings & Preferences
+              </h2>
+              <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1">
+                Customize your appearance, code editor workspace, execution alerts, and security credentials.
+              </p>
+            </div>
+
+            {/* Section 1: Appearance & Workspace Theme */}
+            <div className="p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                    <Sun className="w-4 h-4 text-amber-500" />
+                    Appearance & Theme
+                  </h3>
+                  <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-0.5">
+                    Select your workspace theme mode. Synchronizes automatically with Monaco editor and system panels.
+                  </p>
+                </div>
+                <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de] dark:border-[#30363d]">
+                  Active: {theme}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setTheme('light')}
-                  className={`p-4 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                  className={`p-3.5 rounded-md border flex items-center justify-between gap-3 transition cursor-pointer text-left ${
                     theme === 'light'
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                      ? 'border-[#0969da] dark:border-[#58a6ff] bg-[#f6f8fa] dark:bg-[#21262d] ring-1 ring-[#0969da] dark:ring-[#58a6ff]'
+                      : 'border-[#d0d7de] dark:border-[#30363d] hover:border-[#8c959f] dark:hover:border-[#6e7681] bg-white dark:bg-[#0d1117]'
                   }`}
                 >
-                  <Sun className="w-5 h-5 text-amber-500" />
-                  <div>
-                    <span className="text-xs font-bold block">Light Mode</span>
-                    <span className="text-[10px] text-slate-400">Clean high-contrast theme</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <Sun className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">Light Mode</span>
+                      <span className="text-[10px] text-[#57606a] dark:text-[#8b949e]">Clean high-contrast theme</span>
+                    </div>
                   </div>
+                  {theme === 'light' && (
+                    <CheckCircle2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff] shrink-0" />
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setTheme('dark')}
-                  className={`p-4 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                  className={`p-3.5 rounded-md border flex items-center justify-between gap-3 transition cursor-pointer text-left ${
                     theme === 'dark'
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                      ? 'border-[#0969da] dark:border-[#58a6ff] bg-[#f6f8fa] dark:bg-[#21262d] ring-1 ring-[#0969da] dark:ring-[#58a6ff]'
+                      : 'border-[#d0d7de] dark:border-[#30363d] hover:border-[#8c959f] dark:hover:border-[#6e7681] bg-white dark:bg-[#0d1117]'
                   }`}
                 >
-                  <Moon className="w-5 h-5 text-indigo-400" />
-                  <div>
-                    <span className="text-xs font-bold block">Dark Mode</span>
-                    <span className="text-[10px] text-slate-400">Low-glare IDE theme</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-md bg-indigo-100 dark:bg-indigo-950/60 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <Moon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">Dark Mode</span>
+                      <span className="text-[10px] text-[#57606a] dark:text-[#8b949e]">Low-glare IDE theme</span>
+                    </div>
                   </div>
+                  {theme === 'dark' && (
+                    <CheckCircle2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff] shrink-0" />
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setTheme('system')}
-                  className={`p-4 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                  className={`p-3.5 rounded-md border flex items-center justify-between gap-3 transition cursor-pointer text-left ${
                     theme === 'system'
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                      ? 'border-[#0969da] dark:border-[#58a6ff] bg-[#f6f8fa] dark:bg-[#21262d] ring-1 ring-[#0969da] dark:ring-[#58a6ff]'
+                      : 'border-[#d0d7de] dark:border-[#30363d] hover:border-[#8c959f] dark:hover:border-[#6e7681] bg-white dark:bg-[#0d1117]'
                   }`}
                 >
-                  <Laptop className="w-5 h-5 text-teal-500" />
-                  <div>
-                    <span className="text-xs font-bold block">System Preference</span>
-                    <span className="text-[10px] text-slate-400">Sync with OS appearance</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-md bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                      <Laptop className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">System Preference</span>
+                      <span className="text-[10px] text-[#57606a] dark:text-[#8b949e]">Sync with OS appearance</span>
+                    </div>
                   </div>
+                  {theme === 'system' && (
+                    <CheckCircle2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff] shrink-0" />
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Section 2: Notification Preferences */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+            {/* Section 2: Monaco Code Editor Configuration */}
+            <div className="p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                    <Code2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+                    Monaco Code Editor Preferences
+                  </h3>
+                  <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-0.5">
+                    Configure typography, indentation, and visual aids for the interactive code execution workspace.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={editorPrefs.resetDefaults}
+                  className="px-2.5 py-1 text-[11px] rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] transition cursor-pointer font-medium"
+                >
+                  Reset Defaults
+                </button>
+              </div>
+
+              {/* Controls Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Font Size Selector */}
+                <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-[#1f2328] dark:text-[#f0f6fc]">
+                    <span className="flex items-center gap-1.5">
+                      <Type className="w-3.5 h-3.5 text-[#57606a] dark:text-[#8b949e]" />
+                      Font Size
+                    </span>
+                    <span className="font-mono text-[#0969da] dark:text-[#58a6ff]">{editorPrefs.fontSize}px</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[12, 14, 16].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => editorPrefs.setFontSize(size)}
+                        className={`py-1.5 px-2 rounded-md text-xs font-mono font-medium transition cursor-pointer border ${
+                          editorPrefs.fontSize === size
+                            ? 'bg-white dark:bg-[#21262d] border-[#0969da] dark:border-[#58a6ff] text-[#0969da] dark:text-[#58a6ff] shadow-xs'
+                            : 'border-[#d0d7de] dark:border-[#30363d] bg-white/50 dark:bg-[#161b22]/50 text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+                        }`}
+                      >
+                        {size}px {size === 14 ? '(Default)' : size === 12 ? '(Compact)' : '(Large)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tab Indentation */}
+                <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-[#1f2328] dark:text-[#f0f6fc]">
+                    <span className="flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-[#57606a] dark:text-[#8b949e]" />
+                      Tab Indentation
+                    </span>
+                    <span className="font-mono text-[#0969da] dark:text-[#58a6ff]">{editorPrefs.tabSize} spaces</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[2, 4].map((spaces) => (
+                      <button
+                        key={spaces}
+                        type="button"
+                        onClick={() => editorPrefs.setTabSize(spaces)}
+                        className={`py-1.5 px-2 rounded-md text-xs font-mono font-medium transition cursor-pointer border ${
+                          editorPrefs.tabSize === spaces
+                            ? 'bg-white dark:bg-[#21262d] border-[#0969da] dark:border-[#58a6ff] text-[#0969da] dark:text-[#58a6ff] shadow-xs'
+                            : 'border-[#d0d7de] dark:border-[#30363d] bg-white/50 dark:bg-[#161b22]/50 text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+                        }`}
+                      >
+                        {spaces} Spaces {spaces === 2 ? '(Python / JS)' : '(C++ / Java)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
+                  <div>
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">
+                      Code Minimap
+                    </span>
+                    <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
+                      Display an interactive code overview thumbnail in the right gutter of the workspace.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editorPrefs.setMinimap(!editorPrefs.minimap)}
+                    className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer relative shrink-0 ${
+                      editorPrefs.minimap ? 'bg-[#1f883d] dark:bg-[#238636]' : 'bg-[#d0d7de] dark:bg-[#30363d]'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                        editorPrefs.minimap ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
+                  <div>
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">
+                      Bracket Pair Colorization
+                    </span>
+                    <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
+                      Colorize matching parentheses, brackets, and curly braces to quickly navigate nested loops.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editorPrefs.setBracketPairColorization(!editorPrefs.bracketPairColorization)}
+                    className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer relative shrink-0 ${
+                      editorPrefs.bracketPairColorization ? 'bg-[#1f883d] dark:bg-[#238636]' : 'bg-[#d0d7de] dark:bg-[#30363d]'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                        editorPrefs.bracketPairColorization ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
+                  <div>
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">
+                      Word Wrap
+                    </span>
+                    <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
+                      Soft-wrap long lines of algorithmic logic to eliminate horizontal scrolling.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editorPrefs.setWordWrap(editorPrefs.wordWrap === 'on' ? 'off' : 'on')}
+                    className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer relative shrink-0 ${
+                      editorPrefs.wordWrap === 'on' ? 'bg-[#1f883d] dark:bg-[#238636]' : 'bg-[#d0d7de] dark:bg-[#30363d]'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                        editorPrefs.wordWrap === 'on' ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="pt-2">
+                <span className="text-[11px] font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider block mb-1.5">
+                  Live Monaco Typography Preview ({editorPrefs.fontSize}px / {editorPrefs.tabSize} spaces)
+                </span>
+                <div
+                  className="p-3.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117] overflow-x-auto font-mono text-[#1f2328] dark:text-[#e6edf3]"
+                  style={{
+                    fontSize: `${editorPrefs.fontSize}px`,
+                    lineHeight: '1.5',
+                    tabSize: editorPrefs.tabSize
+                  }}
+                >
+                  <pre className="m-0 leading-relaxed">
+                    <span className="text-[#cf222e] dark:text-[#ff7b72]">def</span> <span className="text-[#8250df] dark:text-[#d2a8ff]">merge_intervals</span>(intervals: <span className="text-[#0969da] dark:text-[#79c0ff]">list</span>[<span className="text-[#0969da] dark:text-[#79c0ff]">list</span>[<span className="text-[#0969da] dark:text-[#79c0ff]">int</span>]]):{'\n'}
+                    {' '.repeat(editorPrefs.tabSize)}intervals.sort(key=<span className="text-[#cf222e] dark:text-[#ff7b72]">lambda</span> x: x[<span className="text-[#0550ae] dark:text-[#a5d6ff]">0</span>]){'\n'}
+                    {' '.repeat(editorPrefs.tabSize)}merged = []{'\n'}
+                    {' '.repeat(editorPrefs.tabSize)}<span className="text-[#cf222e] dark:text-[#ff7b72]">for</span> interval <span className="text-[#cf222e] dark:text-[#ff7b72]">in</span> intervals:{'\n'}
+                    {' '.repeat(editorPrefs.tabSize * 2)}<span className="text-[#cf222e] dark:text-[#ff7b72]">if</span> <span className="text-[#cf222e] dark:text-[#ff7b72]">not</span> merged <span className="text-[#cf222e] dark:text-[#ff7b72]">or</span> merged[-<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>][<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>] &lt; interval[<span className="text-[#0550ae] dark:text-[#a5d6ff]">0</span>]:{'\n'}
+                    {' '.repeat(editorPrefs.tabSize * 3)}merged.append(interval){'\n'}
+                    {' '.repeat(editorPrefs.tabSize * 2)}<span className="text-[#cf222e] dark:text-[#ff7b72]">else</span>:{'\n'}
+                    {' '.repeat(editorPrefs.tabSize * 3)}merged[-<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>][<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>] = max(merged[-<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>][<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>], interval[<span className="text-[#0550ae] dark:text-[#a5d6ff]">1</span>]){'\n'}
+                    {' '.repeat(editorPrefs.tabSize)}<span className="text-[#cf222e] dark:text-[#ff7b72]">return</span> merged
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Notification Preferences */}
+            <div className="p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-emerald-500" />
+                <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-[#1a7f37] dark:text-[#3fb950]" />
                   Notification Preferences
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-0.5">
                   Configure alerts for code evaluation results and daily algorithmic streak goals.
                 </p>
               </div>
 
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800">
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">
                       Real-Time Test Verdict Alerts
                     </span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                       Receive immediate notifications when Judge0 completes your submission.
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifyVerdicts(!notifyVerdicts)}
-                    className={`w-11 h-6 rounded-full transition-colors p-1 cursor-pointer ${
-                      notifyVerdicts ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                    className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer relative shrink-0 ${
+                      notifyVerdicts ? 'bg-[#1f883d] dark:bg-[#238636]' : 'bg-[#d0d7de] dark:bg-[#30363d]'
                     }`}
                   >
                     <div
@@ -762,20 +985,20 @@ export function ProfilePage() {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800">
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">
                       Daily Streak Reminders
                     </span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                       Get a gentle reminder if you have not submitted code today.
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifyStreaks(!notifyStreaks)}
-                    className={`w-11 h-6 rounded-full transition-colors p-1 cursor-pointer ${
-                      notifyStreaks ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                    className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer relative shrink-0 ${
+                      notifyStreaks ? 'bg-[#1f883d] dark:bg-[#238636]' : 'bg-[#d0d7de] dark:bg-[#30363d]'
                     }`}
                   >
                     <div
@@ -786,20 +1009,20 @@ export function ProfilePage() {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800">
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] block">
                       AI Pedagogical Suggestions
                     </span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                       Automated complexity analysis and code evolution optimization digests.
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifyDigest(!notifyDigest)}
-                    className={`w-11 h-6 rounded-full transition-colors p-1 cursor-pointer ${
-                      notifyDigest ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                    className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer relative shrink-0 ${
+                      notifyDigest ? 'bg-[#1f883d] dark:bg-[#238636]' : 'bg-[#d0d7de] dark:bg-[#30363d]'
                     }`}
                   >
                     <div
@@ -812,38 +1035,38 @@ export function ProfilePage() {
               </div>
             </div>
 
-            {/* Section 3: Change Password */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+            {/* Section 4: Change Password */}
+            <div className="p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-indigo-500" />
+                <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
                   Change Password
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-0.5">
                   Ensure your account security with a strong passphrase containing uppercase, lowercase, and numbers.
                 </p>
               </div>
 
               {passwordStatus && (
                 <div
-                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  className={`p-3 rounded-md text-xs flex items-center gap-2 ${
                     passwordStatus.type === 'success'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+                      ? 'bg-[#dafbe1] dark:bg-[#2ea04326] border border-[#4ac26b66] dark:border-[#2ea0434d] text-[#1a7f37] dark:text-[#3fb950]'
+                      : 'bg-[#ffebe9] dark:bg-[#f851491a] border border-[#ff818266] dark:border-[#f851494d] text-[#cf222e] dark:text-[#f85149]'
                   }`}
                 >
                   {passwordStatus.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                   ) : (
-                    <X className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                    <X className="w-4 h-4 shrink-0" />
                   )}
                   <span>{passwordStatus.message}</span>
                 </div>
               )}
 
-              <form onSubmit={handleChangePassword} className="space-y-4 max-w-lg text-xs font-medium pt-1">
+              <form onSubmit={handleChangePassword} className="space-y-3.5 max-w-lg text-xs font-medium pt-1">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[#1f2328] dark:text-[#e6edf3] mb-1 font-semibold">
                     Current Password
                   </label>
                   <input
@@ -852,12 +1075,12 @@ export function ProfilePage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter current password"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-slate-900 dark:text-slate-100"
+                    className="w-full px-3 py-1.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#1f2328] dark:text-[#e6edf3] focus:ring-1 focus:ring-[#0969da] dark:focus:ring-[#58a6ff] outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[#1f2328] dark:text-[#e6edf3] mb-1 font-semibold">
                     New Password
                   </label>
                   <input
@@ -866,12 +1089,12 @@ export function ProfilePage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min 8 characters"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-slate-900 dark:text-slate-100"
+                    className="w-full px-3 py-1.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#1f2328] dark:text-[#e6edf3] focus:ring-1 focus:ring-[#0969da] dark:focus:ring-[#58a6ff] outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[#1f2328] dark:text-[#e6edf3] mb-1 font-semibold">
                     Confirm New Password
                   </label>
                   <input
@@ -880,14 +1103,14 @@ export function ProfilePage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat new password"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-slate-900 dark:text-slate-100"
+                    className="w-full px-3 py-1.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#1f2328] dark:text-[#e6edf3] focus:ring-1 focus:ring-[#0969da] dark:focus:ring-[#58a6ff] outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={updatingPassword}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-semibold transition disabled:opacity-60 cursor-pointer"
+                  className="px-4 py-2 rounded-md bg-[#1f883d] dark:bg-[#238636] hover:bg-[#1a7f37] dark:hover:bg-[#2ea043] text-white font-semibold transition disabled:opacity-60 cursor-pointer shadow-xs"
                 >
                   {updatingPassword ? 'Updating...' : 'Update Password'}
                 </button>
