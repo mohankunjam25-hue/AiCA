@@ -7,6 +7,7 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   setAuth: (user: User, token: string, profile?: UserProfile) => void;
+  setAccessToken: (token: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>) => void;
   logout: () => void;
 }
@@ -34,6 +35,11 @@ export const useAuthStore = create<AuthState>((set) => {
         accessToken: token,
         isAuthenticated: true
       });
+    },
+
+    setAccessToken: (token) => {
+      localStorage.setItem('aica_token', token);
+      set({ accessToken: token, isAuthenticated: true });
     },
 
     updateProfile: (updated) => {
