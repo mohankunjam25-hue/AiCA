@@ -3,25 +3,31 @@ import { Redis } from 'ioredis';
 import mongoose from 'mongoose';
 import { Judge0Service } from '../services/judge0.service.js';
 import { TestEvaluatorService } from '../services/test-evaluator.js';
+import { executeSuiteInSandbox } from '../services/local-runner.service.js';
 import { ScoringService } from '../services/scoring.service.js';
 import { AiEvaluatorService, AiEvaluationContext } from '../services/ai-evaluator.service.js';
 import { aiAnalysisQueue } from './ai-analysis.worker.js';
 import { GeminiAnalysisClient } from '@aica/ai-engine';
 import { PipelineStatus, Verdict, SupportedLanguage, AIAnalysisStatus, sanitizeRedisUrl } from '@aica/shared';
 
-// Initialize Services with TLS support & URL sanitization
-const redisUrl = sanitizeRedisUrl(process.env.REDIS_URL);
-const isRedisTls = redisUrl.startsWith('rediss://');
-const redisOptions = {
-  maxRetriesPerRequest: null,
-  lazyConnect: true,
-  connectTimeout: 4000,
-  retryStrategy(times: number) {
-    if (times > 3) return null;
-    return Math.min(times * 300, 1000);
-  },
-  ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {})
-};
+function getRedisUrl(): string {
+  return sanitizeRedisUrl(process.env.REDIS_URL);
+}
+
+function getRedisOptions(): any {
+  const url = getRedisUrl();
+  const isRedisTls = url.startsWith('rediss://');
+  return {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    connectTimeout: 4000,
+    retryStrategy(times: number) {
+      if (times > 3) return null;
+      return Math.min(times * 300, 1000);
+    },
+    ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {})
+  };
+}
 
 function createSafeRedis(url: string, opts: any): Redis {
   try {
@@ -32,10 +38,17 @@ function createSafeRedis(url: string, opts: any): Redis {
   }
 }
 
-const redisPublisher = createSafeRedis(redisUrl, redisOptions);
-redisPublisher.on('error', (err) => {
-  console.warn('[SubmissionWorker] Redis publisher warning (deferred):', err.message);
-});
+let redisPublisherInstance: Redis | null = null;
+function getRedisPublisher(): Redis {
+  if (!redisPublisherInstance) {
+    redisPublisherInstance = createSafeRedis(getRedisUrl(), getRedisOptions());
+    redisPublisherInstance.on('error', (err) => {
+      console.warn('[SubmissionWorker] Redis publisher warning (deferred):', err.message);
+    });
+    redisPublisherInstance.connect().catch(() => {});
+  }
+  return redisPublisherInstance;
+}
 
 const judge0 = new Judge0Service();
 const aiClient = new GeminiAnalysisClient();
@@ -59,30 +72,22 @@ async function publishProgress(
       totalSteps,
       ...extra
     });
-    await redisPublisher.publish(`submission:${submissionId}`, payload);
+    await getRedisPublisher().publish(`submission:${submissionId}`, payload);
   } catch (err: any) {
     console.warn('[SubmissionWorker] PubSub publish error:', err.message);
   }
 }
 
 export function startSubmissionWorker(): Worker {
-  const connection = createSafeRedis(redisUrl, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    lazyConnect: true,
-    connectTimeout: 4000,
-    retryStrategy(times: number) {
-      if (times > 3) return null;
-      return Math.min(times * 300, 1000);
-    },
-    ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {})
-  });
+  const redisUrl = getRedisUrl();
+  const redisOpts = getRedisOptions();
+  const connection = createSafeRedis(redisUrl, redisOpts);
 
   connection.on('error', (err) => {
     console.warn('[SubmissionWorker] Redis connection warning (deferred):', err.message);
   });
 
-  redisPublisher.connect().catch(() => {});
+  connection.connect().catch(() => {});
 
   const worker = new Worker(
     'submission-queue',
@@ -131,32 +136,63 @@ export function startSubmissionWorker(): Worker {
 
         const scaledTimeLimitMs = Math.round((problem.timeLimitMs || 2000) * langMultiplier);
 
-        // Prepare batch for Judge0
-        const batchInputs = testCases.map((tc: any, idx: number) => ({
-          testCaseId: tc.id,
-          index: idx + 1,
-          isPublic: Boolean(tc.isPublic),
-          sourceCode: code,
-          languageId: languageId || 71,
-          stdin: tc.input,
-          expectedOutput: tc.expectedOutput,
-          cpuTimeLimit: scaledTimeLimitMs,
-          memoryLimit: problem.memoryLimitKb
-        }));
+        let outcome;
+        const useRemoteJudge0 = process.env.USE_REMOTE_JUDGE0 === 'true';
 
-        const submittedTokens = await judge0.submitBatch(batchInputs);
-        const tokenList = submittedTokens.map((t) => t.token);
+        if (useRemoteJudge0) {
+          const isHealthy = await judge0.checkHealth();
+          if (isHealthy) {
+            const batchInputs = testCases.map((tc: any, idx: number) => ({
+              testCaseId: tc.id || `tc-${idx + 1}`,
+              index: idx + 1,
+              isPublic: Boolean(tc.isPublic),
+              sourceCode: code,
+              languageId: languageId || 71,
+              stdin: tc.input || '',
+              expectedOutput: tc.expectedOutput || '',
+              cpuTimeLimit: scaledTimeLimitMs,
+              memoryLimit: problem.memoryLimitKb
+            }));
 
-        // Poll results from Judge0
-        const judge0Results = await judge0.pollBatchResults(tokenList);
+            const submittedTokens = await judge0.submitBatch(batchInputs);
+            const tokenList = submittedTokens.map((t) => t.token);
+            const judge0Results = await judge0.pollBatchResults(tokenList);
+            const tokenMappings = submittedTokens.map((t, idx) => ({
+              ...t,
+              expectedOutput: testCases[idx].expectedOutput
+            }));
+            outcome = TestEvaluatorService.evaluateBatch(tokenMappings, judge0Results);
+          }
+        }
 
-        // Evaluate outputs using Deterministic Diff Engine
-        const tokenMappings = submittedTokens.map((t, idx) => ({
-          ...t,
-          expectedOutput: testCases[idx].expectedOutput
-        }));
-
-        const outcome = TestEvaluatorService.evaluateBatch(tokenMappings, judge0Results);
+        // Primary Local REA Linux Sandbox Pipeline:
+        // - Single compilation for C++/Java
+        // - Sequential & short-circuit execution on failure (LeetCode standard)
+        // - Real-time SSE progress events
+        // - Zero-leakage hidden test masking
+        if (!outcome) {
+          outcome = await executeSuiteInSandbox({
+            language: language as SupportedLanguage,
+            code,
+            testCases: testCases.map((tc: any, idx: number) => ({
+              id: tc.id || `tc-${idx + 1}`,
+              index: idx + 1,
+              isPublic: Boolean(tc.isPublic),
+              stdin: tc.input || '',
+              expectedOutput: tc.expectedOutput || ''
+            })),
+            timeoutMs: scaledTimeLimitMs,
+            memoryLimitKb: problem.memoryLimitKb || 262144,
+            shortCircuitOnFailure: !isTestRun,
+            onProgress: async ({ current, total }) => {
+              await publishProgress(submissionId, 'EXECUTING', 'PENDING', 2, 4, {
+                currentTest: current,
+                totalTests: total,
+                message: `Running test case ${current} of ${total}...`
+              });
+            }
+          });
+        }
 
         // STAGE 1: Deterministic Evaluation & Verdict Finalization (P0 Isolation)
         // Correctness verdict is strictly computed deterministically from test cases
@@ -266,7 +302,7 @@ export function startSubmissionWorker(): Worker {
         if (outcome.verdict === 'ACCEPTED' && !isTestRun) {
           try {
             const zsetKey = `leaderboard:problem:${problemId}`;
-            await redisPublisher.zadd(zsetKey, initialScoring.compositeScore, submissionId);
+            await getRedisPublisher().zadd(zsetKey, initialScoring.compositeScore, submissionId);
           } catch (redisErr: any) {
             console.warn(`[SubmissionWorker] Leaderboard Redis update failed for submission ${submissionId}:`, redisErr.message);
             // Leaderboard Redis failure must NEVER fail the submission evaluation or alter verdict!
@@ -317,7 +353,7 @@ export function startSubmissionWorker(): Worker {
               await aiEvaluator.evaluateSubmissionAi(aiContext, {
                 db,
                 publishProgress: publishProgress as any,
-                redisPublisher,
+                redisPublisher: getRedisPublisher(),
                 timeoutMs: 15000
               });
             } catch (inlineErr: any) {
@@ -338,7 +374,7 @@ export function startSubmissionWorker(): Worker {
                 await aiEvaluator.evaluateSubmissionAi(aiContext, {
                   db,
                   publishProgress: publishProgress as any,
-                  redisPublisher,
+                  redisPublisher: getRedisPublisher(),
                   timeoutMs: 15000
                 });
               } catch (fallbackErr: any) {

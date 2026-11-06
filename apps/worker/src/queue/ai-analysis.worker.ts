@@ -74,6 +74,7 @@ export function startAiAnalysisWorker(): Worker {
     console.warn('[AiAnalysisWorker] Redis connection warning:', err.message);
   });
 
+  connection.connect().catch(() => {});
   redisPublisher.connect().catch(() => {});
 
   const worker = new Worker(

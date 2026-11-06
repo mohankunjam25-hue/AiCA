@@ -1,5 +1,15 @@
 import { Verdict, TestResultItem } from '@aica/shared';
-import { Judge0BatchResultItem } from './judge0.service.js';
+
+export interface Judge0BatchResultItem {
+  token: string;
+  status_id: number;
+  status: { id: number; description: string };
+  stdout?: string | null;
+  stderr?: string | null;
+  compile_output?: string | null;
+  time?: string | number | null;
+  memory?: number | null;
+}
 
 export interface EvaluatedTestOutcome {
   verdict: Verdict;
@@ -156,8 +166,8 @@ export class TestEvaluatorService {
         index: mapping.index,
         passed,
         isPublic: mapping.isPublic,
-        actualOutput: stdout,
-        expectedOutput: mapping.expectedOutput,
+        actualOutput: mapping.isPublic ? stdout : '[HIDDEN]',
+        expectedOutput: mapping.isPublic ? mapping.expectedOutput : '[HIDDEN]',
         executionTimeMs: execTimeMs,
         memoryKb: memKb,
         errorMessage: errorMsg
