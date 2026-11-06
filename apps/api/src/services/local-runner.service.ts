@@ -1,14 +1,20 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, ChildProcess } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { SupportedLanguage } from '@aica/shared';
+import {
+  executeInLinuxSandbox,
+  BoundedOutputExcerpt,
+  SandboxExecutionLimits
+} from './linux-sandbox.js';
 
 export interface LocalExecutionInput {
   language: SupportedLanguage;
   code: string;
   stdin?: string;
   timeoutMs?: number;
+  memoryLimitKb?: number;
 }
 
 export interface LocalExecutionOutput {
@@ -215,84 +221,101 @@ export function wrapCodeWithDriver(code: string, language: SupportedLanguage): s
   return code;
 }
 
-export function executeLocally(input: LocalExecutionInput): LocalExecutionOutput {
-  const { language, stdin = '', timeoutMs = 5000 } = input;
+async function compileSource(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  timeoutMs = 10000
+): Promise<{ success: boolean; output: string }> {
+  return new Promise((resolve) => {
+    let child: ChildProcess;
+    try {
+      child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (err: any) {
+      return resolve({ success: false, output: err.message || 'Compiler spawn failed' });
+    }
+
+    const excerpt = new BoundedOutputExcerpt(256 * 1024);
+    const timer = setTimeout(() => {
+      try {
+        child.kill('SIGKILL');
+      } catch (_) {}
+      resolve({ success: false, output: 'Compilation timed out after 10000ms' });
+    }, timeoutMs);
+
+    child.stdout?.on('data', (d: Buffer) => excerpt.append(d));
+    child.stderr?.on('data', (d: Buffer) => excerpt.append(d));
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve({ success: true, output: '' });
+      } else {
+        resolve({ success: false, output: excerpt.text || `Compilation exited with status ${code}` });
+      }
+    });
+
+    child.on('error', (err: any) => {
+      clearTimeout(timer);
+      resolve({ success: false, output: err.message || 'Compiler failed to execute' });
+    });
+  });
+}
+
+export async function executeLocally(input: LocalExecutionInput): Promise<LocalExecutionOutput> {
+  const { language, stdin = '', timeoutMs = 5000, memoryLimitKb } = input;
   const code = wrapCodeWithDriver(input.code, language);
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aica-run-'));
-  const start = performance.now();
+
+  const memoryLimitBytes = memoryLimitKb ? memoryLimitKb * 1024 : 256 * 1024 * 1024;
+  const cpuTimeSeconds = Math.max(1, Math.ceil(timeoutMs / 1000));
+  const limits: SandboxExecutionLimits = {
+    memoryLimitBytes,
+    cpuTimeSeconds,
+    wallClockTimeoutMs: timeoutMs + 1000
+  };
 
   try {
     if (language === 'python') {
       const scriptPath = path.join(tempDir, 'solution.py');
       fs.writeFileSync(scriptPath, code);
-      const res = spawnSync('python3', [scriptPath], {
-        input: stdin,
-        timeout: timeoutMs,
-        maxBuffer: 10 * 1024 * 1024
-      });
-      const elapsed = Math.round(performance.now() - start);
 
-      if (res.error && (res.error as any).code === 'ETIMEDOUT') {
-        return {
-          stdout: '',
-          stderr: 'Time limit exceeded',
-          compileOutput: '',
-          executionTimeMs: timeoutMs,
-          memoryUsedKb: 14000,
-          statusId: 5,
-          statusDescription: 'Time Limit Exceeded'
-        };
-      }
-
-      const stdout = res.stdout ? res.stdout.toString('utf8') : '';
-      const stderr = res.stderr ? res.stderr.toString('utf8') : '';
-      const isErr = res.status !== 0;
+      const sandboxRes = await executeInLinuxSandbox(
+        'python3',
+        ['-u', scriptPath],
+        { stdin, cwd: tempDir, limits }
+      );
 
       return {
-        stdout,
-        stderr,
+        stdout: sandboxRes.stdout,
+        stderr: sandboxRes.stderr,
         compileOutput: '',
-        executionTimeMs: Math.max(1, elapsed),
-        memoryUsedKb: 14200,
-        statusId: isErr ? 11 : 3,
-        statusDescription: isErr ? 'Runtime Error' : 'Accepted'
+        executionTimeMs: sandboxRes.executionTimeMs,
+        memoryUsedKb: sandboxRes.memoryUsedKb,
+        statusId: sandboxRes.statusId,
+        statusDescription: sandboxRes.statusDescription
       };
     }
 
     if (language === 'javascript') {
       const scriptPath = path.join(tempDir, 'solution.js');
       fs.writeFileSync(scriptPath, code);
-      const res = spawnSync(process.execPath || 'node', [scriptPath], {
-        input: stdin,
-        timeout: timeoutMs,
-        maxBuffer: 10 * 1024 * 1024
-      });
-      const elapsed = Math.round(performance.now() - start);
 
-      if (res.error && (res.error as any).code === 'ETIMEDOUT') {
-        return {
-          stdout: '',
-          stderr: 'Time limit exceeded',
-          compileOutput: '',
-          executionTimeMs: timeoutMs,
-          memoryUsedKb: 22000,
-          statusId: 5,
-          statusDescription: 'Time Limit Exceeded'
-        };
-      }
-
-      const stdout = res.stdout ? res.stdout.toString('utf8') : '';
-      const stderr = res.stderr ? res.stderr.toString('utf8') : '';
-      const isErr = res.status !== 0;
+      const nodeBin = process.execPath || 'node';
+      const sandboxRes = await executeInLinuxSandbox(
+        nodeBin,
+        ['--max-old-space-size=256', scriptPath],
+        { stdin, cwd: tempDir, limits }
+      );
 
       return {
-        stdout,
-        stderr,
+        stdout: sandboxRes.stdout,
+        stderr: sandboxRes.stderr,
         compileOutput: '',
-        executionTimeMs: Math.max(1, elapsed),
-        memoryUsedKb: 22500,
-        statusId: isErr ? 11 : 3,
-        statusDescription: isErr ? 'Runtime Error' : 'Accepted'
+        executionTimeMs: sandboxRes.executionTimeMs,
+        memoryUsedKb: sandboxRes.memoryUsedKb,
+        statusId: sandboxRes.statusId,
+        statusDescription: sandboxRes.statusDescription
       };
     }
 
@@ -301,16 +324,12 @@ export function executeLocally(input: LocalExecutionInput): LocalExecutionOutput
       const binPath = path.join(tempDir, 'solution');
       fs.writeFileSync(srcPath, code);
 
-      const compRes = spawnSync('g++', ['-O2', '-std=c++17', srcPath, '-o', binPath], {
-        timeout: 10000,
-        maxBuffer: 5 * 1024 * 1024
-      });
-
-      if (compRes.status !== 0) {
+      const comp = await compileSource('g++', ['-O3', '-std=c++17', srcPath, '-o', binPath], tempDir);
+      if (!comp.success) {
         return {
           stdout: '',
           stderr: '',
-          compileOutput: compRes.stderr ? compRes.stderr.toString('utf8') : 'Compilation failed',
+          compileOutput: comp.output,
           executionTimeMs: 0,
           memoryUsedKb: 0,
           statusId: 6,
@@ -318,37 +337,20 @@ export function executeLocally(input: LocalExecutionInput): LocalExecutionOutput
         };
       }
 
-      const res = spawnSync(binPath, [], {
-        input: stdin,
-        timeout: timeoutMs,
-        maxBuffer: 10 * 1024 * 1024
-      });
-      const elapsed = Math.round(performance.now() - start);
-
-      if (res.error && (res.error as any).code === 'ETIMEDOUT') {
-        return {
-          stdout: '',
-          stderr: 'Time limit exceeded',
-          compileOutput: '',
-          executionTimeMs: timeoutMs,
-          memoryUsedKb: 4096,
-          statusId: 5,
-          statusDescription: 'Time Limit Exceeded'
-        };
-      }
-
-      const stdout = res.stdout ? res.stdout.toString('utf8') : '';
-      const stderr = res.stderr ? res.stderr.toString('utf8') : '';
-      const isErr = res.status !== 0;
+      const sandboxRes = await executeInLinuxSandbox(
+        binPath,
+        [],
+        { stdin, cwd: tempDir, limits }
+      );
 
       return {
-        stdout,
-        stderr,
+        stdout: sandboxRes.stdout,
+        stderr: sandboxRes.stderr,
         compileOutput: '',
-        executionTimeMs: Math.max(1, elapsed),
-        memoryUsedKb: 4200,
-        statusId: isErr ? 11 : 3,
-        statusDescription: isErr ? 'Runtime Error' : 'Accepted'
+        executionTimeMs: sandboxRes.executionTimeMs,
+        memoryUsedKb: sandboxRes.memoryUsedKb,
+        statusId: sandboxRes.statusId,
+        statusDescription: sandboxRes.statusDescription
       };
     }
 
@@ -356,16 +358,12 @@ export function executeLocally(input: LocalExecutionInput): LocalExecutionOutput
       const srcPath = path.join(tempDir, 'Main.java');
       fs.writeFileSync(srcPath, code);
 
-      const compRes = spawnSync('javac', [srcPath], {
-        timeout: 10000,
-        maxBuffer: 5 * 1024 * 1024
-      });
-
-      if (compRes.status !== 0) {
+      const comp = await compileSource('javac', [srcPath], tempDir);
+      if (!comp.success) {
         return {
           stdout: '',
           stderr: '',
-          compileOutput: compRes.stderr ? compRes.stderr.toString('utf8') : 'Compilation failed',
+          compileOutput: comp.output,
           executionTimeMs: 0,
           memoryUsedKb: 0,
           statusId: 6,
@@ -373,37 +371,20 @@ export function executeLocally(input: LocalExecutionInput): LocalExecutionOutput
         };
       }
 
-      const res = spawnSync('java', ['-cp', tempDir, 'Main'], {
-        input: stdin,
-        timeout: timeoutMs,
-        maxBuffer: 10 * 1024 * 1024
-      });
-      const elapsed = Math.round(performance.now() - start);
-
-      if (res.error && (res.error as any).code === 'ETIMEDOUT') {
-        return {
-          stdout: '',
-          stderr: 'Time limit exceeded',
-          compileOutput: '',
-          executionTimeMs: timeoutMs,
-          memoryUsedKb: 28000,
-          statusId: 5,
-          statusDescription: 'Time Limit Exceeded'
-        };
-      }
-
-      const stdout = res.stdout ? res.stdout.toString('utf8') : '';
-      const stderr = res.stderr ? res.stderr.toString('utf8') : '';
-      const isErr = res.status !== 0;
+      const sandboxRes = await executeInLinuxSandbox(
+        'java',
+        ['-Xmx256m', '-cp', tempDir, 'Main'],
+        { stdin, cwd: tempDir, limits }
+      );
 
       return {
-        stdout,
-        stderr,
+        stdout: sandboxRes.stdout,
+        stderr: sandboxRes.stderr,
         compileOutput: '',
-        executionTimeMs: Math.max(1, elapsed),
-        memoryUsedKb: 29000,
-        statusId: isErr ? 11 : 3,
-        statusDescription: isErr ? 'Runtime Error' : 'Accepted'
+        executionTimeMs: sandboxRes.executionTimeMs,
+        memoryUsedKb: sandboxRes.memoryUsedKb,
+        statusId: sandboxRes.statusId,
+        statusDescription: sandboxRes.statusDescription
       };
     }
 

@@ -109,34 +109,37 @@ export class Judge0Service {
     } catch (err: any) {
       console.warn(`[Judge0Service] Judge0 unavailable (${err.message}). Using local execution fallback for submission batch.`);
 
-      return submissions.map((sub, idx) => {
-        const lang = (JUDGE0_LANGUAGE_IDS[sub.languageId] || 'python') as SupportedLanguage;
-        const res = executeLocally({
-          language: lang,
-          code: sub.sourceCode,
-          stdin: sub.stdin,
-          timeoutMs: sub.cpuTimeLimit ? Math.round(sub.cpuTimeLimit * 1000) : 5000
-        });
+      return await Promise.all(
+        submissions.map(async (sub, idx) => {
+          const lang = (JUDGE0_LANGUAGE_IDS[sub.languageId] || 'python') as SupportedLanguage;
+          const res = await executeLocally({
+            language: lang,
+            code: sub.sourceCode,
+            stdin: sub.stdin,
+            timeoutMs: sub.cpuTimeLimit ? Math.round(sub.cpuTimeLimit * 1000) : 5000,
+            memoryLimitKb: sub.memoryLimit
+          });
 
-        const token = `local-token-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
-        this.fallbackResults.set(token, {
-          token,
-          status_id: res.statusId,
-          status: { id: res.statusId, description: res.statusDescription },
-          stdout: res.stdout ? Buffer.from(res.stdout).toString('base64') : null,
-          stderr: res.stderr ? Buffer.from(res.stderr).toString('base64') : null,
-          compile_output: res.compileOutput ? Buffer.from(res.compileOutput).toString('base64') : null,
-          time: (res.executionTimeMs / 1000).toFixed(3),
-          memory: res.memoryUsedKb
-        });
+          const token = `local-token-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
+          this.fallbackResults.set(token, {
+            token,
+            status_id: res.statusId,
+            status: { id: res.statusId, description: res.statusDescription },
+            stdout: res.stdout ? Buffer.from(res.stdout).toString('base64') : null,
+            stderr: res.stderr ? Buffer.from(res.stderr).toString('base64') : null,
+            compile_output: res.compileOutput ? Buffer.from(res.compileOutput).toString('base64') : null,
+            time: (res.executionTimeMs / 1000).toFixed(3),
+            memory: res.memoryUsedKb
+          });
 
-        return {
-          token,
-          testCaseId: sub.testCaseId,
-          index: sub.index,
-          isPublic: sub.isPublic
-        };
-      });
+          return {
+            token,
+            testCaseId: sub.testCaseId,
+            index: sub.index,
+            isPublic: sub.isPublic
+          };
+        })
+      );
     }
   }
 

@@ -119,11 +119,12 @@ export class SandboxRunnerService {
       }
 
       // Safe local subprocess execution fallback
-      const localResult = executeLocally({
+      const localResult = await executeLocally({
         language,
         code,
         stdin,
-        timeoutMs: Math.round(scaledCpuLimit * 1000)
+        timeoutMs: Math.round(scaledCpuLimit * 1000),
+        memoryLimitKb
       });
 
       const { verdict, isError } = this.mapStatusToVerdict(

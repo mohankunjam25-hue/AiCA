@@ -156,8 +156,8 @@ export class TestEvaluatorService {
         index: mapping.index,
         passed,
         isPublic: mapping.isPublic,
-        actualOutput: stdout,
-        expectedOutput: mapping.expectedOutput,
+        actualOutput: mapping.isPublic ? stdout : '[HIDDEN]',
+        expectedOutput: mapping.isPublic ? mapping.expectedOutput : '[HIDDEN]',
         executionTimeMs: execTimeMs,
         memoryKb: memKb,
         errorMessage: errorMsg
