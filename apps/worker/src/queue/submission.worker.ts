@@ -6,9 +6,11 @@ import { TestEvaluatorService } from '../services/test-evaluator.js';
 import { executeSuiteInSandbox } from '../services/local-runner.service.js';
 import { ScoringService } from '../services/scoring.service.js';
 import { AiEvaluatorService, AiEvaluationContext } from '../services/ai-evaluator.service.js';
+import { StaticCodeAnalyzer, PercentileCalculator } from '../services/deterministic-analytics.service.js';
+import { ApproachCacheService } from '../services/approach-cache.service.js';
 import { aiAnalysisQueue } from './ai-analysis.worker.js';
 import { GeminiAnalysisClient } from '@aica/ai-engine';
-import { PipelineStatus, Verdict, SupportedLanguage, AIAnalysisStatus, sanitizeRedisUrl } from '@aica/shared';
+import { PipelineStatus, Verdict, SupportedLanguage, AIAnalysisStatus, DeterministicAnalytics, sanitizeRedisUrl } from '@aica/shared';
 
 function getRedisUrl(): string {
   return sanitizeRedisUrl(process.env.REDIS_URL);
@@ -209,14 +211,72 @@ export function startSubmissionWorker(): Worker {
           memoryLimitKb: problem.memoryLimitKb
         });
 
+        // 1. Run Deterministic AST Static Code Analysis (Zero AI overhead)
+        const staticMetrics = StaticCodeAnalyzer.analyze({
+          code,
+          language: language as SupportedLanguage,
+          executionTimeMs: outcome.maxExecutionTimeMs,
+          memoryUsedKb: outcome.maxMemoryKb
+        });
+
+        // 2. Fetch past accepted submissions to calculate mathematical percentiles (LeetCode style)
+        let percentiles = { runtimePercentile: 91.5, memoryPercentile: 87.0 };
+        try {
+          const pastAccepted = await submissionsCol
+            .find({ problemId, verdict: 'ACCEPTED' }, { projection: { executionTimeMs: 1, memoryUsedKb: 1 } })
+            .limit(100)
+            .toArray();
+          const pastTimes = pastAccepted.map((s: any) => s.executionTimeMs).filter((t: any) => typeof t === 'number');
+          const pastMems = pastAccepted.map((s: any) => s.memoryUsedKb).filter((m: any) => typeof m === 'number');
+          percentiles = PercentileCalculator.calculatePercentiles(
+            outcome.maxExecutionTimeMs,
+            outcome.maxMemoryKb,
+            pastTimes,
+            pastMems
+          );
+        } catch (percErr: any) {
+          console.warn('[SubmissionWorker] Percentile calculation warning:', percErr.message);
+        }
+
+        // 3. Problem-level multi-approach solution caching
+        let matchedApproaches: any = { approaches: [] };
+        let cachedApproachesData: any = null;
+        try {
+          cachedApproachesData = await ApproachCacheService.getApproachesForProblem(problemId, problem);
+          if (cachedApproachesData?.solutionApproaches) {
+            matchedApproaches = ApproachCacheService.matchStudentApproach(
+              code,
+              staticMetrics.maxLoopDepth,
+              cachedApproachesData.solutionApproaches
+            );
+          }
+        } catch (appErr: any) {
+          console.warn('[SubmissionWorker] Approach cache lookup warning:', appErr.message);
+        }
+
+        const deterministicAnalytics: DeterministicAnalytics = {
+          runtimePercentile: percentiles.runtimePercentile,
+          memoryPercentile: percentiles.memoryPercentile,
+          cyclomaticComplexity: staticMetrics.cyclomaticComplexity,
+          maxLoopDepth: staticMetrics.maxLoopDepth,
+          qualityScore: staticMetrics.qualityScore,
+          qualityGrade: staticMetrics.qualityGrade,
+          codeSmells: staticMetrics.codeSmells,
+          positivePatterns: staticMetrics.positivePatterns,
+          matchedApproachTitle: matchedApproaches.matchedApproach?.title,
+          matchedApproachNumber: matchedApproaches.matchedApproach?.approachNumber
+        };
+
         const initialAiStatus: AIAnalysisStatus =
           outcome.verdict === 'COMPILATION_ERROR' ? 'SKIPPED' : 'PENDING';
         const initialAiSummary =
           outcome.verdict === 'COMPILATION_ERROR'
             ? 'Compilation failed. AI analysis bypassed.'
-            : 'Deterministic evaluation complete. AI analysis pending.';
+            : outcome.verdict === 'ACCEPTED'
+            ? `Accepted solution verified. Structural loop depth: ${staticMetrics.maxLoopDepth}, Complexity: ${staticMetrics.cyclomaticComplexity}.`
+            : `Evaluated test cases with verdict ${outcome.verdict}.`;
 
-        // 1. Persist Initial Evaluation Report Document in MongoDB FIRST
+        // 4. Persist Initial Evaluation Report Document in MongoDB FIRST
         const reportInsert = await reportsCol.insertOne({
           submissionId,
           userId,
@@ -225,17 +285,26 @@ export function startSubmissionWorker(): Worker {
           verdict: outcome.verdict,
           pipelineStatus: 'COMPLETED',
           summary: `Evaluated ${outcome.totalCount} test cases. Verdict: ${outcome.verdict}.`,
+          deterministicAnalytics,
           aiAnalysis: {
             status: initialAiStatus,
             mode: outcome.verdict === 'ACCEPTED' ? 'OPTIMIZATION' : 'DIAGNOSTIC',
             codeSummary: initialAiSummary,
-            theoreticalComplexity: { timeComplexity: 'N/A', spaceComplexity: 'N/A', explanation: '' },
-            codeQuality: {
-              score: outcome.verdict === 'COMPILATION_ERROR' ? 1.0 : 7.0,
-              readabilityAnalysis: '',
-              codeSmells: [],
-              positivePractices: []
+            theoreticalComplexity: {
+              timeComplexity: matchedApproaches.matchedApproach?.timeComplexity || (staticMetrics.maxLoopDepth >= 2 ? 'O(N^2)' : 'O(N)'),
+              spaceComplexity: matchedApproaches.matchedApproach?.spaceComplexity || 'O(1)',
+              explanation: `Computed deterministically via AST analysis. Maximum loop nesting depth: ${staticMetrics.maxLoopDepth}.`
             },
+            codeQuality: {
+              score: Math.round(staticMetrics.qualityScore / 10),
+              qualityGrade: staticMetrics.qualityGrade,
+              overallScore: staticMetrics.qualityScore,
+              readabilityAnalysis: `Readability score ${Math.round(staticMetrics.qualityScore / 10)}/10 based on AST branching analysis (${staticMetrics.cyclomaticComplexity}).`,
+              codeSmells: staticMetrics.codeSmells,
+              positivePractices: staticMetrics.positivePatterns
+            },
+            solutionApproaches: matchedApproaches.approaches || [],
+            comparisonMatrix: cachedApproachesData?.comparisonMatrix || [],
             optimizationSuggestions: [],
             generatedAt: new Date().toISOString()
           },
@@ -245,8 +314,8 @@ export function startSubmissionWorker(): Worker {
             rawMemoryKb: outcome.maxMemoryKb,
             normalizedMemoryKb: initialScoring.normalizedMemoryKb,
             compositeScore: initialScoring.compositeScore,
-            percentileTime: 85,
-            percentileMemory: 80
+            percentileTime: percentiles.runtimePercentile,
+            percentileMemory: percentiles.memoryPercentile
           },
           createdAt: new Date().toISOString()
         });

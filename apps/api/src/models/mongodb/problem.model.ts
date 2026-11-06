@@ -55,6 +55,24 @@ const ProblemSchema = new Schema<ProblemDocument>({
     java: { type: String, default: '' }
   },
   testCases: [TestCaseSchema],
+  solutionApproaches: [{
+    approachNumber: { type: Number },
+    title: { type: String },
+    paradigm: { type: String },
+    isUserApproach: { type: Boolean, default: false },
+    timeComplexity: { type: String },
+    spaceComplexity: { type: String },
+    intuition: { type: String },
+    pros: [{ type: String }],
+    cons: [{ type: String }],
+    pseudoCodeOrGuide: { type: String }
+  }],
+  comparisonMatrix: [{
+    approach: { type: String },
+    time: { type: String },
+    space: { type: String },
+    suitability: { type: String }
+  }],
   totalSubmissions: { type: Number, default: 0 },
   acceptedSubmissions: { type: Number, default: 0 },
   createdBy: { type: String, required: true } // PostgreSQL UUID

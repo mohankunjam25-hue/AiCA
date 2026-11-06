@@ -178,7 +178,7 @@ export async function getProblemComparison(req: Request, res: Response): Promise
     }
 
     if (!comparison) {
-      res.status(404).json(createErrorResponse('NOT_FOUND', 'No comparison found for this problem'));
+      res.status(200).json(createSuccessResponse(null, 'No comparison found for this problem'));
       return;
     }
 
@@ -380,7 +380,7 @@ export async function getProblemMultiComparison(req: Request, res: Response): Pr
       .lean();
 
     if (!comparison) {
-      res.status(404).json(createErrorResponse('NOT_FOUND', 'No multi-solution comparison found for this problem'));
+      res.status(200).json(createSuccessResponse(null, 'No multi-solution comparison found for this problem'));
       return;
     }
 
