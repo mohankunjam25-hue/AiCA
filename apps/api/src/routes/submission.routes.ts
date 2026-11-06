@@ -3,6 +3,7 @@ import {
   createSubmission,
   getSubmissionById,
   getEvaluationReport,
+  getSubmissionAiAnalysis,
   retryAiAnalysis,
   getMySubmissions,
   getActivityHeatmap,
@@ -23,6 +24,7 @@ router.get('/activity-heatmap', authenticateToken, getActivityHeatmap);
 router.get('/:id', optionalAuth, getSubmissionById);
 router.get('/:id/status-stream', optionalAuth, handleSubmissionStatusSSE);
 router.get('/:submissionId/report', optionalAuth, getEvaluationReport);
+router.get('/:submissionId/ai-analysis', optionalAuth, getSubmissionAiAnalysis);
 router.post('/:submissionId/retry-ai', authenticateToken, retryAiAnalysis);
 
 export default router;

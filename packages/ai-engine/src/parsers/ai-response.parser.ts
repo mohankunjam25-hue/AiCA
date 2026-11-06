@@ -21,6 +21,33 @@ export const AlgorithmGenerationSchema = z.object({
   steps: z.array(z.string().min(1)).min(2).max(10)
 });
 
+export const CodeImprovementSchema = z.object({
+  category: z.enum(['PERFORMANCE', 'CLEAN_CODE', 'MEMORY', 'SAFETY']).default('CLEAN_CODE'),
+  suggestion: z.string(),
+  codeSnippetBefore: z.string().optional(),
+  codeSnippetAfter: z.string().optional()
+});
+
+export const SolutionApproachSchema = z.object({
+  approachNumber: z.number(),
+  title: z.string(),
+  paradigm: z.string().default('OPTIMAL'),
+  isUserApproach: z.boolean().default(false),
+  timeComplexity: z.string(),
+  spaceComplexity: z.string(),
+  intuition: z.string(),
+  pros: z.array(z.string()).default([]),
+  cons: z.array(z.string()).default([]),
+  pseudoCodeOrGuide: z.string().optional()
+});
+
+export const ApproachComparisonRowSchema = z.object({
+  approach: z.string(),
+  time: z.string(),
+  space: z.string(),
+  suitability: z.string()
+});
+
 export const OptimizationResponseSchema = z.object({
   codeSummary: z.string(),
   timeComplexity: z.string(),
@@ -28,6 +55,8 @@ export const OptimizationResponseSchema = z.object({
   spaceComplexity: z.string(),
   spaceComplexityExplanation: z.string(),
   readabilityScore: z.number().min(1).max(10),
+  overallScore: z.number().min(1).max(100).optional(),
+  qualityGrade: z.enum(['A+', 'A', 'B', 'C', 'NEEDS_REFACTOR']).optional(),
   codeSmells: z.array(z.string()).default([]),
   positivePractices: z.array(z.string()).default([]),
   optimizationSuggestions: z
@@ -39,7 +68,10 @@ export const OptimizationResponseSchema = z.object({
         refactoredSnippet: z.string()
       })
     )
-    .default([])
+    .default([]),
+  improvements: z.array(CodeImprovementSchema).default([]),
+  solutionApproaches: z.array(SolutionApproachSchema).default([]),
+  comparisonMatrix: z.array(ApproachComparisonRowSchema).default([])
 });
 
 export const DiagnosticResponseSchema = z.object({

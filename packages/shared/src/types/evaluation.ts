@@ -11,6 +11,8 @@ export interface TheoreticalComplexity {
 
 export interface CodeQualityMetrics {
   score: number; // 1 - 10
+  qualityGrade?: 'A+' | 'A' | 'B' | 'C' | 'NEEDS_REFACTOR';
+  overallScore?: number; // 1 - 100
   readabilityAnalysis: string;
   codeSmells: string[];
   positivePractices: string[];
@@ -21,6 +23,33 @@ export interface OptimizationSuggestion {
   rationale: string;
   expectedTimeImpact: string;
   refactoredSnippet: string;
+}
+
+export interface CodeImprovement {
+  category: 'PERFORMANCE' | 'CLEAN_CODE' | 'MEMORY' | 'SAFETY';
+  suggestion: string;
+  codeSnippetBefore?: string;
+  codeSnippetAfter?: string;
+}
+
+export interface SolutionApproach {
+  approachNumber: number;
+  title: string;
+  paradigm: 'BRUTE_FORCE' | 'TWO_POINTER' | 'HASHING' | 'DYNAMIC_PROGRAMMING' | 'BINARY_SEARCH' | 'GREEDY' | 'BITWISE' | 'OPTIMAL' | 'OTHER' | string;
+  isUserApproach: boolean;
+  timeComplexity: string;
+  spaceComplexity: string;
+  intuition: string;
+  pros: string[];
+  cons: string[];
+  pseudoCodeOrGuide?: string;
+}
+
+export interface ApproachComparisonRow {
+  approach: string;
+  time: string;
+  space: string;
+  suitability: string;
 }
 
 export interface DiagnosticFeedback {
@@ -37,6 +66,9 @@ export interface AIAnalysisReport {
   codeQuality: CodeQualityMetrics;
   diagnosticFeedback?: DiagnosticFeedback;
   optimizationSuggestions: OptimizationSuggestion[];
+  improvements?: CodeImprovement[];
+  solutionApproaches?: SolutionApproach[];
+  comparisonMatrix?: ApproachComparisonRow[];
   generatedAt?: string;
 }
 

@@ -316,14 +316,17 @@ export function startSubmissionWorker(): Worker {
         }
 
         // STAGE 2: Decoupled & Isolated AI Analysis Execution
-        if (outcome.verdict === 'COMPILATION_ERROR') {
+        // Invariant: Zero AI delay during deterministic evaluation hot path (< 300ms).
+        // Deep AI analysis is strictly dispatched AFTER submission completes and ONLY for successful (ACCEPTED) verdicts.
+        if (outcome.verdict !== 'ACCEPTED') {
           await publishProgress(submissionId, 'COMPLETED', outcome.verdict, 4, 4, {
             reportId,
             compositeScore: initialScoring.compositeScore,
             aiStatus: 'SKIPPED'
           });
         } else {
-          await publishProgress(submissionId, 'ANALYZING_AI', outcome.verdict, 3, 4, {
+          // Immediately announce COMPLETED for deterministic evaluation so client gets instant verdict
+          await publishProgress(submissionId, 'COMPLETED', outcome.verdict, 4, 4, {
             reportId,
             compositeScore: initialScoring.compositeScore,
             aiStatus: 'PENDING'
@@ -345,8 +348,7 @@ export function startSubmissionWorker(): Worker {
             isTestRun
           };
 
-          const runInline =
-            process.env.INLINE_AI === 'true' || process.env.NODE_ENV === 'test';
+          const runInline = process.env.INLINE_AI === 'true';
 
           if (runInline) {
             try {

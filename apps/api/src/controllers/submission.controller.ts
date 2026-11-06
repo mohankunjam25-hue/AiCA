@@ -195,6 +195,86 @@ export async function getEvaluationReport(req: Request, res: Response): Promise<
   }
 }
 
+export async function getSubmissionAiAnalysis(req: Request, res: Response): Promise<void> {
+  const targetId = req.params.submissionId || req.params.id;
+
+  try {
+    const submission: any = await SubmissionModel.findById(targetId).lean();
+    if (!submission) {
+      res.status(404).json(createErrorResponse('NOT_FOUND', 'Target submission not found'));
+      return;
+    }
+
+    if (submission.verdict === 'PENDING') {
+      res.status(200).json(
+        createSuccessResponse({
+          status: 'PENDING',
+          message: 'Code evaluation is still in progress. AI analysis will begin after evaluation.',
+          submissionId: targetId,
+          verdict: 'PENDING'
+        })
+      );
+      return;
+    }
+
+    if (submission.verdict !== 'ACCEPTED') {
+      res.status(200).json(
+        createSuccessResponse({
+          status: 'SKIPPED',
+          message: `AI analysis bypassed: Submission verdict is ${submission.verdict}. Deep analysis only activates for accepted solutions.`,
+          submissionId: targetId,
+          verdict: submission.verdict
+        })
+      );
+      return;
+    }
+
+    const report: any = await EvaluationReportModel.findOne({ submissionId: targetId }).lean();
+    if (!report || !report.aiAnalysis) {
+      res.status(200).json(
+        createSuccessResponse({
+          status: submission.aiStatus || 'PENDING',
+          message: 'AI analysis is currently processing.',
+          submissionId: targetId,
+          verdict: submission.verdict
+        })
+      );
+      return;
+    }
+
+    const ai = report.aiAnalysis;
+    const responsePayload = {
+      status: ai.status,
+      submissionId: targetId,
+      problemId: report.problemId,
+      verdict: report.verdict,
+      codeSummary: ai.codeSummary,
+      // 1. Code Quality & Review
+      codeQuality: ai.codeQuality || {
+        score: 7,
+        qualityGrade: 'A',
+        readabilityAnalysis: '',
+        codeSmells: [],
+        positivePractices: []
+      },
+      theoreticalComplexity: ai.theoreticalComplexity,
+      // 2. Actionable Improvements
+      improvements: ai.improvements || [],
+      optimizationSuggestions: ai.optimizationSuggestions || [],
+      // 3. Multi-Approach Taxonomy ("Kitne type se solve ho sakti thi")
+      solutionApproaches: ai.solutionApproaches || [],
+      // 4. Comparison Matrix
+      comparisonMatrix: ai.comparisonMatrix || [],
+      generatedAt: ai.generatedAt,
+      error: ai.status === 'FAILED' ? (submission.aiError || 'AI service temporarily unavailable') : undefined
+    };
+
+    res.status(200).json(createSuccessResponse(responsePayload));
+  } catch (err: any) {
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'Failed to retrieve AI analysis'));
+  }
+}
+
 export async function retryAiAnalysis(req: Request, res: Response): Promise<void> {
   const { submissionId } = req.params;
 
