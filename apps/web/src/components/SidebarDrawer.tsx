@@ -163,8 +163,8 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             onClick={onClose}
             className="flex items-center gap-2.5 group"
           >
-            <div className="w-8 h-8 rounded-md bg-[#0d1117] border border-[#30363d] flex items-center justify-center p-1 shadow-xs group-hover:border-[#8b949e] transition">
-              <img src="/logo.png" alt="AiCA Logo" className="w-full h-full object-contain" />
+            <div className="w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <img src="/logo.png" alt="AiCA Logo" className="w-full h-full object-contain filter drop-shadow-xs" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm tracking-tight text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
