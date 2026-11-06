@@ -27,6 +27,7 @@ const judge0 = new Judge0Service();
 
 export function startProblemValidationWorker(): Worker {
   const connection = createSafeRedis(redisUrl, redisOptions);
+  connection.connect().catch(() => {});
 
   const worker = new Worker(
     'problem-validation-queue',

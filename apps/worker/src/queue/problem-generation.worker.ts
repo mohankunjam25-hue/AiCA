@@ -31,6 +31,7 @@ const validationQueue = new Queue('problem-validation-queue', {
 
 export function startProblemGenerationWorker(): Worker {
   const connection = createSafeRedis(redisUrl, redisOptions);
+  connection.connect().catch(() => {});
 
   const worker = new Worker(
     'problem-generation-queue',

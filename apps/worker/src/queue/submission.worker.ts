@@ -10,19 +10,24 @@ import { aiAnalysisQueue } from './ai-analysis.worker.js';
 import { GeminiAnalysisClient } from '@aica/ai-engine';
 import { PipelineStatus, Verdict, SupportedLanguage, AIAnalysisStatus, sanitizeRedisUrl } from '@aica/shared';
 
-// Initialize Services with TLS support & URL sanitization
-const redisUrl = sanitizeRedisUrl(process.env.REDIS_URL);
-const isRedisTls = redisUrl.startsWith('rediss://');
-const redisOptions = {
-  maxRetriesPerRequest: null,
-  lazyConnect: true,
-  connectTimeout: 4000,
-  retryStrategy(times: number) {
-    if (times > 3) return null;
-    return Math.min(times * 300, 1000);
-  },
-  ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {})
-};
+function getRedisUrl(): string {
+  return sanitizeRedisUrl(process.env.REDIS_URL);
+}
+
+function getRedisOptions(): any {
+  const url = getRedisUrl();
+  const isRedisTls = url.startsWith('rediss://');
+  return {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    connectTimeout: 4000,
+    retryStrategy(times: number) {
+      if (times > 3) return null;
+      return Math.min(times * 300, 1000);
+    },
+    ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {})
+  };
+}
 
 function createSafeRedis(url: string, opts: any): Redis {
   try {
@@ -33,10 +38,17 @@ function createSafeRedis(url: string, opts: any): Redis {
   }
 }
 
-const redisPublisher = createSafeRedis(redisUrl, redisOptions);
-redisPublisher.on('error', (err) => {
-  console.warn('[SubmissionWorker] Redis publisher warning (deferred):', err.message);
-});
+let redisPublisherInstance: Redis | null = null;
+function getRedisPublisher(): Redis {
+  if (!redisPublisherInstance) {
+    redisPublisherInstance = createSafeRedis(getRedisUrl(), getRedisOptions());
+    redisPublisherInstance.on('error', (err) => {
+      console.warn('[SubmissionWorker] Redis publisher warning (deferred):', err.message);
+    });
+    redisPublisherInstance.connect().catch(() => {});
+  }
+  return redisPublisherInstance;
+}
 
 const judge0 = new Judge0Service();
 const aiClient = new GeminiAnalysisClient();
@@ -60,30 +72,22 @@ async function publishProgress(
       totalSteps,
       ...extra
     });
-    await redisPublisher.publish(`submission:${submissionId}`, payload);
+    await getRedisPublisher().publish(`submission:${submissionId}`, payload);
   } catch (err: any) {
     console.warn('[SubmissionWorker] PubSub publish error:', err.message);
   }
 }
 
 export function startSubmissionWorker(): Worker {
-  const connection = createSafeRedis(redisUrl, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    lazyConnect: true,
-    connectTimeout: 4000,
-    retryStrategy(times: number) {
-      if (times > 3) return null;
-      return Math.min(times * 300, 1000);
-    },
-    ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {})
-  });
+  const redisUrl = getRedisUrl();
+  const redisOpts = getRedisOptions();
+  const connection = createSafeRedis(redisUrl, redisOpts);
 
   connection.on('error', (err) => {
     console.warn('[SubmissionWorker] Redis connection warning (deferred):', err.message);
   });
 
-  redisPublisher.connect().catch(() => {});
+  connection.connect().catch(() => {});
 
   const worker = new Worker(
     'submission-queue',
@@ -298,7 +302,7 @@ export function startSubmissionWorker(): Worker {
         if (outcome.verdict === 'ACCEPTED' && !isTestRun) {
           try {
             const zsetKey = `leaderboard:problem:${problemId}`;
-            await redisPublisher.zadd(zsetKey, initialScoring.compositeScore, submissionId);
+            await getRedisPublisher().zadd(zsetKey, initialScoring.compositeScore, submissionId);
           } catch (redisErr: any) {
             console.warn(`[SubmissionWorker] Leaderboard Redis update failed for submission ${submissionId}:`, redisErr.message);
             // Leaderboard Redis failure must NEVER fail the submission evaluation or alter verdict!
@@ -349,7 +353,7 @@ export function startSubmissionWorker(): Worker {
               await aiEvaluator.evaluateSubmissionAi(aiContext, {
                 db,
                 publishProgress: publishProgress as any,
-                redisPublisher,
+                redisPublisher: getRedisPublisher(),
                 timeoutMs: 15000
               });
             } catch (inlineErr: any) {
@@ -370,7 +374,7 @@ export function startSubmissionWorker(): Worker {
                 await aiEvaluator.evaluateSubmissionAi(aiContext, {
                   db,
                   publishProgress: publishProgress as any,
-                  redisPublisher,
+                  redisPublisher: getRedisPublisher(),
                   timeoutMs: 15000
                 });
               } catch (fallbackErr: any) {

@@ -45,6 +45,7 @@ const pgPool = new Pool(
 
 export function startAuditReconcilerWorker(): Worker {
   const connection = createSafeRedis(redisUrl, redisOptions);
+  connection.connect().catch(() => {});
 
   const worker = new Worker(
     'publication-outbox-queue',
