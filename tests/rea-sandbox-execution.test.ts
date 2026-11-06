@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { executeInLinuxSandbox, areOutputsEquivalent, BoundedOutputExcerpt } from '../apps/worker/src/services/linux-sandbox.js';
-import { executeLocally } from '../apps/worker/src/services/local-runner.service.js';
+import { executeLocally, executeSuiteInSandbox } from '../apps/worker/src/services/local-runner.service.js';
 import { TestEvaluatorService } from '../apps/worker/src/services/test-evaluator.js';
 
 describe('REA-Adapted Production Sandbox & Execution Engine', () => {
@@ -282,6 +282,144 @@ def twoSum(nums, target):
       expect(hiddenResult?.passed).toBe(false);
       expect(hiddenResult?.executionTimeMs).toBe(20);
       expect(hiddenResult?.memoryKb).toBe(16200);
+    });
+  });
+
+  describe('6. Single-Compile & Short-Circuiting Suite Runner (executeSuiteInSandbox)', () => {
+    it('should execute multiple test cases and return ACCEPTED when all match', async () => {
+      const pyCode = `
+import sys
+line = sys.stdin.read().strip()
+if line:
+    print(int(line) * 2)
+`;
+      const testCases = [
+        { id: 'tc-1', index: 1, isPublic: true, stdin: '5', expectedOutput: '10' },
+        { id: 'tc-2', index: 2, isPublic: true, stdin: '21', expectedOutput: '42' },
+        { id: 'tc-3', index: 3, isPublic: false, stdin: '100', expectedOutput: '200' }
+      ];
+
+      const outcome = await executeSuiteInSandbox({
+        language: 'python',
+        code: pyCode,
+        testCases,
+        timeoutMs: 2000
+      });
+
+      expect(outcome.verdict).toBe('ACCEPTED');
+      expect(outcome.passedCount).toBe(3);
+      expect(outcome.totalCount).toBe(3);
+      expect(outcome.testResults[0].actualOutput).toBe('10\n');
+      expect(outcome.testResults[2].actualOutput).toBe('[HIDDEN]');
+      expect(outcome.testResults[2].passed).toBe(true);
+    });
+
+    it('should compile C++ ONCE and execute entire suite with ultra-fast execution', async () => {
+      const cppCode = `
+#include <iostream>
+int main() {
+    int x;
+    if (std::cin >> x) {
+        std::cout << (x * x) << std::endl;
+    }
+    return 0;
+}
+`;
+      const testCases = [
+        { id: 'tc-1', index: 1, isPublic: true, stdin: '3', expectedOutput: '9' },
+        { id: 'tc-2', index: 2, isPublic: true, stdin: '4', expectedOutput: '16' },
+        { id: 'tc-3', index: 3, isPublic: true, stdin: '5', expectedOutput: '25' },
+        { id: 'tc-4', index: 4, isPublic: true, stdin: '6', expectedOutput: '36' },
+        { id: 'tc-5', index: 5, isPublic: false, stdin: '7', expectedOutput: '49' }
+      ];
+
+      const startTime = performance.now();
+      const outcome = await executeSuiteInSandbox({
+        language: 'cpp',
+        code: cppCode,
+        testCases,
+        timeoutMs: 2000
+      });
+      const elapsed = performance.now() - startTime;
+
+      expect(outcome.verdict).toBe('ACCEPTED');
+      expect(outcome.passedCount).toBe(5);
+      expect(outcome.totalCount).toBe(5);
+      // All 5 test cases including compilation should complete in under 1.5 seconds
+      expect(elapsed).toBeLessThan(1500);
+    });
+
+    it('should short-circuit immediately on first failing test case (LeetCode behavior)', async () => {
+      const pyCode = `
+import sys
+line = sys.stdin.read().strip()
+# Passes test 1 (5 -> 10), fails test 2 (21 -> 999 instead of 42)
+if line == '5':
+    print('10')
+else:
+    print('999')
+`;
+      const testCases = [
+        { id: 'tc-1', index: 1, isPublic: true, stdin: '5', expectedOutput: '10' },
+        { id: 'tc-2', index: 2, isPublic: true, stdin: '21', expectedOutput: '42' },
+        { id: 'tc-3', index: 3, isPublic: false, stdin: '100', expectedOutput: '200' },
+        { id: 'tc-4', index: 4, isPublic: false, stdin: '500', expectedOutput: '1000' }
+      ];
+
+      const progressSteps: number[] = [];
+      const outcome = await executeSuiteInSandbox({
+        language: 'python',
+        code: pyCode,
+        testCases,
+        shortCircuitOnFailure: true,
+        onProgress: ({ current }) => {
+          progressSteps.push(current);
+        }
+      });
+
+      expect(outcome.verdict).toBe('WRONG_ANSWER');
+      expect(outcome.passedCount).toBe(1);
+      expect(outcome.totalCount).toBe(4);
+
+      // Only test 1 and test 2 should have been executed before short-circuit
+      expect(progressSteps).toEqual([1, 2]);
+
+      // Test 1 passed
+      expect(outcome.testResults[0].passed).toBe(true);
+      // Test 2 failed
+      expect(outcome.testResults[1].passed).toBe(false);
+      // Test 3 and 4 were skipped
+      expect(outcome.testResults[2].errorMessage).toContain('Skipped');
+      expect(outcome.testResults[3].errorMessage).toContain('Skipped');
+    });
+
+    it('should abort immediately on C++ compilation error without executing test cases', async () => {
+      const brokenCpp = `
+#include <iostream>
+int main() {
+    this_does_not_exist();
+    return 0;
+}
+`;
+      const testCases = [
+        { id: 'tc-1', index: 1, isPublic: true, stdin: '1', expectedOutput: '1' },
+        { id: 'tc-2', index: 2, isPublic: true, stdin: '2', expectedOutput: '2' }
+      ];
+
+      let progressCalled = false;
+      const outcome = await executeSuiteInSandbox({
+        language: 'cpp',
+        code: brokenCpp,
+        testCases,
+        onProgress: () => {
+          progressCalled = true;
+        }
+      });
+
+      expect(outcome.verdict).toBe('COMPILATION_ERROR');
+      expect(outcome.compileOutput).toContain('this_does_not_exist');
+      expect(progressCalled).toBe(false);
+      expect(outcome.passedCount).toBe(0);
     });
   });
 });
