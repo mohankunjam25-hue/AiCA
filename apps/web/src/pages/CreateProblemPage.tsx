@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Bot,
   CheckCircle2,
@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Terminal,
   Code2,
-  FileCheck
+  FileCheck,
+  PenTool,
+  Sparkles
 } from 'lucide-react';
 import {
   ProblemProposal,
@@ -21,6 +23,7 @@ import {
 } from '@aica/shared';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { ProblemAuthoringStudio } from '../components/ProblemAuthoringStudio';
 
 const QUICK_PROMPTS = [
   'Find the first non-repeating character in a string of lowercase English letters.',
@@ -41,6 +44,10 @@ const STAGES: { key: string; label: string; description: string }[] = [
 export function CreateProblemPage() {
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [creationMode, setCreationMode] = useState<'manual' | 'ai'>(
+    searchParams.get('mode') === 'ai' ? 'ai' : 'manual'
+  );
 
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -213,25 +220,70 @@ export function CreateProblemPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      {/* Header Banner */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <Bot className="w-3.5 h-3.5 text-emerald-600" />
-            AI Pipeline
-          </span>
-          <span className="text-xs font-mono text-slate-400">Differential Verification 2.0</span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
+      {/* Top Header & Mode Switcher */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              Curriculum Authoring
+            </span>
+            <span className="text-xs font-mono text-slate-400">Zero-Leakage Sandbox</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            Problem Creation Studio
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+            Design curriculum questions manually with full control, or let the AI synthesizer generate dual-oracle test suites.
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          AI Problem Creator & Validator
-        </h1>
-        <p className="mt-1 text-xs sm:text-sm text-slate-600">
-          Enter a problem scenario to automatically synthesize specifications and dual-validated test suites.
-        </p>
+
+        {/* Mode Selector Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-xs self-start md:self-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setCreationMode('manual');
+              setSearchParams({});
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              creationMode === 'manual'
+                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <PenTool className="w-3.5 h-3.5" />
+            <span>Manual Authoring Studio</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCreationMode('ai');
+              setSearchParams({ mode: 'ai' });
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              creationMode === 'ai'
+                ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Bot className="w-3.5 h-3.5" />
+            <span>AI Auto-Generator</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Mode 1: Manual Authoring Studio */}
+      {creationMode === 'manual' ? (
+        <ProblemAuthoringStudio
+          isStandalone={true}
+          onSuccess={(saved) => navigate(`/workspace/${saved.slug || saved.id}`)}
+        />
+      ) : (
+        /* Mode 2: AI Pipeline Generator */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Form Column */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6">
@@ -646,6 +698,7 @@ export function CreateProblemPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
