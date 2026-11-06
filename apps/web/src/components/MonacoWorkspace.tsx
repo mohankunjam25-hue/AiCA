@@ -195,14 +195,14 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
   }, [code, language, customStdin, activeTestIndex, activeTab, isSubmitting, isRunningCustom, isStreaming]);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl transition-colors duration-200">
-      {/* Editor Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-lg overflow-hidden shadow-xs transition-colors duration-200">
+      {/* Editor Toolbar (GitHub Style) */}
+      <div className="flex items-center justify-between px-3.5 py-2 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] transition-colors">
+        <div className="flex items-center gap-2.5">
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-            className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 font-mono shadow-2xs"
+            className="bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-xs text-[#1f2328] dark:text-[#e6edf3] font-semibold rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#0969da] font-mono shadow-xs"
           >
             <option value="python">Python (3.10)</option>
             <option value="javascript">JavaScript (Node 18)</option>
@@ -212,7 +212,7 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
 
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded-md shadow-xs transition cursor-pointer"
             title="Reset to boilerplate"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -224,20 +224,20 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
           <button
             onClick={handleRunCustom}
             disabled={isSubmitting || isRunningCustom || isStreaming}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold disabled:opacity-50 transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#f6f8fa] hover:bg-[#eaeef2] dark:bg-[#21262d] dark:hover:bg-[#30363d] text-[#1f2328] dark:text-[#e6edf3] border border-[#d0d7de] dark:border-[#30363d] text-xs font-semibold shadow-xs disabled:opacity-50 transition cursor-pointer"
             title="Run against custom or public input (Ctrl+Enter)"
           >
             {isRunningCustom ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 dark:text-emerald-400" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1a7f37] dark:text-[#3fb950]" />
             ) : (
-              <Play className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 fill-emerald-600 dark:fill-emerald-400" />
+              <Play className="w-3.5 h-3.5 text-[#1a7f37] dark:text-[#3fb950] fill-[#1a7f37] dark:fill-[#3fb950]" />
             )}
             {isRunningCustom ? 'Running...' : 'Run Code'}
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || isRunningCustom || isStreaming}
-            className="flex items-center gap-2 px-5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 disabled:opacity-50 transition cursor-pointer"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white text-xs font-semibold shadow-xs border border-[rgba(27,31,36,0.15)] dark:border-[#2ea04366] disabled:opacity-50 transition cursor-pointer"
             title="Submit for full verification & ranking (Ctrl+Shift+Enter)"
           >
             {isSubmitting ? (
@@ -250,22 +250,22 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
         </div>
       </div>
 
-      {/* Real-time SSE Progress Ribbon */}
+      {/* Real-time SSE Progress Ribbon (GitHub Alert style) */}
       {(isSubmitting || isStreaming || currentEvent) && (
-        <div className="bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-200 dark:border-indigo-500/20 px-4 py-2 flex items-center justify-between text-xs font-mono">
+        <div className="bg-[#ddf4ff40] dark:bg-[#388bfd1a] border-b border-[#54aeff66] dark:border-[#388bfd40] px-4 py-2 flex items-center justify-between text-xs font-mono">
           <div className="flex items-center gap-3">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0969da]"></span>
             </span>
-            <span className="text-indigo-700 dark:text-indigo-300 font-semibold">
+            <span className="text-[#0969da] dark:text-[#58a6ff] font-semibold">
               Stage: {currentEvent?.pipelineStatus || 'QUEUED'}
             </span>
             {currentEvent?.verdict && currentEvent.verdict !== 'PENDING' && (
-              <span className="text-slate-600 dark:text-slate-400">Verdict: {currentEvent.verdict}</span>
+              <span className="text-[#57606a] dark:text-[#8b949e]">Verdict: {currentEvent.verdict}</span>
             )}
           </div>
-          <span className="text-slate-500">
+          <span className="text-[#57606a] dark:text-[#8b949e]">
             Step {currentEvent?.step || 1} of {currentEvent?.totalSteps || 4}
           </span>
         </div>
@@ -285,14 +285,14 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
             scrollBeyondLastLine: false,
             automaticLayout: true,
             tabSize: 4,
-            fontFamily: "'Fira Code', monospace"
+            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace"
           }}
         />
       </div>
 
       {/* Bottom Test Case & Console Panel */}
-      <div className="h-60 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors">
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 text-xs font-medium">
+      <div className="h-60 border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] flex flex-col transition-colors">
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] text-xs font-medium">
           <button
             onClick={() => {
               setActiveTab('tests');
@@ -300,8 +300,8 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
             }}
             className={`flex items-center gap-1.5 pb-1 cursor-pointer transition ${
               activeTab === 'tests'
-                ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 font-semibold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'text-[#1f2328] dark:text-[#e6edf3] border-b-2 border-[#fd8c73] dark:border-[#f78166] font-semibold'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3]'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -314,8 +314,8 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
             }}
             className={`flex items-center gap-1.5 pb-1 cursor-pointer transition ${
               activeTab === 'custom'
-                ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 font-semibold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'text-[#1f2328] dark:text-[#e6edf3] border-b-2 border-[#fd8c73] dark:border-[#f78166] font-semibold'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3]'
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
@@ -325,8 +325,8 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
             onClick={() => setActiveTab('console')}
             className={`flex items-center gap-1.5 pb-1 cursor-pointer transition ${
               activeTab === 'console'
-                ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 font-semibold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'text-[#1f2328] dark:text-[#e6edf3] border-b-2 border-[#fd8c73] dark:border-[#f78166] font-semibold'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3]'
             }`}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -342,10 +342,10 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
                   <button
                     key={tc.id || idx}
                     onClick={() => setActiveTestIndex(idx)}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition ${
                       activeTestIndex === idx
-                        ? 'bg-slate-200 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-300 dark:border-slate-700'
-                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-transparent'
+                        ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                        : 'bg-[#f6f8fa] dark:bg-[#161b22] text-[#656d76] dark:text-[#848d97] hover:bg-[#eaeef2] dark:hover:bg-[#21262d] border border-[#d0d7de] dark:border-[#21262d]'
                     }`}
                   >
                     Case {idx + 1}
@@ -354,14 +354,14 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
               </div>
 
               {publicTestCases[activeTestIndex] && (
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <div className="bg-white dark:bg-slate-900/80 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <span className="text-slate-500 dark:text-slate-400 block mb-1 font-sans text-xs font-semibold">Standard Input (stdin):</span>
-                    <pre className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{publicTestCases[activeTestIndex].input}</pre>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <div className="bg-white dark:bg-[#161b22] p-3 rounded-md border border-[#d0d7de] dark:border-[#30363d]">
+                    <span className="text-[#57606a] dark:text-[#8b949e] block mb-1 font-sans text-xs font-semibold">Standard Input (stdin):</span>
+                    <pre className="text-[#1f2328] dark:text-[#e6edf3] whitespace-pre-wrap">{publicTestCases[activeTestIndex].input}</pre>
                   </div>
-                  <div className="bg-white dark:bg-slate-900/80 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <span className="text-slate-500 dark:text-slate-400 block mb-1 font-sans text-xs font-semibold">Expected Output:</span>
-                    <pre className="text-emerald-600 dark:text-emerald-400 whitespace-pre-wrap">{publicTestCases[activeTestIndex].expectedOutput}</pre>
+                  <div className="bg-white dark:bg-[#161b22] p-3 rounded-md border border-[#d0d7de] dark:border-[#30363d]">
+                    <span className="text-[#57606a] dark:text-[#8b949e] block mb-1 font-sans text-xs font-semibold">Expected Output:</span>
+                    <pre className="text-[#1a7f37] dark:text-[#3fb950] font-bold whitespace-pre-wrap">{publicTestCases[activeTestIndex].expectedOutput}</pre>
                   </div>
                 </div>
               )}
