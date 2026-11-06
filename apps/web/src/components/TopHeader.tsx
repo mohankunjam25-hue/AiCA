@@ -5,8 +5,7 @@ import {
   User as UserIcon,
   Settings,
   Award,
-  LogOut,
-  ChevronDown
+  LogOut
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -125,43 +124,32 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
 
           {isAuthenticated ? (
             <div className="relative">
-              {/* Profile Avatar Trigger Button */}
+              {/* Profile Avatar Trigger Button: ONLY Avatar shown (GitHub Style) */}
               <button
                 ref={triggerRef}
                 type="button"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`flex items-center gap-2 p-1 sm:pl-1.5 sm:pr-2.5 rounded-md border transition cursor-pointer group ${
+                className={`relative rounded-full transition cursor-pointer flex items-center justify-center shrink-0 p-0.5 ${
                   isProfileOpen
-                    ? 'bg-[#f6f8fa] dark:bg-[#21262d] border-[#0969da] dark:border-[#58a6ff]'
-                    : 'bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] hover:bg-[#eaeef2] dark:hover:bg-[#30363d]'
+                    ? 'ring-2 ring-[#0969da] dark:ring-[#58a6ff]'
+                    : 'hover:ring-2 hover:ring-[#d0d7de] dark:hover:ring-[#30363d]'
                 }`}
+                aria-label="User navigation menu"
                 aria-expanded={isProfileOpen}
                 aria-haspopup="true"
               >
-                <div className="relative shrink-0">
-                  {profile?.avatarUrl ? (
-                    <img
-                      src={profile.avatarUrl}
-                      alt={user?.username}
-                      className="w-6 h-6 rounded-full object-cover border border-[#d0d7de] dark:border-[#30363d]"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] text-[#0969da] dark:text-[#58a6ff] flex items-center justify-center text-xs font-bold border border-[#d0d7de] dark:border-[#30363d]">
-                      {user?.username?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                  )}
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#2ea043] ring-1 ring-white dark:ring-[#161b22]" />
-                </div>
-
-                <span className="hidden sm:inline text-xs font-semibold text-[#1f2328] dark:text-[#f0f6fc] max-w-[120px] truncate">
-                  {user?.username}
-                </span>
-
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#57606a] dark:text-[#8b949e] group-hover:text-[#1f2328] dark:group-hover:text-[#f0f6fc] transition-transform duration-200 ${
-                    isProfileOpen ? 'rotate-180 text-[#0969da] dark:text-[#58a6ff]' : ''
-                  }`}
-                />
+                {profile?.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={user?.username}
+                    className="w-8 h-8 rounded-full object-cover border border-[#d0d7de] dark:border-[#30363d]"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] text-[#0969da] dark:text-[#58a6ff] flex items-center justify-center text-xs font-bold font-mono border border-[#d0d7de] dark:border-[#30363d]">
+                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#2ea043] ring-2 ring-white dark:ring-[#161b22]" />
               </button>
 
               {/* GitHub Primer Profile Dropdown Menu */}
