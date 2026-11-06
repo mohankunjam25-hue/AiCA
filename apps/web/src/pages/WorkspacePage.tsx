@@ -387,42 +387,49 @@ export function WorkspacePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* Workspace Subheader */}
-      {/* Top Breadcrumb Bar & View Tabs */}
-      <div className="px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden bg-white dark:bg-[#0d1117]">
+      {/* Workspace Subheader (GitHub Repo Header Style) */}
+      <div className="px-4 sm:px-6 py-2.5 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <Link
             to="/problems"
-            className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+            className="flex items-center gap-1 text-xs text-[#0969da] dark:text-[#58a6ff] hover:underline font-medium"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
             Problems
           </Link>
-          <span className="text-slate-400 dark:text-slate-600">/</span>
-          <h1 className="text-sm font-bold text-slate-900 dark:text-slate-200">{problem.title}</h1>
-          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <span className="text-[#d0d7de] dark:text-[#30363d]">/</span>
+          <h1 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">{problem.title}</h1>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+              problem.difficulty === 'EASY'
+                ? 'bg-[#2ea0431a] text-[#1a7f37] dark:text-[#3fb950] border-[#2ea04340]'
+                : problem.difficulty === 'MEDIUM'
+                ? 'bg-[#bb80091a] text-[#9a6700] dark:text-[#d29922] border-[#bb800940]'
+                : 'bg-[#f851491a] text-[#cf222e] dark:text-[#f85149] border-[#f8514940]'
+            }`}
+          >
             {problem.difficulty}
           </span>
 
           {/* Mobile Screen Pane Switcher (lg:hidden) */}
-          <div className="flex lg:hidden items-center ml-auto bg-slate-100 dark:bg-slate-950 p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
+          <div className="flex lg:hidden items-center ml-auto bg-[#eaeef2] dark:bg-[#21262d] p-0.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] text-xs">
             <button
               onClick={() => setMobileWorkspaceTab('problem')}
-              className={`px-2.5 py-1 rounded-md font-semibold transition ${
+              className={`px-2.5 py-1 rounded font-semibold transition ${
                 mobileWorkspaceTab === 'problem'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-500'
+                  ? 'bg-white dark:bg-[#161b22] text-[#1f2328] dark:text-[#e6edf3] shadow-xs'
+                  : 'text-[#656d76] dark:text-[#848d97]'
               }`}
             >
               Details
             </button>
             <button
               onClick={() => setMobileWorkspaceTab('editor')}
-              className={`px-2.5 py-1 rounded-md font-semibold transition ${
+              className={`px-2.5 py-1 rounded font-semibold transition ${
                 mobileWorkspaceTab === 'editor'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-500'
+                  ? 'bg-white dark:bg-[#161b22] text-[#1f2328] dark:text-[#e6edf3] shadow-xs'
+                  : 'text-[#656d76] dark:text-[#848d97]'
               }`}
             >
               Editor
@@ -430,17 +437,17 @@ export function WorkspacePage() {
           </div>
         </div>
 
-        {/* Tab Switcher for Left Panel */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold overflow-x-auto scrollbar-none">
+        {/* Tab Switcher for Left Panel (GitHub Subnav Style) */}
+        <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none">
           <button
             onClick={() => {
               setActiveLeftTab('desc');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
               activeLeftTab === 'desc'
-                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -451,14 +458,19 @@ export function WorkspacePage() {
               setActiveLeftTab('report');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
               activeLeftTab === 'report'
-                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            Report {report ? '✓' : ''}
+            Report
+            {report && (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#2ea04340]">
+                ✓
+              </span>
+            )}
           </button>
           <button
             onClick={() => {
@@ -466,10 +478,10 @@ export function WorkspacePage() {
               setActiveLeftTab('compare');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
               activeLeftTab === 'compare'
-                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -481,31 +493,36 @@ export function WorkspacePage() {
               setActiveLeftTab('submissions');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
               activeLeftTab === 'submissions'
-                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <History className="w-3.5 h-3.5" />
-            Submissions {pastSubmissions.length > 0 ? `(${pastSubmissions.length})` : ''}
+            Submissions
+            {pastSubmissions.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#afb8c133] dark:bg-[#6e768166] text-[#24292f] dark:text-[#c9d1d9]">
+                {pastSubmissions.length}
+              </span>
+            )}
           </button>
-        </div>
+        </nav>
       </div>
 
       {/* Main Dual-Pane Canvas */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 sm:p-4 overflow-hidden bg-slate-100/60 dark:bg-slate-950">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409]">
         {/* Left Pane (Description / Report / Comparison) */}
-        <div className={`${mobileWorkspaceTab === 'problem' ? 'block' : 'hidden'} lg:block h-full overflow-y-auto pr-0 lg:pr-2`}>
+        <div className={`${mobileWorkspaceTab === 'problem' ? 'block' : 'hidden'} lg:block h-full overflow-y-auto pr-0 lg:pr-1`}>
           {activeLeftTab === 'desc' && (
-            <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-6 shadow-xs">
+            <div className="p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-lg space-y-5 shadow-xs">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{problem.title}</h2>
-                <div className="flex items-center gap-2 mt-2">
+                <h2 className="text-xl font-bold text-[#1f2328] dark:text-[#e6edf3]">{problem.title}</h2>
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   {problem.tags.map((t) => (
                     <span
                       key={t}
-                      className="text-xs px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      className="text-xs px-2.5 py-0.5 rounded-full bg-[#ddf4ff] text-[#0969da] dark:bg-[#388bfd1a] dark:text-[#58a6ff] border border-transparent dark:border-[#388bfd40] font-medium"
                     >
                       {t}
                     </span>
@@ -513,25 +530,25 @@ export function WorkspacePage() {
                 </div>
               </div>
 
-              <div className="prose dark:prose-invert text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+              <div className="prose dark:prose-invert text-sm text-[#24292f] dark:text-[#c9d1d9] leading-relaxed whitespace-pre-wrap">
                 {problem.description}
               </div>
 
-              {/* Examples */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Examples</h3>
+              {/* Examples (GitHub Code Block Style) */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider">Examples</h3>
                 {problem.examples.map((ex, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-2">
+                  <div key={idx} className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] text-xs font-mono space-y-2">
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400 font-sans block mb-1">Input:</span>
-                      <pre className="text-slate-800 dark:text-slate-200">{ex.input}</pre>
+                      <span className="text-[#57606a] dark:text-[#8b949e] font-sans block mb-1 font-semibold">Input:</span>
+                      <pre className="text-[#1f2328] dark:text-[#e6edf3] p-2 rounded bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] overflow-x-auto">{ex.input}</pre>
                     </div>
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400 font-sans block mb-1">Output:</span>
-                      <pre className="text-emerald-600 dark:text-emerald-400">{ex.output}</pre>
+                      <span className="text-[#57606a] dark:text-[#8b949e] font-sans block mb-1 font-semibold">Output:</span>
+                      <pre className="text-[#1a7f37] dark:text-[#3fb950] p-2 rounded bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] overflow-x-auto font-bold">{ex.output}</pre>
                     </div>
                     {ex.explanation && (
-                      <p className="text-slate-600 dark:text-slate-400 font-sans text-xs pt-1 border-t border-slate-200 dark:border-slate-800/80">
+                      <p className="text-[#57606a] dark:text-[#8b949e] font-sans text-xs pt-1 border-t border-[#d0d7de] dark:border-[#30363d]">
                         {ex.explanation}
                       </p>
                     )}
@@ -541,19 +558,19 @@ export function WorkspacePage() {
 
               {/* Constraints */}
               <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Constraints</h3>
-                <ul className="list-disc list-inside text-xs text-slate-600 dark:text-slate-400 space-y-1 font-mono">
+                <h3 className="text-xs font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider">Constraints</h3>
+                <ul className="list-disc list-inside text-xs text-[#57606a] dark:text-[#8b949e] space-y-1 font-mono">
                   {problem.constraints.map((c, idx) => (
                     <li key={idx}>{c}</li>
                   ))}
                 </ul>
               </div>
 
-              {/* Benchmarks */}
-              <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-500/20 text-xs text-indigo-900 dark:text-indigo-300 space-y-1">
-                <span className="font-semibold block text-indigo-700 dark:text-indigo-200">Execution Sandbox Limits:</span>
-                <div>Time Limit: {problem.timeLimitMs}ms &bull; Memory Limit: {Math.round(problem.memoryLimitKb / 1024)}MB</div>
-                <div>Optimal Benchmark Target: {problem.benchmarks?.targetTimeMs || 15}ms</div>
+              {/* Benchmarks (GitHub Alert Box) */}
+              <div className="p-3.5 rounded-md bg-[#ddf4ff40] dark:bg-[#388bfd1a] border border-[#54aeff66] dark:border-[#388bfd40] border-l-4 border-l-[#0969da] dark:border-l-[#2f81f7] text-xs text-[#0969da] dark:text-[#58a6ff] space-y-1">
+                <span className="font-semibold block text-[#1f2328] dark:text-[#e6edf3]">Execution Sandbox Limits:</span>
+                <div className="text-[#57606a] dark:text-[#8b949e]">Time Limit: {problem.timeLimitMs}ms &bull; Memory Limit: {Math.round(problem.memoryLimitKb / 1024)}MB</div>
+                <div className="text-[#57606a] dark:text-[#8b949e]">Optimal Benchmark Target: {problem.benchmarks?.targetTimeMs || 15}ms</div>
               </div>
             </div>
           )}
@@ -715,35 +732,35 @@ export function WorkspacePage() {
           )}
 
           {activeLeftTab === 'submissions' && (
-            <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-xs">
-              {/* Collaborative Sorting Evolution Showcase Banner */}
-              <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 flex items-center justify-between flex-wrap gap-2.5">
+            <div className="p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-lg space-y-4 shadow-xs">
+              {/* Collaborative Sorting Evolution Showcase Banner (GitHub Primer Alert Box) */}
+              <div className="p-3.5 rounded-md bg-[#ddf4ff40] dark:bg-[#388bfd1a] border border-[#54aeff66] dark:border-[#388bfd40] border-l-4 border-l-[#0969da] dark:border-l-[#2f81f7] flex items-center justify-between flex-wrap gap-2.5">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5">
-                    <Workflow className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                    <Workflow className="w-3.5 h-3.5 text-[#0969da] dark:text-[#58a6ff]" />
+                    <span className="text-xs font-bold text-[#1f2328] dark:text-[#e6edf3]">
                       Multi-Solution Evolution Arena
                     </span>
                   </div>
-                  <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80">
+                  <p className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                     Compare Student A (Bubble O(N²)) vs B (Merge O(N log N)) vs C (Quick O(N log N))
                   </p>
                 </div>
                 <button
                   onClick={handleCompareClick}
-                  className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-sm transition cursor-pointer"
+                  className="px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white font-semibold text-xs shadow-xs transition cursor-pointer"
                 >
                   View Evolution Matrix &rarr;
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
                     Collaborative Submissions & Versions
                   </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Select 2 to 5 student solutions to generate an AI performance evolution comparison
+                  <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-0.5">
+                    Select 2 to 5 student solutions to generate an algorithmic evolution comparison
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -751,7 +768,7 @@ export function WorkspacePage() {
                     <button
                       onClick={() => handleGenerateComparison()}
                       disabled={generatingComparison}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white text-xs font-semibold transition shadow-xs cursor-pointer"
                     >
                       {generatingComparison ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -763,7 +780,7 @@ export function WorkspacePage() {
                   )}
                   <button
                     onClick={fetchProblemSubmissions}
-                    className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer px-2 py-1"
+                    className="text-xs font-semibold text-[#57606a] dark:text-[#8b949e] hover:text-[#1f2328] dark:hover:text-[#e6edf3] cursor-pointer px-2 py-1 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#21262d]"
                   >
                     Refresh
                   </button>
@@ -771,40 +788,47 @@ export function WorkspacePage() {
               </div>
 
               {loadingPastSubmissions ? (
-                <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                <div className="py-12 flex flex-col items-center justify-center text-[#57606a] dark:text-[#8b949e]">
                   <Loader2 className="w-6 h-6 animate-spin mb-2" />
                   <p className="text-xs">Loading past submissions...</p>
                 </div>
               ) : pastSubmissions.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
-                  <History className="w-8 h-8 text-slate-400 mx-auto" />
+                <div className="py-12 text-center text-[#57606a] dark:text-[#8b949e] border border-dashed border-[#d0d7de] dark:border-[#30363d] rounded-md space-y-2">
+                  <History className="w-8 h-8 text-[#8c959f] mx-auto" />
                   <p className="text-xs">No prior submissions recorded for this problem yet.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="border border-[#d0d7de] dark:border-[#30363d] rounded-md divide-y divide-[#d0d7de] dark:divide-[#30363d] overflow-hidden bg-white dark:bg-[#0d1117]">
                   {pastSubmissions.map((sub) => {
                     const isAccepted = sub.verdict === 'ACCEPTED';
                     const isSelected = selectedForCompare.includes(sub.id);
                     return (
                       <div
                         key={sub.id}
-                        className={`p-3.5 rounded-xl border flex items-center justify-between text-xs transition ${
+                        className={`p-3 flex items-center justify-between text-xs transition ${
                           isSelected
-                            ? 'bg-indigo-50/60 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+                            ? 'bg-[#ddf4ff40] dark:bg-[#388bfd1a]'
+                            : 'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
                           {isAccepted ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#2ea043] shrink-0 inline-block" />
                           ) : (
-                            <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#cf222e] shrink-0 inline-block" />
                           )}
                           <div>
-                            <div className="font-bold font-mono text-slate-800 dark:text-slate-200">
-                              {sub.verdict}
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold font-mono text-[#1f2328] dark:text-[#e6edf3]">
+                                {sub.verdict}
+                              </span>
+                              {sub.isSelf && (
+                                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#afb8c133] dark:bg-[#6e768166] text-[#24292f] dark:text-[#c9d1d9]">
+                                  You
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                            <div className="text-[11px] text-[#57606a] dark:text-[#8b949e] flex items-center gap-1.5 mt-0.5">
                               <span className="uppercase font-semibold">{sub.language}</span>
                               <span>&bull;</span>
                               <span>{new Date(sub.createdAt).toLocaleDateString()}</span>
@@ -812,12 +836,12 @@ export function WorkspacePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2">
                           <div className="text-right font-mono mr-2">
-                            <span className="block font-semibold text-slate-800 dark:text-slate-200">
+                            <span className="block font-semibold text-[#1f2328] dark:text-[#e6edf3]">
                               {sub.executionTimeMs != null ? `${sub.executionTimeMs}ms` : '--'}
                             </span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-[#57606a] dark:text-[#8b949e]">
                               {sub.memoryUsedKb != null ? `${Math.round(sub.memoryUsedKb / 1024)}MB` : '--'}
                             </span>
                           </div>
@@ -825,8 +849,8 @@ export function WorkspacePage() {
                             onClick={() => toggleCompareSelect(sub.id)}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
                               isSelected
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
+                                ? 'bg-[#0969da] text-white'
+                                : 'bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#e6edf3] hover:bg-[#eaeef2]'
                             }`}
                           >
                             {isSelected ? '✓ Selected' : 'Compare'}
@@ -841,7 +865,7 @@ export function WorkspacePage() {
                                 // deferred
                               }
                             }}
-                            className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-indigo-600 dark:text-indigo-400 hover:bg-slate-100 font-semibold text-[11px] transition cursor-pointer"
+                            className="px-2.5 py-1 rounded-md bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#0969da] dark:text-[#58a6ff] hover:bg-[#eaeef2] font-semibold text-[11px] transition cursor-pointer"
                           >
                             Report
                           </button>
@@ -859,7 +883,7 @@ export function WorkspacePage() {
                                 // fallback
                               }
                             }}
-                            className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 font-semibold text-[11px] transition cursor-pointer"
+                            className="px-2.5 py-1 rounded-md bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#e6edf3] hover:bg-[#eaeef2] font-semibold text-[11px] transition cursor-pointer"
                           >
                             Inspect
                           </button>

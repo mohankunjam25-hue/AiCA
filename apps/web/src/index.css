@@ -3,37 +3,40 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 code, pre, .font-mono {
-  font-family: 'Fira Code', monospace;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-/* Custom scrollbars */
+/* GitHub Primer style custom scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f6f8fa;
 }
 .dark ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #0d1117;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d0d7de;
   border-radius: 4px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #30363d;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #afb8c1;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #8b949e;
 }
 
 /* Kinetic & Ambient Smooth Animations */

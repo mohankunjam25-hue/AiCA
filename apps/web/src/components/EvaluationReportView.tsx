@@ -151,55 +151,55 @@ export function EvaluationReportView({
 
   const currentApproach = solutionApproaches[selectedApproachIndex] || solutionApproaches[0];
 
-  // Quality Grade Helper Colors
+  // Quality Grade Helper Colors (GitHub Label Style)
   const getGradeBadge = (grade: string) => {
     switch (grade) {
       case 'A+':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
+        return 'bg-[#2ea0431a] text-[#1a7f37] dark:text-[#3fb950] border-[#2ea04340]';
       case 'A':
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30';
+        return 'bg-[#ddf4ff] text-[#0969da] dark:bg-[#388bfd1a] dark:text-[#58a6ff] border-[#54aeff66] dark:border-[#388bfd40]';
       case 'B':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+        return 'bg-[#bb80091a] text-[#9a6700] dark:text-[#d29922] border-[#bb800940]';
       default:
-        return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30';
+        return 'bg-[#f851491a] text-[#cf222e] dark:text-[#f85149] border-[#f8514940]';
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Top Verdict Banner */}
+    <div className="space-y-4">
+      {/* 1. Top Verdict Banner (GitHub Status Banner) */}
       <div
-        className={`p-6 rounded-2xl border flex items-center justify-between ${
+        className={`p-4 rounded-md border flex items-center justify-between ${
           isAccepted
-            ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
-            : 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-300'
+            ? 'bg-[#dafbe180] dark:bg-[#2ea0431a] border-[#4ac26b80] dark:border-[#2ea04340] text-[#1a7f37] dark:text-[#3fb950]'
+            : 'bg-[#ffebe980] dark:bg-[#f851491a] border-[#ff818266] dark:border-[#f8514940] text-[#cf222e] dark:text-[#f85149]'
         }`}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+            className={`w-9 h-9 rounded-md flex items-center justify-center ${
               isAccepted
-                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                ? 'bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950]'
+                : 'bg-[#f8514926] text-[#cf222e] dark:text-[#f85149]'
             }`}
           >
-            {isAccepted ? <CheckCircle2 className="w-7 h-7" /> : <XCircle className="w-7 h-7" />}
+            {isAccepted ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
           </div>
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold tracking-tight">{report.verdict}</h2>
-              <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-xl font-bold font-mono tracking-tight">{report.verdict}</h2>
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#e6edf3]">
                 Score: {report.metrics?.compositeScore || 0.0} / 100
               </span>
             </div>
-            <p className="text-sm opacity-80 mt-1">{report.summary}</p>
+            <p className="text-xs opacity-85 mt-0.5">{report.summary}</p>
           </div>
         </div>
 
         {onCompareRequest && isAccepted && (
           <button
             onClick={onCompareRequest}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             Compare Solution
             <ArrowRight className="w-3.5 h-3.5" />
@@ -207,54 +207,52 @@ export function EvaluationReportView({
         )}
       </div>
 
-      {/* 2. LeetCode-Style Visual Percentile Distribution Bars */}
+      {/* 2. LeetCode-Style Visual Percentile Distribution Bars (GitHub Primer Card) */}
       {isAccepted && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-[#d0d7de] dark:border-[#30363d] pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <TrendingUp className="w-4 h-4 text-[#1a7f37] dark:text-[#3fb950]" />
+              <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
                 Performance Distribution & Percentiles
               </h3>
             </div>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+            <span className="text-[11px] text-[#57606a] dark:text-[#8b949e] font-mono">
               Empirical Peer Distribution
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Runtime Percentile */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-semibold text-[#1f2328] dark:text-[#e6edf3] flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
                   Runtime Distribution
                 </span>
-                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                <span className="text-xs font-mono font-bold text-[#0969da] dark:text-[#58a6ff]">
                   {report.metrics?.rawTimeMs} ms
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
                 Your runtime beats{' '}
-                <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+                <strong className="text-[#1a7f37] dark:text-[#3fb950] font-bold">
                   {deterministic.runtimePercentile}%
                 </strong>{' '}
                 of accepted solutions!
               </p>
 
               {/* Visual Histogram Track */}
-              <div className="relative pt-2 pb-1">
-                <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative">
+              <div className="relative pt-1">
+                <div className="h-2 w-full bg-[#afb8c133] dark:bg-[#21262d] rounded-full overflow-hidden relative">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 via-teal-400 to-emerald-500 rounded-full transition-all duration-700"
+                    className="h-full bg-gradient-to-r from-[#0969da] via-[#2f81f7] to-[#2ea043] rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(100, Math.max(5, deterministic.runtimePercentile))}%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-1">
+                <div className="flex justify-between items-center text-[10px] text-[#57606a] dark:text-[#8b949e] font-mono mt-1">
                   <span>0 ms (Fastest)</span>
-                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                  <span className="text-[#0969da] dark:text-[#58a6ff] font-bold">
                     You ({report.metrics?.rawTimeMs}ms)
                   </span>
                   <span>250 ms (Max)</span>
@@ -263,35 +261,35 @@ export function EvaluationReportView({
             </div>
 
             {/* Memory Percentile */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Cpu className="w-4 h-4 text-purple-500" />
+                <span className="text-xs font-semibold text-[#1f2328] dark:text-[#e6edf3] flex items-center gap-1.5">
+                  <Cpu className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
                   Memory Distribution
                 </span>
-                <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
+                <span className="text-xs font-mono font-bold text-[#8250df] dark:text-[#a371f7]">
                   {Math.round((report.metrics?.rawMemoryKb || 0) / 1024)} MB
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
                 Your memory beats{' '}
-                <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+                <strong className="text-[#1a7f37] dark:text-[#3fb950] font-bold">
                   {deterministic.memoryPercentile}%
                 </strong>{' '}
                 of submissions!
               </p>
 
               {/* Visual Histogram Track */}
-              <div className="relative pt-2 pb-1">
-                <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative">
+              <div className="relative pt-1">
+                <div className="h-2 w-full bg-[#afb8c133] dark:bg-[#21262d] rounded-full overflow-hidden relative">
                   <div
-                    className="h-full bg-gradient-to-r from-purple-500 via-indigo-400 to-teal-400 rounded-full transition-all duration-700"
+                    className="h-full bg-gradient-to-r from-[#8250df] via-[#a371f7] to-[#2ea043] rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(100, Math.max(5, deterministic.memoryPercentile))}%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-1">
+                <div className="flex justify-between items-center text-[10px] text-[#57606a] dark:text-[#8b949e] font-mono mt-1">
                   <span>8 MB</span>
-                  <span className="text-purple-600 dark:text-purple-400 font-bold">
+                  <span className="text-[#8250df] dark:text-[#a371f7] font-bold">
                     You ({Math.round((report.metrics?.rawMemoryKb || 0) / 1024)} MB)
                   </span>
                   <span>64 MB</span>
@@ -303,17 +301,15 @@ export function EvaluationReportView({
       )}
 
       {/* 3. Static Code Quality & AST Metrics Card (100% Deterministic) */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-[#d0d7de] dark:border-[#30363d] pb-2.5">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
-              <Zap className="w-4 h-4" />
-            </div>
+            <Zap className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
                 Static AST Code Quality & Structure
               </h3>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                 Deterministic Code Analysis &bull; Zero External AI Dependency
               </span>
             </div>
@@ -321,7 +317,7 @@ export function EvaluationReportView({
 
           <div className="flex items-center gap-2">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-bold border ${getGradeBadge(
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getGradeBadge(
                 deterministic.qualityGrade
               )}`}
             >
@@ -331,18 +327,18 @@ export function EvaluationReportView({
         </div>
 
         {/* 4-Stat Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d]">
+            <span className="text-[11px] text-[#57606a] dark:text-[#8b949e] block mb-1">
               Loop Nesting Depth
             </span>
-            <div className="text-base font-bold font-mono text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+            <div className="text-sm font-bold font-mono text-[#1f2328] dark:text-[#e6edf3] flex items-center gap-1.5">
               Depth {deterministic.maxLoopDepth}
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-normal ${
+                className={`text-[10px] px-1.5 py-0.2 rounded font-normal ${
                   deterministic.maxLoopDepth <= 1
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    ? 'bg-[#2ea0431a] text-[#1a7f37] dark:text-[#3fb950]'
+                    : 'bg-[#bb80091a] text-[#9a6700] dark:text-[#d29922]'
                 }`}
               >
                 {deterministic.maxLoopDepth <= 1 ? 'Linear O(N)' : `O(N^${deterministic.maxLoopDepth})`}
@@ -350,41 +346,41 @@ export function EvaluationReportView({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
+          <div className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d]">
+            <span className="text-[11px] text-[#57606a] dark:text-[#8b949e] block mb-1">
               Branching Complexity
             </span>
-            <div className="text-base font-bold font-mono text-slate-900 dark:text-slate-100">
+            <div className="text-sm font-bold font-mono text-[#1f2328] dark:text-[#e6edf3]">
               {deterministic.cyclomaticComplexity}{' '}
-              <span className="text-[10px] font-normal text-slate-400">paths</span>
+              <span className="text-[10px] font-normal text-[#57606a] dark:text-[#8b949e]">paths</span>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
+          <div className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d]">
+            <span className="text-[11px] text-[#57606a] dark:text-[#8b949e] block mb-1">
               Theoretical Time
             </span>
-            <div className="text-base font-bold font-mono text-amber-600 dark:text-amber-400">
+            <div className="text-sm font-bold font-mono text-[#9a6700] dark:text-[#d29922]">
               {ai?.theoreticalComplexity?.timeComplexity ||
                 (deterministic.maxLoopDepth >= 2 ? 'O(N^2)' : 'O(N)')}
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
+          <div className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d]">
+            <span className="text-[11px] text-[#57606a] dark:text-[#8b949e] block mb-1">
               Theoretical Space
             </span>
-            <div className="text-base font-bold font-mono text-teal-600 dark:text-teal-400">
+            <div className="text-sm font-bold font-mono text-[#0969da] dark:text-[#58a6ff]">
               {ai?.theoreticalComplexity?.spaceComplexity || 'O(1)'}
             </div>
           </div>
         </div>
 
         {/* Positive Patterns & Code Smells */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/20 space-y-2">
-            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="p-3 rounded-md bg-[#dafbe140] dark:bg-[#2ea04314] border border-[#4ac26b40] dark:border-[#2ea04333] space-y-1.5">
+            <span className="text-xs font-bold text-[#1a7f37] dark:text-[#3fb950] flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5" />
               Positive Patterns & Strengths
             </span>
             {deterministic.positivePatterns && deterministic.positivePatterns.length > 0 ? (
@@ -392,23 +388,23 @@ export function EvaluationReportView({
                 {deterministic.positivePatterns.map((pat, idx) => (
                   <li
                     key={idx}
-                    className="text-xs text-emerald-700 dark:text-emerald-300/90 flex items-start gap-1.5"
+                    className="text-xs text-[#1a7f37] dark:text-[#3fb950] flex items-start gap-1.5"
                   >
-                    <span className="text-emerald-500 mt-0.5">&bull;</span>
+                    <span className="mt-0.5">&bull;</span>
                     {pat}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+              <p className="text-xs text-[#1a7f37] dark:text-[#3fb950]">
                 Optimal algorithmic structure with no excessive resource allocations.
               </p>
             )}
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+          <div className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] space-y-1.5">
+            <span className="text-xs font-bold text-[#57606a] dark:text-[#8b949e] flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-[#d29922]" />
               Code Smells & Refactoring Signals
             </span>
             {deterministic.codeSmells && deterministic.codeSmells.length > 0 ? (
@@ -416,15 +412,15 @@ export function EvaluationReportView({
                 {deterministic.codeSmells.map((smell, idx) => (
                   <li
                     key={idx}
-                    className="text-xs text-amber-700 dark:text-amber-400/90 flex items-start gap-1.5"
+                    className="text-xs text-[#9a6700] dark:text-[#d29922] flex items-start gap-1.5"
                   >
-                    <span className="text-amber-500 mt-0.5">&bull;</span>
+                    <span className="mt-0.5">&bull;</span>
                     {smell}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
                 No major structural code smells detected! Clean, maintainable implementation.
               </p>
             )}
@@ -432,44 +428,42 @@ export function EvaluationReportView({
         </div>
       </div>
 
-      {/* 4. Multi-Approach Canonical Taxonomy ("Kitne Type Se Solve Ho Sakti Thi") */}
+      {/* 4. Multi-Approach Canonical Taxonomy (GitHub Primer Tabs & Details) */}
       {solutionApproaches && solutionApproaches.length > 0 && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#d0d7de] dark:border-[#30363d] pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 dark:text-purple-400 border border-purple-500/20">
-                <Layers className="w-4 h-4" />
-              </div>
+              <Layers className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
                   How Many Ways to Solve This Problem? ({solutionApproaches.length} Approaches)
                 </h3>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                   Pre-computed Canonical Solutions &bull; Instant Access
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Approach Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {/* Approach Tabs (GitHub Primer Segmented Group) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             {solutionApproaches.map((app, idx) => (
               <button
                 key={idx}
                 onClick={() => setSelectedApproachIndex(idx)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 transition shrink-0 cursor-pointer ${
                   selectedApproachIndex === idx
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300'
+                    ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                    : 'bg-[#f6f8fa] dark:bg-[#161b22] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#21262d] hover:bg-[#eaeef2]'
                 }`}
               >
                 <span>Approach {app.approachNumber || idx + 1}: {app.title.split(' ')[0]}</span>
                 {app.isUserApproach && (
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
                       selectedApproachIndex === idx
-                        ? 'bg-white/20 text-white'
-                        : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                        ? 'bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#2ea04340]'
+                        : 'bg-[#2ea0431a] text-[#1a7f37] dark:text-[#3fb950]'
                     }`}
                   >
                     You Used This!
@@ -481,68 +475,68 @@ export function EvaluationReportView({
 
           {/* Active Approach Card */}
           {currentApproach && (
-            <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="p-4 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
                       {currentApproach.title}
                     </h4>
                     {currentApproach.isUserApproach && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2ea0431a] text-[#1a7f37] dark:text-[#3fb950] border border-[#2ea04340]">
                         Matched Your Implementation
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-mono">
+                  <span className="text-[11px] text-[#0969da] dark:text-[#58a6ff] font-mono">
                     Paradigm: {currentApproach.paradigm}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-amber-600 dark:text-amber-400">
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] text-[#9a6700] dark:text-[#d29922]">
                     Time: {currentApproach.timeComplexity}
                   </span>
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-teal-600 dark:text-teal-400">
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] text-[#0969da] dark:text-[#58a6ff]">
                     Space: {currentApproach.spaceComplexity}
                   </span>
                 </div>
               </div>
 
               {/* Intuition */}
-              <div className="p-3.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+              <div className="p-3 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#57606a] dark:text-[#8b949e] block mb-1">
                   Core Intuition
                 </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                <p className="text-xs text-[#24292f] dark:text-[#c9d1d9] leading-relaxed">
                   {currentApproach.intuition}
                 </p>
               </div>
 
               {/* Pros & Cons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/20">
-                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block mb-1">
+                <div className="p-3 rounded-md bg-[#dafbe140] dark:bg-[#2ea04314] border border-[#4ac26b40] dark:border-[#2ea04333]">
+                  <span className="text-[11px] font-bold text-[#1a7f37] dark:text-[#3fb950] block mb-1">
                     Advantages (Pros)
                   </span>
                   <ul className="space-y-1">
                     {currentApproach.pros?.map((p, i) => (
-                      <li key={i} className="text-xs text-emerald-700 dark:text-emerald-400 flex items-start gap-1.5">
-                        <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                      <li key={i} className="text-xs text-[#1a7f37] dark:text-[#3fb950] flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                         <span>{p}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="p-3 rounded-lg bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-500/20">
-                  <span className="text-[11px] font-bold text-rose-800 dark:text-rose-300 block mb-1">
+                <div className="p-3 rounded-md bg-[#ffebe960] dark:bg-[#f8514914] border border-[#ff818240] dark:border-[#f8514933]">
+                  <span className="text-[11px] font-bold text-[#cf222e] dark:text-[#f85149] block mb-1">
                     Trade-offs (Cons)
                   </span>
                   <ul className="space-y-1">
                     {currentApproach.cons?.map((c, i) => (
-                      <li key={i} className="text-xs text-rose-700 dark:text-rose-400 flex items-start gap-1.5">
-                        <span className="text-rose-500 shrink-0 mt-0.5">&bull;</span>
+                      <li key={i} className="text-xs text-[#cf222e] dark:text-[#f85149] flex items-start gap-1.5">
+                        <span className="shrink-0 mt-0.5">&bull;</span>
                         <span>{c}</span>
                       </li>
                     ))}
@@ -553,10 +547,10 @@ export function EvaluationReportView({
               {/* Pseudo-code or Guide */}
               {currentApproach.pseudoCodeOrGuide && (
                 <div className="space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#57606a] dark:text-[#8b949e] block">
                     Algorithmic Pattern & Snippet
                   </span>
-                  <pre className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-mono overflow-x-auto">
+                  <pre className="p-3 rounded-md bg-[#010409] border border-[#30363d] text-[#e6edf3] text-xs font-mono overflow-x-auto">
                     {currentApproach.pseudoCodeOrGuide}
                   </pre>
                 </div>
@@ -564,23 +558,23 @@ export function EvaluationReportView({
             </div>
           )}
 
-          {/* 5. Complexity Comparison Matrix Table */}
+          {/* 5. Complexity Comparison Matrix Table (GitHub Table Style) */}
           {comparisonMatrix && comparisonMatrix.length > 0 && (
             <div className="space-y-2 pt-2">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <span className="text-xs font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider">
                 Complexity Comparison Matrix
               </span>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="overflow-x-auto rounded-md border border-[#d0d7de] dark:border-[#30363d]">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                  <thead className="bg-[#f6f8fa] dark:bg-[#161b22] text-[#57606a] dark:text-[#8b949e] font-semibold border-b border-[#d0d7de] dark:border-[#30363d]">
                     <tr>
-                      <th className="p-3">Approach</th>
-                      <th className="p-3">Time Complexity</th>
-                      <th className="p-3">Space Complexity</th>
-                      <th className="p-3">Best Used For / Suitability</th>
+                      <th className="p-2.5">Approach</th>
+                      <th className="p-2.5">Time Complexity</th>
+                      <th className="p-2.5">Space Complexity</th>
+                      <th className="p-2.5">Best Used For / Suitability</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
+                  <tbody className="divide-y divide-[#d0d7de] dark:divide-[#30363d] font-mono">
                     {comparisonMatrix.map((row, idx) => {
                       const isRowSelected =
                         currentApproach && currentApproach.title.toLowerCase().includes(row.approach.toLowerCase());
@@ -589,21 +583,21 @@ export function EvaluationReportView({
                           key={idx}
                           className={`transition ${
                             isRowSelected
-                              ? 'bg-indigo-50/70 dark:bg-indigo-950/30 font-semibold'
-                              : 'hover:bg-slate-50 dark:hover:bg-slate-850'
+                              ? 'bg-[#ddf4ff40] dark:bg-[#388bfd1a] font-semibold'
+                              : 'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]'
                           }`}
                         >
-                          <td className="p-3 text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                          <td className="p-2.5 text-[#1f2328] dark:text-[#e6edf3] flex items-center gap-1.5 font-sans">
                             {row.approach}
                             {isRowSelected && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-sans">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#0969da1a] text-[#0969da] dark:text-[#58a6ff] border border-[#54aeff40] font-sans">
                                 Active
                               </span>
                             )}
                           </td>
-                          <td className="p-3 text-amber-600 dark:text-amber-400">{row.time}</td>
-                          <td className="p-3 text-teal-600 dark:text-teal-400">{row.space}</td>
-                          <td className="p-3 text-slate-600 dark:text-slate-300 font-sans">
+                          <td className="p-2.5 text-[#9a6700] dark:text-[#d29922]">{row.time}</td>
+                          <td className="p-2.5 text-[#0969da] dark:text-[#58a6ff]">{row.space}</td>
+                          <td className="p-2.5 text-[#57606a] dark:text-[#8b949e] font-sans">
                             {row.suitability}
                           </td>
                         </tr>
@@ -617,18 +611,16 @@ export function EvaluationReportView({
         </div>
       )}
 
-      {/* 6. AI Pedagogical Insights (Optional Deep Vector) */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+      {/* 6. AI Socratic Insights (GitHub Card Style) */}
+      <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3.5">
+        <div className="flex items-center justify-between border-b border-[#d0d7de] dark:border-[#30363d] pb-2.5">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20">
-              <Brain className="w-4 h-4" />
-            </div>
+            <Brain className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
                 AI Deep Socratic Insights
               </h3>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
                 Google Gemini Engine &bull; {ai?.mode === 'OPTIMIZATION' ? 'Optimization Mode' : 'Diagnostic Mode'}
               </span>
             </div>
@@ -639,7 +631,7 @@ export function EvaluationReportView({
               <button
                 onClick={handleRetryAi}
                 disabled={isRetrying}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {isRetrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                 Retry AI Call
@@ -648,7 +640,7 @@ export function EvaluationReportView({
             {isPending && (
               <button
                 onClick={handleManualRefresh}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#f6f8fa] dark:bg-[#21262d] hover:bg-[#eaeef2] text-[#1f2328] dark:text-[#e6edf3] text-xs font-semibold border border-[#d0d7de] dark:border-[#30363d] cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Refresh
@@ -658,19 +650,19 @@ export function EvaluationReportView({
         </div>
 
         {retryMessage && (
-          <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-700 dark:text-indigo-300">
+          <div className="p-3 rounded-md bg-[#ddf4ff40] dark:bg-[#388bfd1a] border border-[#54aeff66] dark:border-[#388bfd40] text-xs text-[#0969da] dark:text-[#58a6ff]">
             {retryMessage}
           </div>
         )}
 
         {isPending && (
-          <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-500/20 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-indigo-500 animate-spin shrink-0" />
+          <div className="p-3.5 rounded-md bg-[#ddf4ff40] dark:bg-[#388bfd1a] border border-[#54aeff66] dark:border-[#388bfd40] flex items-center gap-3">
+            <Loader2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff] animate-spin shrink-0" />
             <div>
-              <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+              <h4 className="text-xs font-bold text-[#0969da] dark:text-[#58a6ff]">
                 Deep Refactoring Vectors Generating
               </h4>
-              <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80">
+              <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
                 Deterministic tests passed! Deep asymptotic complexity and refactoring insights are being generated in the background.
               </p>
             </div>
@@ -678,9 +670,9 @@ export function EvaluationReportView({
         )}
 
         {isFailed && (
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+          <div className="p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-[#57606a] dark:text-[#8b949e]">
+              <Sparkles className="w-4 h-4 text-[#d29922] shrink-0" />
               <span>
                 Gemini API daily limit reached or offline. All deterministic evaluation, AST code quality, percentiles, and multi-approach taxonomy above remain 100% active.
               </span>
@@ -689,9 +681,9 @@ export function EvaluationReportView({
         )}
 
         {isSkipped && (
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
-            <HelpCircle className="w-5 h-5 text-slate-400 shrink-0" />
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+          <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] flex items-center gap-3">
+            <HelpCircle className="w-4 h-4 text-[#8c959f] shrink-0" />
+            <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
               AI pedagogical analysis bypassed because the submission encountered a compilation error. Fix compilation issues to unlock AI insights.
             </p>
           </div>
@@ -699,21 +691,21 @@ export function EvaluationReportView({
 
         {/* Diagnostic Feedback (if verdict failed) */}
         {ai?.diagnosticFeedback && (
-          <div className="p-5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/20 space-y-3">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold text-xs">
-              <ShieldAlert className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+          <div className="p-4 rounded-md bg-[#ffebe960] dark:bg-[#f8514914] border border-[#ff818240] dark:border-[#f8514933] space-y-2.5">
+            <div className="flex items-center gap-2 text-[#cf222e] dark:text-[#f85149] font-semibold text-xs">
+              <ShieldAlert className="w-4 h-4" />
               Algorithmic Diagnostic & Edge-Case Trap
             </div>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              <strong className="text-amber-800 dark:text-amber-200">Root Cause:</strong>{' '}
+            <p className="text-xs text-[#24292f] dark:text-[#c9d1d9] leading-relaxed">
+              <strong className="text-[#cf222e] dark:text-[#f85149]">Root Cause:</strong>{' '}
               {ai.diagnosticFeedback.rootCauseBug}
             </p>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              <strong className="text-amber-800 dark:text-amber-200">Vulnerability:</strong>{' '}
+            <p className="text-xs text-[#24292f] dark:text-[#c9d1d9] leading-relaxed">
+              <strong className="text-[#cf222e] dark:text-[#f85149]">Vulnerability:</strong>{' '}
               {ai.diagnosticFeedback.edgeCaseVulnerability}
             </p>
-            <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-indigo-700 dark:text-indigo-300 flex items-start gap-2">
-              <HelpCircle className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5" />
+            <div className="p-2.5 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] text-xs text-[#0969da] dark:text-[#58a6ff] flex items-start gap-2">
+              <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
                 <strong>Socratic Hint:</strong> {ai.diagnosticFeedback.socraticHint}
               </span>
@@ -723,29 +715,29 @@ export function EvaluationReportView({
 
         {/* Evolutionary Refactoring Vectors */}
         {ai?.optimizationSuggestions && ai.optimizationSuggestions.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider">
               Evolutionary Refactoring Vectors
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {ai.optimizationSuggestions.map((opt, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-2"
+                  className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-300">
+                    <span className="text-xs font-bold text-[#0969da] dark:text-[#58a6ff]">
                       {opt.title}
                     </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#2ea0431a] text-[#1a7f37] dark:text-[#3fb950] border border-[#2ea04340] font-mono">
                       {opt.expectedTimeImpact}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed">
                     {opt.rationale}
                   </p>
                   {opt.refactoredSnippet && (
-                    <pre className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-mono overflow-x-auto">
+                    <pre className="p-3 rounded-md bg-[#010409] border border-[#30363d] text-[#e6edf3] text-xs font-mono overflow-x-auto">
                       {opt.refactoredSnippet}
                     </pre>
                   )}
@@ -756,36 +748,36 @@ export function EvaluationReportView({
         )}
       </div>
 
-      {/* 7. Test Cases Pass/Fail Matrix */}
+      {/* 7. Test Cases Pass/Fail Matrix (GitHub Table Style) */}
       {submission?.testResults && submission.testResults.length > 0 && (
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">
+        <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
+          <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
             Test Execution Breakdown
           </h3>
-          <div className="space-y-2">
+          <div className="rounded-md border border-[#d0d7de] dark:border-[#30363d] divide-y divide-[#d0d7de] dark:divide-[#30363d] overflow-hidden bg-white dark:bg-[#0d1117]">
             {submission.testResults.map((tr) => (
               <div
                 key={tr.testCaseId || tr.index}
-                className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs font-mono"
+                className="flex items-center justify-between p-2.5 text-xs font-mono hover:bg-[#f6f8fa] dark:hover:bg-[#161b22] transition"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   {tr.passed ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2ea043] shrink-0 inline-block" />
                   ) : (
-                    <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#cf222e] shrink-0 inline-block" />
                   )}
-                  <span className="text-slate-800 dark:text-slate-300 font-semibold">
+                  <span className="text-[#1f2328] dark:text-[#e6edf3] font-semibold font-sans">
                     Test #{tr.index} {tr.isPublic ? '(Public)' : '(Hidden Edge Case)'}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-3 text-[#57606a] dark:text-[#8b949e]">
                   <span>{tr.executionTimeMs} ms</span>
                   <span>{tr.memoryKb} KB</span>
                   <span
                     className={
                       tr.passed
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-rose-600 dark:text-rose-400'
+                        ? 'text-[#1a7f37] dark:text-[#3fb950] font-bold'
+                        : 'text-[#cf222e] dark:text-[#f85149] font-bold'
                     }
                   >
                     {tr.passed ? 'PASSED' : tr.errorMessage || 'FAILED'}
@@ -799,3 +791,4 @@ export function EvaluationReportView({
     </div>
   );
 }
+
