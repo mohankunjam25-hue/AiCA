@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   XCircle,
@@ -33,6 +33,10 @@ export function EvaluationReportView({
   const [report, setReport] = useState<EvaluationReport>(initialReport);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryMessage, setRetryMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReport(initialReport);
+  }, [initialReport]);
 
   const isAccepted = report.verdict === 'ACCEPTED';
   const ai = report.aiAnalysis;

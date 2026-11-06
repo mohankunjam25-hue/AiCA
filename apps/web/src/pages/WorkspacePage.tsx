@@ -553,6 +553,7 @@ export function WorkspacePage() {
             <div>
               {report ? (
                 <EvaluationReportView
+                  key={report.id || report.submissionId}
                   report={report}
                   onCompareRequest={handleCompareClick}
                   onReportUpdate={setReport}
@@ -820,6 +821,20 @@ export function WorkspacePage() {
                             }`}
                           >
                             {isSelected ? '✓ Selected' : 'Compare'}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await api.get(`/submissions/${sub.id}/report`);
+                                setReport(res.data.data);
+                                setActiveLeftTab('report');
+                              } catch {
+                                // deferred
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-indigo-600 dark:text-indigo-400 hover:bg-slate-100 font-semibold text-[11px] transition cursor-pointer"
+                          >
+                            Report
                           </button>
                           <button
                             onClick={async () => {
