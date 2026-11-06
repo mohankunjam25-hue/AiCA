@@ -23,6 +23,7 @@ import {
 import { api } from '../services/api';
 import { useSubmissionSSE } from '../hooks/useSSE';
 import { useThemeStore } from '../store/useThemeStore';
+import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 
 interface MonacoWorkspaceProps {
   problem: Problem;
@@ -32,6 +33,7 @@ interface MonacoWorkspaceProps {
 
 export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: MonacoWorkspaceProps) {
   const { isDark } = useThemeStore();
+  const editorPrefs = useEditorPreferencesStore();
   const [language, setLanguage] = useState<SupportedLanguage>('python');
   const [code, setCode] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'tests' | 'custom' | 'console'>('tests');
@@ -280,12 +282,14 @@ export function MonacoWorkspace({ problem, onEvaluationComplete, loadedCode }: M
           value={code}
           onChange={handleCodeChange}
           options={{
-            fontSize: 13,
-            minimap: { enabled: false },
+            fontSize: editorPrefs.fontSize,
+            minimap: { enabled: editorPrefs.minimap },
             scrollBeyondLastLine: false,
             automaticLayout: true,
-            tabSize: 4,
-            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace"
+            tabSize: editorPrefs.tabSize,
+            bracketPairColorization: { enabled: editorPrefs.bracketPairColorization },
+            wordWrap: editorPrefs.wordWrap,
+            fontFamily: editorPrefs.fontFamily
           }}
         />
       </div>
