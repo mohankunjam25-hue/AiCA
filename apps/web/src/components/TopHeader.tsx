@@ -11,7 +11,9 @@ import {
   Moon,
   Laptop,
   LogOut,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  Bot
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -81,8 +83,14 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
     if (path.startsWith('/algorithms')) return 'Algorithm Visualizer';
     if (path.startsWith('/workspace')) return 'Interactive Code Lab';
     if (path.startsWith('/leaderboard')) return 'Global Leaderboards';
+    if (path.startsWith('/developers')) return 'Developer Community';
     if (path.startsWith('/dashboard')) return 'Developer Dashboard';
     if (path.startsWith('/profile')) return 'Developer Profile';
+    if (path.startsWith('/admin/problems')) {
+      return location.search.includes('create=true') ? 'Problem Authoring Studio' : 'Problem Management';
+    }
+    if (path.startsWith('/admin/proposals')) return 'Proposal Reviews';
+    if (path.startsWith('/create-problem')) return 'Problem Studio';
     return 'AI Code Evolution Lab';
   };
 
@@ -182,8 +190,16 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
                         <Sparkles className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950]" />
                         GV2 Developer
                       </span>
-                      <span className="font-mono uppercase font-bold px-1.5 py-0.5 rounded-full bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d]">
-                        {user?.role}
+                      <span
+                        className={`font-mono uppercase font-bold px-1.5 py-0.5 rounded-full border ${
+                          user?.role === 'ADMIN'
+                            ? 'bg-[#ffebe9] dark:bg-[#f8514926] text-[#cf222e] dark:text-[#f85149] border-[#ff818266] dark:border-[#f851494d]'
+                            : user?.role === 'INSTRUCTOR'
+                            ? 'bg-[#fbefff] dark:bg-[#8250df26] text-[#8250df] dark:text-[#bc8cff] border-[#d2a8ff66] dark:border-[#8250df4d]'
+                            : 'bg-[#ddf4ff] dark:bg-[#388bfd26] text-[#0969da] dark:text-[#58a6ff] border-[#54aeff66] dark:border-[#388bfd4d]'
+                        }`}
+                      >
+                        {user?.role || 'STUDENT'}
                       </span>
                     </div>
                   </div>
@@ -226,6 +242,34 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
                       <span>Global Rankings</span>
                     </button>
                   </div>
+
+                  {/* Staff Management Section (Hidden for Students) */}
+                  {(user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && (
+                    <>
+                      <div className="border-t border-[#d0d7de] dark:border-[#30363d] my-1.5" />
+                      <div className="px-2.5 py-1 text-[10px] font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider">
+                        Staff Controls
+                      </div>
+                      <div className="space-y-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleNavigate('/admin/problems')}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[#0969da] dark:text-[#58a6ff] hover:bg-[#0969da15] transition cursor-pointer text-left font-semibold"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Manage Problem Catalog</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleNavigate('/admin/proposals')}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[#8250df] dark:text-[#bc8cff] hover:bg-[#8250df15] transition cursor-pointer text-left font-semibold"
+                        >
+                          <Bot className="w-4 h-4" />
+                          <span>Review Question Proposals</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   <div className="border-t border-[#d0d7de] dark:border-[#30363d] my-1.5" />
 

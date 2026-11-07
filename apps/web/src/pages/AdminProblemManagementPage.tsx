@@ -159,6 +159,27 @@ export function AdminProblemManagementPage() {
     p.slug.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Dedicated Full-Page Authoring Studio (Option 2 - No cramped popup modal)
+  if (isModalOpen) {
+    return (
+      <ProblemAuthoringStudio
+        initialData={initialFormData}
+        editingProblemId={editingProblemId}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          setEditingProblemId(null);
+          setInitialFormData(undefined);
+          fetchAdminProblems();
+        }}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditingProblemId(null);
+          setInitialFormData(undefined);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header Bar */}
@@ -343,23 +364,6 @@ export function AdminProblemManagementPage() {
           </div>
         )}
       </div>
-
-      {/* Professional Problem Authoring Studio Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-          <div className="w-full max-w-6xl h-full max-h-[95vh] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900">
-            <ProblemAuthoringStudio
-              initialData={initialFormData}
-              editingProblemId={editingProblemId}
-              onSuccess={() => {
-                setIsModalOpen(false);
-                fetchAdminProblems();
-              }}
-              onCancel={() => setIsModalOpen(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

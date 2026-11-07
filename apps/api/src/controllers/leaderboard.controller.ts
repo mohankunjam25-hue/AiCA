@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { SubmissionModel } from '../models/mongodb/submission.model.js';
+import { ProblemModel } from '../models/mongodb/problem.model.js';
 import { EvaluationReportModel } from '../models/mongodb/evaluation-report.model.js';
 import { pgPool } from '../config/db.js';
 import {
@@ -8,7 +10,10 @@ import {
   LeaderboardEntry,
   ProblemLeaderboardResponse,
   GlobalLeaderboardEntry,
-  GlobalLeaderboardResponse
+  GlobalLeaderboardResponse,
+  DeveloperSolvedProblemItem,
+  DeveloperSolvedProfile,
+  DeveloperSolvedResponse
 } from '@aica/shared';
 
 export async function getProblemLeaderboard(req: Request, res: Response): Promise<void> {
@@ -200,3 +205,145 @@ export async function getGlobalLeaderboard(req: Request, res: Response): Promise
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'Failed to retrieve global leaderboard'));
   }
 }
+
+export async function getUserSolvedProblems(req: Request, res: Response): Promise<void> {
+  const userId = req.params.userId as string;
+
+  if (!userId) {
+    res.status(400).json(createErrorResponse('VALIDATION_ERROR', 'User ID is required'));
+    return;
+  }
+
+  try {
+    // 1. Aggregation: Find all unique ACCEPTED problems solved by this user, taking their best submission per problem
+    const pipeline: any[] = [
+      {
+        $match: {
+          userId,
+          verdict: 'ACCEPTED',
+          isTestRun: false
+        }
+      },
+      {
+        $sort: { compositeScore: -1, normalizedTimeMs: 1, createdAt: 1 }
+      },
+      {
+        $group: {
+          _id: '$problemId',
+          bestSubmission: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$bestSubmission' }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ];
+
+    const bestSubmissions = await SubmissionModel.aggregate(pipeline);
+
+    // 2. Fetch metadata for all solved problems
+    const problemIds = bestSubmissions.map((sub: any) => sub.problemId).filter(Boolean);
+    const validObjectIds = problemIds
+      .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
+      .map((id: string) => new mongoose.Types.ObjectId(id));
+
+    const problems = problemIds.length > 0
+      ? await ProblemModel.find({
+          $or: [
+            { _id: { $in: validObjectIds } },
+            { _id: { $in: problemIds } }
+          ]
+        }).select('_id title slug difficulty tags').lean()
+      : [];
+
+    const problemMap = new Map<string, any>();
+    for (const p of problems) {
+      problemMap.set(p._id.toString(), p);
+    }
+
+    // 3. Enrich PostgreSQL user details (username, avatar, streak)
+    let pgUsername: string | undefined;
+    let pgAvatarUrl: string | undefined;
+    let pgStreak = 0;
+
+    try {
+      const pgRes = await pgPool.query(
+        `SELECT u.username, p.avatar_url, p.current_streak
+         FROM users u
+         LEFT JOIN user_profiles p ON u.id = p.user_id
+         WHERE u.id = $1`,
+        [userId]
+      );
+      if (pgRes.rows.length > 0) {
+        pgUsername = pgRes.rows[0].username;
+        pgAvatarUrl = pgRes.rows[0].avatar_url;
+        pgStreak = pgRes.rows[0].current_streak || 0;
+      }
+    } catch (pgErr) {
+      // PostgreSQL fallback if disconnected
+    }
+
+    const fallbackUsername = bestSubmissions[0]?.username || 'Developer';
+    const username = pgUsername || fallbackUsername;
+
+    // 4. Compute difficulty breakdown & format solved problem list
+    const difficultyBreakdown = { easy: 0, medium: 0, hard: 0 };
+    let totalScore = 0;
+
+    const solvedProblems: DeveloperSolvedProblemItem[] = bestSubmissions.map((sub: any) => {
+      const prob = problemMap.get(sub.problemId);
+      const difficulty = (prob?.difficulty?.toUpperCase() || 'MEDIUM') as 'EASY' | 'MEDIUM' | 'HARD';
+      const score = Math.round((sub.compositeScore || 85.0) * 10) / 10;
+      totalScore += score;
+
+      if (difficulty === 'EASY') difficultyBreakdown.easy++;
+      else if (difficulty === 'HARD') difficultyBreakdown.hard++;
+      else difficultyBreakdown.medium++;
+
+      return {
+        problemId: sub.problemId,
+        title: prob?.title || `Challenge #${sub.problemId.slice(-6)}`,
+        slug: prob?.slug || sub.problemId,
+        difficulty,
+        tags: prob?.tags || [],
+        language: sub.language,
+        bestRuntimeMs: Math.round((sub.executionTimeMs || 0) * 10) / 10,
+        bestMemoryKb: Math.round(sub.memoryUsedKb || 0),
+        compositeScore: score,
+        solvedAt: sub.createdAt ? new Date(sub.createdAt).toISOString() : new Date().toISOString()
+      };
+    });
+
+    // 5. Determine League Tier
+    const getLeague = (pts: number) => {
+      if (pts >= 200) return 'Grandmaster';
+      if (pts >= 120) return 'Master';
+      if (pts >= 60) return 'Knight';
+      return 'Challenger';
+    };
+
+    const developer: DeveloperSolvedProfile = {
+      userId,
+      username,
+      avatarUrl: pgAvatarUrl,
+      league: getLeague(totalScore),
+      totalSolved: solvedProblems.length,
+      totalScore: Math.round(totalScore * 10) / 10,
+      streak: pgStreak,
+      difficultyBreakdown
+    };
+
+    const responseData: DeveloperSolvedResponse = {
+      developer,
+      solvedProblems
+    };
+
+    res.status(200).json(createSuccessResponse(responseData));
+  } catch (err: any) {
+    console.error('[LeaderboardController] getUserSolvedProblems error:', err.message);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'Failed to retrieve developer solved problems'));
+  }
+}
+

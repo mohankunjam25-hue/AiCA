@@ -10,7 +10,15 @@ import {
   getProblemComparison,
   getComparisonById
 } from '../apps/api/src/controllers/comparison.controller.js';
-import { getGlobalLeaderboard } from '../apps/api/src/controllers/leaderboard.controller.js';
+import {
+  getGlobalLeaderboard,
+  getUserSolvedProblems
+} from '../apps/api/src/controllers/leaderboard.controller.js';
+import {
+  toggleFollowDeveloper,
+  getDeveloperProfile,
+  getDeveloperDirectory
+} from '../apps/api/src/controllers/developer.controller.js';
 import { getProblems } from '../apps/api/src/controllers/problem.controller.js';
 import { createSubmission, submissionQueue } from '../apps/api/src/controllers/submission.controller.js';
 import { SubmissionModel } from '../apps/api/src/models/mongodb/submission.model.js';
@@ -403,6 +411,240 @@ describe('Phase 4: Evolutionary Solution Comparison, Global Leaderboards & Platf
 
       expect(res.statusCode).toBe(202);
       expect(res.data.success).toBe(true);
+    });
+  });
+
+  describe('getUserSolvedProblems API & Developer Solved Dossier', () => {
+    it('returns empty list and valid metadata when user has 0 solved problems', async () => {
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue([]);
+      vi.spyOn(pgPool, 'query').mockResolvedValue({
+        rows: [{ username: 'new_student', avatar_url: 'https://avatar.png', current_streak: 2 }]
+      } as any);
+
+      const { req, res } = mockReqRes({
+        params: { userId: 'usr_new_001' }
+      });
+
+      await getUserSolvedProblems(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.username).toBe('new_student');
+      expect(res.data.data.developer.totalSolved).toBe(0);
+      expect(res.data.data.developer.difficultyBreakdown).toEqual({ easy: 0, medium: 0, hard: 0 });
+      expect(res.data.data.solvedProblems).toEqual([]);
+    });
+
+    it('returns developer solved problem list with difficulty breakdown and performance metrics', async () => {
+      const mockSubmissions = [
+        {
+          userId: 'usr_top_1',
+          username: 'ace_coder',
+          problemId: 'prob_1',
+          language: 'python',
+          compositeScore: 94.5,
+          executionTimeMs: 18,
+          memoryUsedKb: 14200,
+          createdAt: new Date('2026-11-06T12:00:00Z')
+        },
+        {
+          userId: 'usr_top_1',
+          username: 'ace_coder',
+          problemId: 'prob_2',
+          language: 'cpp',
+          compositeScore: 91.0,
+          executionTimeMs: 12,
+          memoryUsedKb: 8400,
+          createdAt: new Date('2026-11-06T15:00:00Z')
+        }
+      ];
+
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue(mockSubmissions);
+
+      const mockProblems = [
+        {
+          _id: { toString: () => 'prob_1' },
+          title: 'Maximum Subarray Sum',
+          slug: 'maximum-subarray-sum',
+          difficulty: 'MEDIUM',
+          tags: ['Arrays', 'Dynamic Programming']
+        },
+        {
+          _id: { toString: () => 'prob_2' },
+          title: 'Two Sum',
+          slug: 'two-sum',
+          difficulty: 'EASY',
+          tags: ['Arrays', 'Hash Table']
+        }
+      ];
+
+      vi.spyOn(ProblemModel, 'find').mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue(mockProblems)
+        })
+      } as any);
+
+      vi.spyOn(pgPool, 'query').mockResolvedValue({
+        rows: [{ username: 'ace_coder', avatar_url: 'https://avatar.png', current_streak: 5 }]
+      } as any);
+
+      const { req, res } = mockReqRes({
+        params: { userId: 'usr_top_1' }
+      });
+
+      await getUserSolvedProblems(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.username).toBe('ace_coder');
+      expect(res.data.data.developer.totalSolved).toBe(2);
+      expect(res.data.data.developer.difficultyBreakdown).toEqual({
+        easy: 1,
+        medium: 1,
+        hard: 0
+      });
+      expect(res.data.data.developer.totalScore).toBe(185.5);
+      expect(res.data.data.developer.league).toBe('Master');
+      expect(res.data.data.solvedProblems.length).toBe(2);
+      expect(res.data.data.solvedProblems[0].title).toBe('Maximum Subarray Sum');
+      expect(res.data.data.solvedProblems[0].bestRuntimeMs).toBe(18);
+      expect(res.data.data.solvedProblems[1].title).toBe('Two Sum');
+      expect(res.data.data.solvedProblems[1].language).toBe('cpp');
+    });
+  });
+
+  describe('Developer Follow System, Gated Code Access & Directory Search', () => {
+    it('toggleFollowDeveloper: rejects unauthenticated visitor (401)', async () => {
+      const { req, res } = mockReqRes({
+        params: { targetUserId: 'target_123' }
+      });
+      await toggleFollowDeveloper(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.data.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('toggleFollowDeveloper: rejects following oneself (400)', async () => {
+      const { req, res } = mockReqRes({
+        user: { id: 'usr_same' },
+        params: { targetUserId: 'usr_same' }
+      });
+      await toggleFollowDeveloper(req, res);
+      expect(res.statusCode).toBe(400);
+      expect(res.data.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('toggleFollowDeveloper: successfully toggles follow and returns updated follower count', async () => {
+      vi.spyOn(pgPool, 'query')
+        .mockResolvedValueOnce({ rows: [{ id: 'target_456', username: 'pro_coder' }] } as any) // target check
+        .mockResolvedValueOnce({ rows: [] } as any) // follow check (not currently following)
+        .mockResolvedValueOnce({ rows: [] } as any) // insert follow
+        .mockResolvedValueOnce({ rows: [{ count: 1 }] } as any); // count
+
+      const { req, res } = mockReqRes({
+        user: { id: 'usr_fan' },
+        params: { targetUserId: 'target_456' }
+      });
+
+      await toggleFollowDeveloper(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.isFollowing).toBe(true);
+      expect(res.data.data.followerCount).toBe(1);
+    });
+
+    it('getDeveloperProfile: STRICT INVARIANT - masks code when viewer is NOT following target developer', async () => {
+      vi.spyOn(pgPool, 'query')
+        .mockResolvedValueOnce({
+          rows: [{ id: 'target_user_id', username: 'mohan', full_name: 'Mohan' }]
+        } as any)
+        .mockResolvedValueOnce({ rows: [] } as any) // not following
+        .mockResolvedValueOnce({ rows: [{ followers: 0, following: 0 }] } as any);
+
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue([
+        {
+          problemId: 'prob_100',
+          language: 'python',
+          compositeScore: 92.0,
+          code: 'secret_solution_code()',
+          executionTimeMs: 20,
+          memoryUsedKb: 14000
+        }
+      ]);
+
+      vi.spyOn(ProblemModel, 'find').mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([
+            {
+              _id: { toString: () => 'prob_100' },
+              title: 'Trapping Rain Water',
+              slug: 'trapping-rain-water',
+              difficulty: 'HARD',
+              tags: ['Arrays']
+            }
+          ])
+        })
+      } as any);
+
+      const { req, res } = mockReqRes({
+        user: { id: 'stranger_viewer_id' },
+        params: { username: 'mohan' }
+      });
+
+      await getDeveloperProfile(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.isFollowing).toBe(false);
+      expect(res.data.data.solvedProblems[0].isCodeLocked).toBe(true);
+      expect(res.data.data.solvedProblems[0].code).toBeUndefined(); // Zero code leakage
+    });
+
+    it('getDeveloperProfile: unlocks code when viewer IS following target developer', async () => {
+      vi.spyOn(pgPool, 'query')
+        .mockResolvedValueOnce({
+          rows: [{ id: 'target_user_id', username: 'mohan', full_name: 'Mohan' }]
+        } as any)
+        .mockResolvedValueOnce({ rows: [{ 1: 1 }] } as any) // IS FOLLOWING!
+        .mockResolvedValueOnce({ rows: [{ followers: 5, following: 2 }] } as any);
+
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue([
+        {
+          problemId: 'prob_100',
+          language: 'python',
+          compositeScore: 92.0,
+          code: 'def solve(): return True',
+          executionTimeMs: 20,
+          memoryUsedKb: 14000
+        }
+      ]);
+
+      vi.spyOn(ProblemModel, 'find').mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([
+            {
+              _id: { toString: () => 'prob_100' },
+              title: 'Trapping Rain Water',
+              slug: 'trapping-rain-water',
+              difficulty: 'HARD',
+              tags: ['Arrays']
+            }
+          ])
+        })
+      } as any);
+
+      const { req, res } = mockReqRes({
+        user: { id: 'follower_viewer_id' },
+        params: { username: 'mohan' }
+      });
+
+      await getDeveloperProfile(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.isFollowing).toBe(true);
+      expect(res.data.data.solvedProblems[0].isCodeLocked).toBe(false);
+      expect(res.data.data.solvedProblems[0].code).toBe('def solve(): return True'); // Unlocked!
     });
   });
 });

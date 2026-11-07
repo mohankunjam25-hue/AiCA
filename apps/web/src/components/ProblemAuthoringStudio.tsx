@@ -22,6 +22,7 @@ import {
   RefreshCw,
   X,
   ChevronRight,
+  ChevronLeft,
   Check,
   HelpCircle,
   Sliders
@@ -219,6 +220,15 @@ A **subarray** is a contiguous part of an array.`,
 
 type StudioTab = 'metadata' | 'description' | 'examples' | 'code' | 'testcases' | 'review';
 
+export const STUDIO_STEPS: { key: StudioTab; stepNum: number; label: string; icon: any }[] = [
+  { key: 'metadata', stepNum: 1, label: 'Metadata', icon: Tag },
+  { key: 'description', stepNum: 2, label: 'Specification', icon: FileText },
+  { key: 'examples', stepNum: 3, label: 'Examples', icon: HelpCircle },
+  { key: 'code', stepNum: 4, label: 'Starter Code', icon: Code2 },
+  { key: 'testcases', stepNum: 5, label: 'Test Cases', icon: ShieldCheck },
+  { key: 'review', stepNum: 6, label: 'Pre-Flight', icon: CheckCircle2 }
+];
+
 interface ProblemAuthoringStudioProps {
   initialData?: ProblemFormData;
   editingProblemId?: string | null;
@@ -240,6 +250,10 @@ export function ProblemAuthoringStudio({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const currentStepIdx = STUDIO_STEPS.findIndex((s) => s.key === activeTab);
+  const prevStep = currentStepIdx > 0 ? STUDIO_STEPS[currentStepIdx - 1] : null;
+  const nextStep = currentStepIdx < STUDIO_STEPS.length - 1 ? STUDIO_STEPS[currentStepIdx + 1] : null;
 
   // Quick inputs
   const [tagInput, setTagInput] = useState('');
@@ -426,6 +440,30 @@ export function ProblemAuthoringStudio({
     }
   }
 
+  const [showLivePreview, setShowLivePreview] = useState(true);
+
+  const isStepComplete = (key: StudioTab): boolean => {
+    switch (key) {
+      case 'metadata':
+        return Boolean(formData.title.trim().length >= 3 && formData.slug.trim().length >= 3 && formData.tags.length > 0);
+      case 'description':
+        return Boolean(formData.description.trim().length >= 10);
+      case 'examples':
+        return Boolean(formData.examples.length >= 1 && formData.examples[0].input && formData.examples[0].output);
+      case 'code':
+        return Boolean(formData.starterPython.trim() || formData.starterCpp.trim() || formData.starterJava.trim() || formData.starterJs.trim());
+      case 'testcases':
+        return Boolean(formData.testCases.length >= 2 && publicTestCount >= 1 && hiddenTestCount >= 1);
+      case 'review':
+        return Boolean(validationIssues.length === 0);
+      default:
+        return false;
+    }
+  };
+
+  const completedStepsCount = STUDIO_STEPS.filter((s) => isStepComplete(s.key)).length;
+  const progressPercent = Math.round((completedStepsCount / STUDIO_STEPS.length) * 100);
+
   // Handle Form Submission
   const handleSubmit = async (targetStatus?: ProblemLifecycleStatus) => {
     setError(null);
@@ -515,47 +553,62 @@ export function ProblemAuthoringStudio({
   };
 
   return (
-    <div className={`flex flex-col bg-white dark:bg-slate-900 ${isStandalone ? 'min-h-[85vh] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden' : 'h-full'}`}>
+    <div className="w-full flex-1 flex flex-col bg-white dark:bg-[#0d1117] min-h-[calc(100vh-64px)]">
       {/* Studio Header Bar */}
-      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 backdrop-blur-xs flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 rounded-lg bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
-              <ShieldCheck className="w-5 h-5" />
-            </span>
-            <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              {editingProblemId ? 'Edit Curriculum Problem' : 'Problem Authoring Studio'}
-            </h2>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
-              formData.status === 'PUBLISHED'
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-            }`}>
-              {formData.status}
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
-            Configure metadata, markdown specification, multi-language starter code, and strict zero-leakage test suites.
-          </p>
-        </div>
-
-        {/* Global Action Buttons */}
-        <div className="flex items-center gap-2.5">
+      <header className="shrink-0 h-14 border-b border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 sm:px-6 flex items-center justify-between gap-3 z-10 sticky top-0">
+        <div className="flex items-center gap-3 min-w-0">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold cursor-pointer transition hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-xs font-semibold cursor-pointer transition shrink-0"
+              title="Return to Problem Management"
             >
-              Cancel
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Back to Problems</span>
             </button>
           )}
+
+          <div className="h-4 w-px bg-[#d0d7de] dark:bg-[#30363d] shrink-0" />
+
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1 rounded-md bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff] shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            <h1 className="text-xs sm:text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] truncate">
+              {editingProblemId ? `Edit: ${formData.title || 'Untitled Problem'}` : 'Problem Authoring Studio'}
+            </h1>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border shrink-0 ${
+              formData.status === 'PUBLISHED'
+                ? 'bg-[#dafbe1] text-[#1a7f37] dark:bg-[#1a7f37]/20 dark:text-[#3fb950] border-[#4ac26b]/30'
+                : 'bg-[#fff8c5] text-[#9a6700] dark:bg-[#9a6700]/20 dark:text-[#d29922] border-[#d4a72c]/30'
+            }`}>
+              {formData.status}
+            </span>
+          </div>
+        </div>
+
+        {/* Global Studio Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowLivePreview((prev) => !prev)}
+            className={`hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition ${
+              showLivePreview
+                ? 'border-[#8250df]/40 bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff]'
+                : 'border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+            }`}
+            title="Toggle Live Catalog Card Preview"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>{showLivePreview ? 'Hide Preview' : 'Show Preview'}</span>
+          </button>
 
           <button
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSubmit('UNPUBLISHED')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/80 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-xs font-bold cursor-pointer transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition disabled:opacity-50"
           >
             Save Draft
           </button>
@@ -564,81 +617,124 @@ export function ProblemAuthoringStudio({
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSubmit('PUBLISHED')}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-sm shadow-purple-600/30 cursor-pointer transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] text-white text-xs font-bold shadow-2xs cursor-pointer transition disabled:opacity-50"
           >
             {isSubmitting ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Check className="w-3.5 h-3.5" />
             )}
-            {editingProblemId ? 'Save & Publish' : 'Publish Problem'}
+            <span>{editingProblemId ? 'Save & Publish' : 'Publish Problem'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Alert Notices */}
       {error && (
-        <div className="mx-6 mt-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center gap-2.5 text-xs font-medium">
+        <div className="mx-6 mt-4 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center gap-2.5 text-xs font-medium">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="mx-6 mt-4 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center gap-2.5 text-xs font-medium">
+        <div className="mx-6 mt-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center gap-2.5 text-xs font-medium">
           <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
           <span>{success}</span>
         </div>
       )}
 
-      {/* Navigation Tabs Bar */}
-      <div className="px-6 pt-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto text-xs font-medium">
-        {[
-          { key: 'metadata', label: '1. Identity & Metadata', icon: Tag, count: formData.tags.length },
-          { key: 'description', label: '2. Statement & Spec', icon: FileText },
-          { key: 'examples', label: '3. Constraints & Examples', icon: HelpCircle, count: formData.examples.length },
-          { key: 'code', label: '4. Starter Code', icon: Code2 },
-          { key: 'testcases', label: '5. Test Cases Suite', icon: ShieldCheck, count: formData.testCases.length },
-          { key: 'review', label: '6. Review & Pre-Flight', icon: CheckCircle2 }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key as StudioTab)}
-              className={`flex items-center gap-2 px-3.5 py-2.5 border-b-2 font-bold cursor-pointer transition whitespace-nowrap ${
-                isActive
-                  ? 'border-purple-600 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/20'
-                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-              {typeof tab.count === 'number' && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                  isActive ? 'bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* 3-Panel Studio Body */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Step Sidebar (240px fixed) */}
+        <aside className="w-60 shrink-0 border-r border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] flex flex-col justify-between overflow-y-auto p-3.5">
+          <div className="space-y-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#656d76] dark:text-[#848d97] px-2 block">
+              Curriculum Steps
+            </span>
 
-      {/* Studio Workspace Content */}
-      <div className="flex-1 overflow-y-auto p-6 text-xs">
-        {/* TAB 1: METADATA & IDENTITY */}
-        {activeTab === 'metadata' && (
-          <div className="max-w-4xl space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <nav className="space-y-1">
+              {STUDIO_STEPS.map((step) => {
+                const isCurrent = activeTab === step.key;
+                const isComplete = isStepComplete(step.key);
+                const count =
+                  step.key === 'metadata'
+                    ? formData.tags.length
+                    : step.key === 'examples'
+                    ? formData.examples.length
+                    : step.key === 'testcases'
+                    ? formData.testCases.length
+                    : undefined;
+
+                return (
+                  <button
+                    key={step.key}
+                    type="button"
+                    onClick={() => setActiveTab(step.key)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition cursor-pointer ${
+                      isCurrent
+                        ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold shadow-xs border border-[#d0d7de] dark:border-[#30363d]'
+                        : 'text-[#656d76] dark:text-[#848d97] hover:bg-white/60 dark:hover:bg-[#21262d]/60 hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 ${
+                        isComplete
+                          ? 'bg-[#1f883d] text-white'
+                          : isCurrent
+                          ? 'bg-[#8250df] text-white'
+                          : 'bg-[#eaeef2] dark:bg-[#30363d] text-[#656d76] dark:text-[#848d97]'
+                      }`}>
+                        {isComplete ? '✓' : step.stepNum}
+                      </span>
+                      <span className="text-xs truncate">{step.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {typeof count === 'number' && (
+                        <span className="text-[10px] font-mono px-1 rounded-full bg-[#d0d7de]/50 dark:bg-[#30363d] text-[#656d76] dark:text-[#848d97]">
+                          {count}
+                        </span>
+                      )}
+                      {isCurrent && <ChevronRight className="w-3.5 h-3.5 text-[#8250df]" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Sidebar Bottom Progress Box */}
+          <div className="p-3 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] space-y-2 mt-4">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc]">Step Progress</span>
+              <span className="font-mono font-bold text-[#8250df] dark:text-[#bc8cff]">{progressPercent}%</span>
+            </div>
+            <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-[#1f883d] h-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-[#656d76] dark:text-[#848d97] block">
+              {completedStepsCount} of {STUDIO_STEPS.length} steps validated
+            </span>
+          </div>
+        </aside>
+
+        {/* Center Workspace (flex-1 flex flex-col) */}
+        <main className="flex-1 min-w-0 flex flex-col bg-white dark:bg-[#0d1117] overflow-hidden">
+          {/* Active Tab Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 text-xs">
+            {/* TAB 1: METADATA & IDENTITY */}
+            {activeTab === 'metadata' && (
+          <div className="max-w-4xl space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Problem Title */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center justify-between">
                   <span>Problem Title *</span>
-                  <span className="text-[11px] font-normal text-slate-400">e.g. Maximum Subarray Sum</span>
+                  <span className="text-[11px] font-normal text-[#656d76] dark:text-[#848d97]">e.g. Maximum Subarray Sum</span>
                 </label>
                 <input
                   type="text"
@@ -646,25 +742,25 @@ export function ProblemAuthoringStudio({
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Enter problem title..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:border-purple-500 text-sm shadow-xs"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#1f2328] dark:text-[#f0f6fc] font-semibold focus:outline-none focus:border-[#8250df] text-sm shadow-2xs"
                 />
               </div>
 
               {/* URL Slug */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-700 dark:text-slate-300">URL Slug *</label>
+                  <label className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">URL Slug *</label>
                   <button
                     type="button"
                     onClick={handleAutoSlug}
-                    className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] text-[#8250df] dark:text-[#bc8cff] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <RefreshCw className="w-3 h-3" />
                     Auto-generate from Title
                   </button>
                 </div>
-                <div className="flex items-center rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden shadow-xs focus-within:border-purple-500">
-                  <span className="px-3 text-slate-400 font-mono text-[11px] bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+                <div className="flex items-center rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] overflow-hidden shadow-2xs focus-within:border-[#8250df]">
+                  <span className="px-3 text-[#656d76] dark:text-[#848d97] font-mono text-[11px] bg-[#f6f8fa] dark:bg-[#161b22] border-r border-[#d0d7de] dark:border-[#30363d]">
                     /workspace/
                   </span>
                   <input
@@ -673,38 +769,44 @@ export function ProblemAuthoringStudio({
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                     placeholder="maximum-subarray-sum"
-                    className="flex-1 px-3 py-2.5 bg-transparent font-mono text-slate-900 dark:text-slate-100 focus:outline-none"
+                    className="flex-1 px-3 py-2 bg-transparent font-mono text-[#1f2328] dark:text-[#f0f6fc] focus:outline-none text-xs"
                   />
                 </div>
               </div>
             </div>
 
             {/* Difficulty Selector */}
-            <div className="space-y-2">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Difficulty Level *</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <label className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">Difficulty Level *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {[
                   {
                     level: 'EASY' as ProblemDifficulty,
                     label: 'Easy',
+                    sub: '1.5s / 128 MB',
                     desc: 'Linear traversals, basic logic, standard math.',
-                    color: 'emerald',
+                    colorBadge: 'bg-[#dafbe1] text-[#1a7f37] dark:bg-[#1a7f37]/20 dark:text-[#3fb950] border-[#4ac26b]/30',
+                    borderActive: 'border-[#1a7f37] ring-1 ring-[#1a7f37] bg-[#dafbe1]/30 dark:bg-[#1a7f37]/10',
                     timeLimit: 1500,
                     memory: 131072
                   },
                   {
                     level: 'MEDIUM' as ProblemDifficulty,
                     label: 'Medium',
+                    sub: '2.0s / 256 MB',
                     desc: 'Two pointers, sliding window, trees, DP.',
-                    color: 'amber',
+                    colorBadge: 'bg-[#fff8c5] text-[#9a6700] dark:bg-[#9a6700]/20 dark:text-[#d29922] border-[#d4a72c]/30',
+                    borderActive: 'border-[#9a6700] ring-1 ring-[#9a6700] bg-[#fff8c5]/30 dark:bg-[#9a6700]/10',
                     timeLimit: 2000,
                     memory: 262144
                   },
                   {
                     level: 'HARD' as ProblemDifficulty,
                     label: 'Hard',
+                    sub: '3.0s / 512 MB',
                     desc: 'Advanced graphs, segment trees, complex state DP.',
-                    color: 'rose',
+                    colorBadge: 'bg-[#ffebe9] text-[#cf222e] dark:bg-[#cf222e]/20 dark:text-[#ff7b72] border-[#ff8182]/30',
+                    borderActive: 'border-[#cf222e] ring-1 ring-[#cf222e] bg-[#ffebe9]/30 dark:bg-[#cf222e]/10',
                     timeLimit: 3000,
                     memory: 524288
                   }
@@ -722,29 +824,21 @@ export function ProblemAuthoringStudio({
                           memoryLimitKb: diff.memory
                         }))
                       }
-                      className={`p-4 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? diff.color === 'emerald'
-                            ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-500'
-                            : diff.color === 'amber'
-                            ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-1 ring-amber-500'
-                            : 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 ring-1 ring-rose-500'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-700'
+                          ? diff.borderActive
+                          : 'border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] hover:border-[#8c959f]'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          diff.color === 'emerald'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : diff.color === 'amber'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                            : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                        }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${diff.colorBadge}`}>
                           {diff.label}
                         </span>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                        <span className="text-[10px] font-mono text-[#656d76] dark:text-[#848d97]">
+                          {diff.sub}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{diff.desc}</p>
+                      <p className="text-[11px] text-[#656d76] dark:text-[#848d97] leading-tight mt-1">{diff.desc}</p>
                     </button>
                   );
                 })}
@@ -752,70 +846,79 @@ export function ProblemAuthoringStudio({
             </div>
 
             {/* Lifecycle Status & Catalog Visibility */}
-            <div className="space-y-2">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Catalog Publication Status *</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">Catalog Publication Status *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, status: 'UNPUBLISHED' })}
-                  className={`p-3.5 rounded-xl border text-left cursor-pointer transition ${
+                  className={`p-3 rounded-xl border text-left cursor-pointer transition flex items-start gap-3 ${
                     formData.status === 'UNPUBLISHED'
-                      ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 ring-1 ring-amber-500'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'
+                      ? 'border-[#9a6700] ring-1 ring-[#9a6700] bg-[#fff8c5]/30 dark:bg-[#9a6700]/10'
+                      : 'border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] hover:border-[#8c959f]'
                   }`}
                 >
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    Unpublished (Draft)
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#d29922] mt-1 shrink-0"></span>
+                  <div>
+                    <div className="font-bold text-[#1f2328] dark:text-[#f0f6fc] text-xs">
+                      Unpublished (Draft)
+                    </div>
+                    <p className="text-[11px] text-[#656d76] dark:text-[#848d97] mt-0.5">
+                      Hidden from student catalog. Safe for authoring & private test runs.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Hidden from public catalog. Safe for authoring, editing, and private testing.
-                  </p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, status: 'PUBLISHED' })}
-                  className={`p-3.5 rounded-xl border text-left cursor-pointer transition ${
+                  className={`p-3 rounded-xl border text-left cursor-pointer transition flex items-start gap-3 ${
                     formData.status === 'PUBLISHED'
-                      ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 ring-1 ring-emerald-500'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'
+                      ? 'border-[#1a7f37] ring-1 ring-[#1a7f37] bg-[#dafbe1]/30 dark:bg-[#1a7f37]/10'
+                      : 'border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] hover:border-[#8c959f]'
                   }`}
                 >
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Published (Live in Catalog)
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2da44e] mt-1 shrink-0"></span>
+                  <div>
+                    <div className="font-bold text-[#1f2328] dark:text-[#f0f6fc] text-xs">
+                      Published (Live in Catalog)
+                    </div>
+                    <p className="text-[11px] text-[#656d76] dark:text-[#848d97] mt-0.5">
+                      Visible in public catalog & eligible for student submissions.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Visible to all students in problem catalog & eligible for official submissions.
-                  </p>
                 </button>
               </div>
             </div>
 
             {/* Algorithmic Topic Tags */}
-            <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Topic Tags *</label>
+            <div className="space-y-2 pt-2 border-t border-[#d0d7de] dark:border-[#30363d]">
+              <label className="font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center justify-between">
+                <span>Topic Tags *</span>
+                <span className="text-[11px] font-normal text-[#656d76] dark:text-[#848d97]">
+                  {formData.tags.length} selected
+                </span>
+              </label>
               
               {/* Active Tags */}
-              <div className="flex flex-wrap gap-1.5 min-h-[34px] p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+              <div className="flex flex-wrap items-center gap-1.5 min-h-[38px] p-2 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117]">
                 {formData.tags.map((t) => (
                   <span
                     key={t}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] font-semibold text-xs shadow-2xs"
                   >
                     <span>{t}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(t)}
-                      className="text-slate-400 hover:text-rose-500 cursor-pointer"
+                      className="text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#ff7b72] cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
                 {formData.tags.length === 0 && (
-                  <span className="text-slate-400 text-xs italic self-center">No tags selected yet. Pick or add below.</span>
+                  <span className="text-[#8c959f] text-xs italic px-1">No tags selected yet. Pick below or type custom tag.</span>
                 )}
               </div>
 
@@ -832,12 +935,12 @@ export function ProblemAuthoringStudio({
                     }
                   }}
                   placeholder="Type custom tag and press Enter (e.g. Kadane's Algorithm)..."
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
+                  className="flex-1 px-3 py-2 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#1f2328] dark:text-[#f0f6fc] placeholder-[#8c959f] focus:outline-none focus:border-[#8250df]"
                 />
                 <button
                   type="button"
                   onClick={() => handleAddTag(tagInput)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] font-bold text-[#24292f] dark:text-[#f0f6fc] cursor-pointer transition text-xs"
                 >
                   Add Tag
                 </button>
@@ -845,7 +948,9 @@ export function ProblemAuthoringStudio({
 
               {/* Popular Tag Pills */}
               <div className="pt-1">
-                <span className="text-[11px] text-slate-400 font-medium block mb-1.5">Quick add standard topics:</span>
+                <span className="text-[11px] text-[#656d76] dark:text-[#848d97] font-medium block mb-1.5">
+                  Quick add standard topics:
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {POPULAR_TAGS.map((popTag) => {
                     const isAdded = formData.tags.includes(popTag);
@@ -854,10 +959,10 @@ export function ProblemAuthoringStudio({
                         key={popTag}
                         type="button"
                         onClick={() => (isAdded ? handleRemoveTag(popTag) : handleAddTag(popTag))}
-                        className={`px-2 py-0.5 rounded-md text-[11px] transition cursor-pointer ${
+                        className={`px-2 py-0.5 rounded-md text-[11px] transition cursor-pointer font-medium ${
                           isAdded
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800 font-semibold'
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                            ? 'bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff] border border-[#8250df]/40 font-semibold'
+                            : 'bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:border-[#8c959f]'
                         }`}
                       >
                         {isAdded ? `✓ ${popTag}` : `+ ${popTag}`}
@@ -869,20 +974,20 @@ export function ProblemAuthoringStudio({
             </div>
 
             {/* Sandbox Execution Benchmarks */}
-            <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Sliders className="w-4 h-4 text-purple-500" />
+            <div className="space-y-3 pt-2 border-t border-[#d0d7de] dark:border-[#30363d]">
+              <h3 className="font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-1.5">
+                <Sliders className="w-4 h-4 text-[#8250df]" />
                 Execution Sandbox Limits
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Time Limit */}
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+                <div className="p-3.5 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117] space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <label className="font-semibold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#656d76] dark:text-[#848d97]" />
                       CPU Time Limit
                     </label>
-                    <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
+                    <span className="font-mono font-bold text-[#8250df] dark:text-[#bc8cff]">
                       {formData.timeLimitMs} ms ({(formData.timeLimitMs / 1000).toFixed(1)}s)
                     </span>
                   </div>
@@ -893,7 +998,7 @@ export function ProblemAuthoringStudio({
                     step={100}
                     value={formData.timeLimitMs}
                     onChange={(e) => setFormData({ ...formData, timeLimitMs: Number(e.target.value) })}
-                    className="w-full accent-purple-600 cursor-pointer"
+                    className="w-full accent-[#8250df] cursor-pointer"
                   />
                   <div className="flex items-center justify-between gap-1 pt-1">
                     {[1000, 2000, 3000, 5000].map((ms) => (
@@ -903,8 +1008,8 @@ export function ProblemAuthoringStudio({
                         onClick={() => setFormData({ ...formData, timeLimitMs: ms })}
                         className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer ${
                           formData.timeLimitMs === ms
-                            ? 'bg-purple-600 text-white font-bold'
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                            ? 'bg-[#8250df] text-white font-bold'
+                            : 'bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97]'
                         }`}
                       >
                         {ms / 1000}s
@@ -914,17 +1019,26 @@ export function ProblemAuthoringStudio({
                 </div>
 
                 {/* Memory Limit */}
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+                <div className="p-3.5 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117] space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                    <label className="font-semibold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-[#656d76] dark:text-[#848d97]" />
                       Memory RAM Limit
                     </label>
-                    <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
-                      {Math.round(formData.memoryLimitKb / 1024)} MB
+                    <span className="font-mono font-bold text-[#8250df] dark:text-[#bc8cff]">
+                      {Math.round(formData.memoryLimitKb / 1024)} MB ({formData.memoryLimitKb} KB)
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5 pt-2">
+                  <input
+                    type="range"
+                    min={32768}
+                    max={1048576}
+                    step={32768}
+                    value={formData.memoryLimitKb}
+                    onChange={(e) => setFormData({ ...formData, memoryLimitKb: Number(e.target.value) })}
+                    className="w-full accent-[#8250df] cursor-pointer"
+                  />
+                  <div className="grid grid-cols-4 gap-1 pt-1">
                     {[
                       { mb: 64, kb: 65536 },
                       { mb: 128, kb: 131072 },
@@ -935,30 +1049,18 @@ export function ProblemAuthoringStudio({
                         key={preset.mb}
                         type="button"
                         onClick={() => setFormData({ ...formData, memoryLimitKb: preset.kb })}
-                        className={`p-2 rounded-lg text-center font-mono cursor-pointer transition ${
+                        className={`p-1 rounded text-center font-mono cursor-pointer transition ${
                           formData.memoryLimitKb === preset.kb
-                            ? 'bg-purple-600 text-white font-bold'
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                            ? 'bg-[#8250df] text-white font-bold'
+                            : 'bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97]'
                         }`}
                       >
-                        <div className="text-xs">{preset.mb}MB</div>
+                        <div className="text-[10px]">{preset.mb}MB</div>
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Bottom Next Button */}
-            <div className="flex justify-end pt-4">
-              <button
-                type="button"
-                onClick={() => setActiveTab('description')}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold cursor-pointer transition shadow-md shadow-purple-600/20"
-              >
-                <span>Next: Problem Statement</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
           </div>
         )}
@@ -1665,7 +1767,181 @@ export function ProblemAuthoringStudio({
             </div>
           </div>
         )}
-      </div>
+        </div>
+
+        {/* Docked Wizard Footer */}
+        <footer className="shrink-0 h-14 border-t border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] px-6 flex items-center justify-between gap-3">
+          {/* Left: Previous Step Button */}
+          <div>
+            {prevStep ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab(prevStep.key)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Back: {prevStep.label}</span>
+              </button>
+            ) : onCancel ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] text-xs font-semibold cursor-pointer transition"
+              >
+                Cancel
+              </button>
+            ) : <div />}
+          </div>
+
+          {/* Center: Step Progress Pill */}
+          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-[#656d76] dark:text-[#848d97]">
+            <span>Step <strong className="text-[#1f2328] dark:text-[#f0f6fc]">{currentStepIdx + 1}</strong> of {STUDIO_STEPS.length}:</span>
+            <span className="font-semibold text-[#8250df] dark:text-[#bc8cff]">{STUDIO_STEPS[currentStepIdx]?.label}</span>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit('UNPUBLISHED')}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition disabled:opacity-50"
+            >
+              Save Draft
+            </button>
+
+            {nextStep ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab(nextStep.key)}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#8250df] hover:bg-[#6639ba] text-white text-xs font-bold shadow-2xs cursor-pointer transition"
+              >
+                <span>Next: {nextStep.label}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isSubmitting || validationIssues.length > 0}
+                onClick={() => handleSubmit('PUBLISHED')}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] text-white text-xs font-bold shadow-2xs cursor-pointer transition disabled:opacity-50"
+              >
+                {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Publish Problem</span>
+              </button>
+            )}
+          </div>
+        </footer>
+      </main>
+
+      {/* Right Live Catalog Preview Panel (320px fixed, collapsible) */}
+      {showLivePreview && (
+        <aside className="hidden xl:flex w-80 shrink-0 border-l border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] flex-col overflow-y-auto p-5 space-y-5">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#656d76] dark:text-[#848d97] flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-[#8250df]" />
+                Live Student Preview
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff] font-semibold">
+                Catalog Card
+              </span>
+            </div>
+            <p className="text-[11px] text-[#656d76] dark:text-[#848d97]">
+              Real-time preview of how students will see this problem in the library:
+            </p>
+          </div>
+
+          {/* Simulated Problem Catalog Card */}
+          <div className="p-4 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] shadow-xs space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className="font-bold text-sm text-[#1f2328] dark:text-[#f0f6fc] leading-snug truncate">
+                  {formData.title.trim() || 'Untitled Problem'}
+                </h4>
+                <span className="font-mono text-[10px] text-[#656d76] dark:text-[#848d97] truncate block">
+                  /workspace/{formData.slug || 'url-slug'}
+                </span>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border shrink-0 ${
+                formData.difficulty === 'EASY'
+                  ? 'bg-[#dafbe1] text-[#1a7f37] dark:bg-[#1a7f37]/20 dark:text-[#3fb950] border-[#4ac26b]/30'
+                  : formData.difficulty === 'MEDIUM'
+                  ? 'bg-[#fff8c5] text-[#9a6700] dark:bg-[#9a6700]/20 dark:text-[#d29922] border-[#d4a72c]/30'
+                  : 'bg-[#ffebe9] text-[#cf222e] dark:bg-[#cf222e]/20 dark:text-[#ff7b72] border-[#ff8182]/30'
+              }`}>
+                {formData.difficulty}
+              </span>
+            </div>
+
+            {/* Execution Limit Badges */}
+            <div className="flex items-center gap-3 text-[11px] text-[#656d76] dark:text-[#848d97]">
+              <span className="flex items-center gap-1 font-mono">
+                <Clock className="w-3 h-3 text-[#8250df]" />
+                {formData.timeLimitMs}ms
+              </span>
+              <span className="flex items-center gap-1 font-mono">
+                <Cpu className="w-3 h-3 text-[#8250df]" />
+                {Math.round(formData.memoryLimitKb / 1024)}MB
+              </span>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono ${
+                formData.status === 'PUBLISHED'
+                  ? 'bg-[#dafbe1] text-[#1a7f37]'
+                  : 'bg-[#fff8c5] text-[#9a6700]'
+              }`}>
+                {formData.status}
+              </span>
+            </div>
+
+            {/* Problem Snippet */}
+            <p className="text-[11px] text-[#656d76] dark:text-[#848d97] line-clamp-3 leading-relaxed">
+              {formData.description.trim() || 'Problem description statement snippet will render here...'}
+            </p>
+
+            {/* Topic Chips */}
+            <div className="flex flex-wrap gap-1 pt-1 border-t border-[#d0d7de]/60 dark:border-[#30363d]/60">
+              {formData.tags.map((t) => (
+                <span
+                  key={t}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d]"
+                >
+                  {t}
+                </span>
+              ))}
+              {formData.tags.length === 0 && (
+                <span className="text-[10px] text-[#8c959f] italic">No topic tags added</span>
+              )}
+            </div>
+          </div>
+
+          {/* Pre-Flight Checklist Card */}
+          <div className="p-4 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] shadow-xs space-y-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#656d76] dark:text-[#848d97] block">
+              Pre-Flight Sanity Checks
+            </span>
+            <div className="space-y-1.5 text-xs">
+              {[
+                { label: 'Title & Slug (≥ 3 chars)', ok: formData.title.trim().length >= 3 && formData.slug.trim().length >= 3 },
+                { label: 'Topic Tags (≥ 1 tag)', ok: formData.tags.length > 0 },
+                { label: 'Problem Statement (≥ 10 chars)', ok: formData.description.trim().length >= 10 },
+                { label: 'Sample Examples (≥ 1)', ok: formData.examples.length >= 1 },
+                { label: 'Public Test Cases (≥ 1)', ok: publicTestCount >= 1 },
+                { label: 'Hidden Test Cases (≥ 1)', ok: hiddenTestCount >= 1 }
+              ].map((chk, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px]">
+                  <span className={chk.ok ? 'text-[#1f2328] dark:text-[#f0f6fc]' : 'text-[#8c959f]'}>
+                    {chk.label}
+                  </span>
+                  <span className={chk.ok ? 'text-[#1a7f37] font-bold' : 'text-[#cf222e] font-mono'}>
+                    {chk.ok ? '✓' : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      )}
+    </div>
 
       {/* Bulk JSON Import / Export Modal */}
       {showJsonBulkModal && (

@@ -48,3 +48,38 @@ export interface GlobalLeaderboardResponse {
   limit: number;
   rankings: GlobalLeaderboardEntry[];
 }
+
+export interface DeveloperSolvedProblemItem {
+  problemId: string;
+  title: string;
+  slug: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  tags: string[];
+  language: SupportedLanguage;
+  bestRuntimeMs: number;
+  bestMemoryKb: number;
+  compositeScore: number;
+  solvedAt: string;
+}
+
+export interface DeveloperSolvedProfile {
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  rank?: number;
+  league: string;
+  totalSolved: number;
+  totalScore: number;
+  streak: number;
+  difficultyBreakdown: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+}
+
+export interface DeveloperSolvedResponse {
+  developer: DeveloperSolvedProfile;
+  solvedProblems: DeveloperSolvedProblemItem[];
+}
+
