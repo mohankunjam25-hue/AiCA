@@ -20,12 +20,6 @@ export function AiCALogo({ className = 'w-9 h-9 sm:w-10 sm:h-10', size }: AiCALo
         className="w-full h-full select-none"
       >
         <defs>
-          {/* GitHub Canvas Gradient */}
-          <linearGradient id="aicaBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#161b22" />
-            <stop offset="100%" stopColor="#0a0d12" />
-          </linearGradient>
-
           {/* Emerald Curved Arc */}
           <linearGradient id="aicaEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#3fb950" />
@@ -41,35 +35,23 @@ export function AiCALogo({ className = 'w-9 h-9 sm:w-10 sm:h-10', size }: AiCALo
 
           {/* Radiant Gold Core Text */}
           <linearGradient id="aicaGold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f2cc60" />
-            <stop offset="50%" stopColor="#e3b341" />
-            <stop offset="100%" stopColor="#d29922" />
+            <stop offset="0%" stopColor="#e3b341" />
+            <stop offset="50%" stopColor="#d29922" />
+            <stop offset="100%" stopColor="#b08800" />
           </linearGradient>
 
-          {/* Crisp Shadow */}
-          <filter id="aicaShadow" x="-15%" y="-15%" width="130%" height="130%">
-            <feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.6" />
+          {/* Clean Soft Shadow */}
+          <filter id="aicaShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.25" />
           </filter>
         </defs>
-
-        {/* Outer Modern Squircle Container */}
-        <rect
-          x="4"
-          y="4"
-          width="112"
-          height="112"
-          rx="26"
-          fill="url(#aicaBgGrad)"
-          stroke="#30363d"
-          strokeWidth="3.5"
-          filter="url(#aicaShadow)"
-        />
 
         {/* Left Emerald Arc (Code Orbit) */}
         <path
           d="M 32 94 C 14 76 14 44 32 26 C 44 14 66 12 84 18 C 70 24 50 32 40 46 C 30 60 30 80 32 94 Z"
           fill="url(#aicaEmerald)"
           opacity="0.95"
+          filter="url(#aicaShadow)"
         />
 
         {/* Right Ruby Arc (Evolution Orbit) */}
@@ -77,6 +59,7 @@ export function AiCALogo({ className = 'w-9 h-9 sm:w-10 sm:h-10', size }: AiCALo
           d="M 88 26 C 106 44 106 76 88 94 C 76 106 54 108 36 102 C 50 96 70 88 80 74 C 90 60 90 40 88 26 Z"
           fill="url(#aicaRuby)"
           opacity="0.9"
+          filter="url(#aicaShadow)"
         />
 
         {/* Center Crystal-Clear Bold Text: <GV2/> */}
@@ -88,7 +71,7 @@ export function AiCALogo({ className = 'w-9 h-9 sm:w-10 sm:h-10', size }: AiCALo
             fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
             fontSize="25"
             fontWeight="900"
-            fill="#3fb950"
+            fill="#2ea043"
             textAnchor="middle"
           >
             &lt;
@@ -115,7 +98,7 @@ export function AiCALogo({ className = 'w-9 h-9 sm:w-10 sm:h-10', size }: AiCALo
             fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
             fontSize="25"
             fontWeight="900"
-            fill="#f85149"
+            fill="#cf222e"
             textAnchor="middle"
           >
             /&gt;
