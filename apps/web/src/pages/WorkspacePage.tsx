@@ -38,9 +38,12 @@ import { EvaluationReportView } from '../components/EvaluationReportView';
 import { useClipboard, useWorkspaceSplitter, useKeyboardShortcuts } from '../hooks';
 import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
+import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
+import { toast } from '../store/useToastStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const FALLBACK_CATALOG_PROBLEMS: Record<string, Problem> = {
   'container-with-most-water': {
@@ -228,6 +231,7 @@ export function WorkspacePage() {
   const [compareViewMode, setCompareViewMode] = useState<'matrix' | 'diff'>('matrix');
   const [pastSubmissions, setPastSubmissions] = useState<any[]>([]);
   const [loadingPastSubmissions, setLoadingPastSubmissions] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null);
   const [inspectedCode, setInspectedCode] = useState<{ code: string; language: string; verdict: string; date: string } | null>(null);
   const [loadedCode, setLoadedCode] = useState<{ code: string; language: SupportedLanguage } | null>(null);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
@@ -313,7 +317,7 @@ export function WorkspacePage() {
       setActiveLeftTab('compare');
       setSelectedForCompare([]);
     } catch (err: any) {
-      alert(`Comparison failed: ${err.response?.data?.error?.message || err.message}`);
+      toast.error(`Comparison failed: ${getErrorMessage(err)}`);
     } finally {
       setGeneratingComparison(false);
     }
@@ -378,6 +382,7 @@ export function WorkspacePage() {
     }
 
     if (!cached) setLoadingPastSubmissions(true);
+    setSubmissionsError(null);
     try {
       const token = useAuthStore.getState().accessToken;
       const requests: Promise<any>[] = [
@@ -414,6 +419,7 @@ export function WorkspacePage() {
       useDataCacheStore.getState().set(cacheKey, combined);
     } catch (err: any) {
       console.warn('[WorkspacePage] Submissions fetch failed:', err.message);
+      setSubmissionsError(getErrorMessage(err, 'Failed to retrieve problem submissions'));
     } finally {
       setLoadingPastSubmissions(false);
     }
@@ -936,6 +942,15 @@ export function WorkspacePage() {
                 <div className="py-12 flex flex-col items-center justify-center text-[#57606a] dark:text-[#8b949e]">
                   <Loader2 className="w-6 h-6 animate-spin mb-2" />
                   <p className="text-xs">Loading past submissions...</p>
+                </div>
+              ) : submissionsError && pastSubmissions.length === 0 ? (
+                <div className="p-4">
+                  <DataFetchErrorCard
+                    compact
+                    message={submissionsError}
+                    onRetry={() => fetchProblemSubmissions(true)}
+                    isRetrying={loadingPastSubmissions}
+                  />
                 </div>
               ) : pastSubmissions.length === 0 ? (
                 <div className="py-12 text-center text-[#57606a] dark:text-[#8b949e] border border-dashed border-[#d0d7de] dark:border-[#30363d] rounded-md space-y-2">

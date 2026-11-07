@@ -25,6 +25,7 @@ const AdminProblemReviewPage = React.lazy(() => import('./pages/AdminProblemRevi
 const AdminProblemManagementPage = React.lazy(() => import('./pages/AdminProblemManagementPage').then(m => ({ default: m.AdminProblemManagementPage })));
 const DeveloperProfilePage = React.lazy(() => import('./pages/DeveloperProfilePage').then(m => ({ default: m.DeveloperProfilePage })));
 const DeveloperDirectoryPage = React.lazy(() => import('./pages/DeveloperDirectoryPage').then(m => ({ default: m.DeveloperDirectoryPage })));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
@@ -63,17 +64,18 @@ function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 flex flex-col min-w-0">
-          <Suspense fallback={<PageLoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<HomeRoute />} />
-              <Route
-                path="/problems"
-                element={
-                  <ProtectedRoute requireAuth>
-                    <ProblemListPage />
-                  </ProtectedRoute>
-                }
-              />
+          <ErrorBoundary level="route">
+            <Suspense fallback={<PageLoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<HomeRoute />} />
+                <Route
+                  path="/problems"
+                  element={
+                    <ProtectedRoute requireAuth>
+                      <ProblemListPage />
+                    </ProtectedRoute>
+                  }
+                />
               <Route
                 path="/algorithms"
                 element={
@@ -164,10 +166,13 @@ function AppLayout() {
               />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              {/* 404 Catch-All Route for Undefined Paths */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-        </main>
-        <footer className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
+        </ErrorBoundary>
+      </main>
+      <footer className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="font-bold text-[#1f2328] dark:text-[#e6edf3]">AI Code Evolution Lab</span>
@@ -199,11 +204,13 @@ function AppLayout() {
 
 export function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <AppLayout />
-      </BrowserRouter>
-    </GoogleOAuthProvider>
+    <ErrorBoundary level="global">
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <BrowserRouter>
+          <AppLayout />
+        </BrowserRouter>
+      </GoogleOAuthProvider>
+    </ErrorBoundary>
   );
 }
 export default App;
