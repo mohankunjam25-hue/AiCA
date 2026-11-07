@@ -18,7 +18,9 @@ import {
   Maximize2,
   Minimize2,
   Minus,
-  Plus
+  Plus,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import {
   Problem,
@@ -38,6 +40,8 @@ interface MonacoWorkspaceProps {
   loadedCode?: { code: string; language: SupportedLanguage } | null;
   isZenMode?: boolean;
   onToggleZenMode?: () => void;
+  isPanelCollapsed?: boolean;
+  onTogglePanelCollapse?: () => void;
 }
 
 export function MonacoWorkspace({
@@ -45,7 +49,9 @@ export function MonacoWorkspace({
   onEvaluationComplete,
   loadedCode,
   isZenMode = false,
-  onToggleZenMode
+  onToggleZenMode,
+  isPanelCollapsed = false,
+  onTogglePanelCollapse
 }: MonacoWorkspaceProps) {
   const { isDark } = useThemeStore();
   const editorPrefs = useEditorPreferencesStore();
@@ -70,13 +76,31 @@ export function MonacoWorkspace({
 
   // Monaco Editor instance reference
   const editorRef = useRef<any>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(1000);
+
+  // ResizeObserver to detect width changes and re-layout Monaco seamlessly
+  useEffect(() => {
+    if (!editorContainerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setContainerWidth(width);
+        if (editorRef.current) {
+          editorRef.current.layout();
+        }
+      }
+    });
+    ro.observe(editorContainerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Re-layout Monaco whenever console is toggled or resized
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.layout();
     }
-  }, [isConsoleCollapsed, consoleHeight, isZenMode]);
+  }, [isConsoleCollapsed, consoleHeight, isZenMode, isPanelCollapsed]);
 
   // Quick Preferences Popover State
   const [showPreferences, setShowPreferences] = useState<boolean>(false);
@@ -437,6 +461,22 @@ export function MonacoWorkspace({
               {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
           )}
+
+          {/* Quick Problem Panel Toggle (Expand/Contract Editor) */}
+          {onTogglePanelCollapse && (
+            <button
+              type="button"
+              onClick={onTogglePanelCollapse}
+              className={`hidden md:flex items-center gap-1.5 p-1.5 rounded-lg border transition cursor-pointer ${
+                isPanelCollapsed
+                  ? 'bg-[#0969da] text-white border-[#0969da]'
+                  : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3]'
+              }`}
+              title={isPanelCollapsed ? 'Show Problem Description' : 'Full Editor Width (Collapse Problem)'}
+            >
+              {isPanelCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+            </button>
+          )}
         </div>
 
         {/* Execution Actions */}
@@ -497,7 +537,7 @@ export function MonacoWorkspace({
       )}
 
       {/* Monaco Code Editor Canvas (Takes 100% of available vertical height with robust absolute inset layout) */}
-      <div className="flex-1 min-h-[320px] lg:min-h-[380px] w-full relative">
+      <div ref={editorContainerRef} className="flex-1 min-h-[180px] w-full relative overflow-hidden">
         <div className="absolute inset-0">
           <Editor
             height="100%"
@@ -513,12 +553,12 @@ export function MonacoWorkspace({
             }}
             options={{
               fontSize: editorPrefs.fontSize,
-              minimap: { enabled: editorPrefs.minimap },
+              minimap: { enabled: containerWidth > 680 && editorPrefs.minimap },
               scrollBeyondLastLine: false,
               automaticLayout: true,
               tabSize: editorPrefs.tabSize,
               bracketPairColorization: { enabled: editorPrefs.bracketPairColorization },
-              wordWrap: editorPrefs.wordWrap,
+              wordWrap: containerWidth < 768 ? 'on' : editorPrefs.wordWrap,
               fontFamily: editorPrefs.fontFamily,
               padding: { top: 12, bottom: 12 }
             }}
@@ -542,7 +582,7 @@ export function MonacoWorkspace({
       >
         {/* Console Header Bar */}
         <div className="flex items-center justify-between px-3 h-[37px] border-b border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] text-xs font-medium shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-none py-0.5">
             <button
               onClick={() => {
                 setActiveTab('tests');
