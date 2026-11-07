@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
+import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
 import { api } from '../services/api';
 
 interface SubmissionItem {
@@ -75,73 +76,79 @@ export function DashboardPage() {
   );
   // Instant render without loader if cache exists
   const [loading, setLoading] = useState(!initialCache);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchDashboardData = async () => {
+    // If we already have fresh cached data, avoid redundant network requests
+    const freshCache = useDataCacheStore.getState().get<DashboardCacheData>(cacheKey, 60 * 1000);
+    if (freshCache && submissions.length > 0) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const [subRes, heatRes, probRes] = await Promise.allSettled([
+        api.get('/submissions/my?limit=8'),
+        api.get('/submissions/activity-heatmap'),
+        api.get('/problems?page=1&limit=15&sortBy=latest')
+      ]);
+
+      const allRejected =
+        subRes.status === 'rejected' &&
+        probRes.status === 'rejected' &&
+        heatRes.status === 'rejected';
+
+      if (allRejected) {
+        setFetchError('Unable to synchronize your dashboard data. Please verify your connection.');
+      }
+
+      let updatedSubs = submissions;
+      let updatedProblems = catalogProblems;
+      let updatedMap = activityMap;
+      let updatedStats = stats;
+
+      if (subRes.status === 'fulfilled' && subRes.value.data?.data?.submissions) {
+        updatedSubs = subRes.value.data.data.submissions;
+        setSubmissions(updatedSubs);
+      }
+      if (heatRes.status === 'fulfilled' && heatRes.value.data?.data) {
+        const h = heatRes.value.data.data;
+        updatedStats = {
+          solved: h.problemsSolved ?? profile?.problemsSolved ?? 0,
+          total: h.totalSubmissions ?? profile?.totalSubmissions ?? 0,
+          streak: h.currentStreak ?? profile?.currentStreak ?? 0,
+          longestStreak: h.longestStreak ?? 0
+        };
+        setStats(updatedStats);
+        if (h.activityByDate) {
+          updatedMap = h.activityByDate;
+          setActivityMap(updatedMap);
+        }
+      }
+      if (probRes.status === 'fulfilled' && probRes.value.data?.data?.problems) {
+        updatedProblems = probRes.value.data.data.problems;
+        setCatalogProblems(updatedProblems);
+      }
+
+      // Save fresh snapshot to in-memory cache
+      useDataCacheStore.getState().set<DashboardCacheData>(cacheKey, {
+        submissions: updatedSubs,
+        catalogProblems: updatedProblems,
+        activityMap: updatedMap,
+        stats: updatedStats
+      });
+    } catch (err) {
+      console.warn('[Dashboard] Could not load live metrics:', err);
+      setFetchError('Unable to synchronize live dashboard metrics.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchDashboardData = async () => {
-      // If we already have fresh cached data, avoid redundant network requests
-      const freshCache = useDataCacheStore.getState().get<DashboardCacheData>(cacheKey, 60 * 1000);
-      if (freshCache && submissions.length > 0) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const [subRes, heatRes, probRes] = await Promise.allSettled([
-          api.get('/submissions/my?limit=8'),
-          api.get('/submissions/activity-heatmap'),
-          api.get('/problems?page=1&limit=15&sortBy=latest')
-        ]);
-
-        if (isMounted) {
-          let updatedSubs = submissions;
-          let updatedProblems = catalogProblems;
-          let updatedMap = activityMap;
-          let updatedStats = stats;
-
-          if (subRes.status === 'fulfilled' && subRes.value.data?.data?.submissions) {
-            updatedSubs = subRes.value.data.data.submissions;
-            setSubmissions(updatedSubs);
-          }
-          if (heatRes.status === 'fulfilled' && heatRes.value.data?.data) {
-            const h = heatRes.value.data.data;
-            updatedStats = {
-              solved: h.problemsSolved ?? profile?.problemsSolved ?? 0,
-              total: h.totalSubmissions ?? profile?.totalSubmissions ?? 0,
-              streak: h.currentStreak ?? profile?.currentStreak ?? 0,
-              longestStreak: h.longestStreak ?? 0
-            };
-            setStats(updatedStats);
-            if (h.activityByDate) {
-              updatedMap = h.activityByDate;
-              setActivityMap(updatedMap);
-            }
-          }
-          if (probRes.status === 'fulfilled' && probRes.value.data?.data?.problems) {
-            updatedProblems = probRes.value.data.data.problems;
-            setCatalogProblems(updatedProblems);
-          }
-
-          // Save fresh snapshot to in-memory cache
-          useDataCacheStore.getState().set<DashboardCacheData>(cacheKey, {
-            submissions: updatedSubs,
-            catalogProblems: updatedProblems,
-            activityMap: updatedMap,
-            stats: updatedStats
-          });
-        }
-      } catch (err) {
-        console.warn('[Dashboard] Could not load live metrics:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
     fetchDashboardData();
-    return () => {
-      isMounted = false;
-    };
   }, [cacheKey, profile]);
 
   // Generate 15-week (105 days) GitHub style contribution punchcard
@@ -234,6 +241,16 @@ export function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Network / Synchronization Alert */}
+      {fetchError && (
+        <DataFetchErrorCard
+          compact
+          message={fetchError}
+          onRetry={fetchDashboardData}
+          isRetrying={loading}
+        />
+      )}
+
       {/* 1. Header Strip: Clean Profile Bar (Zero Black Gimmick Banner) */}
       <div className="p-4 sm:p-5 rounded-md bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* User Identity */}
