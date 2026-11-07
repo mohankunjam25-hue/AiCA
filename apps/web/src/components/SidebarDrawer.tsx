@@ -202,14 +202,19 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             <Link
               to="/"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md transition ${
+              className={`flex items-center justify-between px-3 py-2 rounded-md transition ${
                 location.pathname === '/'
-                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold'
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#0969da] dark:border-[#58a6ff]'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
               }`}
             >
-              <Home className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
-              Home
+              <span className="flex items-center gap-3">
+                <Home className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+                <span>Home (Daily Hub)</span>
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                POTD
+              </span>
             </Link>
 
             <Link
@@ -217,7 +222,7 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2 rounded-md transition ${
                 location.pathname.startsWith('/problems')
-                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold'
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#1a7f37] dark:border-[#3fb950]'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
               }`}
             >
@@ -230,11 +235,11 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2 rounded-md transition ${
                 location.pathname.startsWith('/algorithms')
-                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold'
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#8250df] dark:border-[#a371f7]'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
               }`}
             >
-              <Workflow className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+              <Workflow className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
               Algorithms
             </Link>
 
@@ -243,7 +248,7 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2 rounded-md transition ${
                 location.pathname.startsWith('/leaderboard')
-                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold'
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#9a6700] dark:border-[#d29922]'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
               }`}
             >
@@ -254,14 +259,19 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             <Link
               to="/dashboard"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md transition ${
+              className={`flex items-center justify-between px-3 py-2 rounded-md transition ${
                 location.pathname.startsWith('/dashboard')
-                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold'
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#0969da] dark:border-[#58a6ff]'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
               }`}
             >
-              <BarChart2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
-              Dashboard
+              <span className="flex items-center gap-3">
+                <BarChart2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+                <span>Dashboard (Analytics)</span>
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de] dark:border-[#30363d]">
+                Stats
+              </span>
             </Link>
           </nav>
 

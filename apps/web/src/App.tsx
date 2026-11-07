@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { SidebarDrawer } from './components/SidebarDrawer';
 import { TopHeader } from './components/TopHeader';
 import { HeroLandingPage } from './pages/HeroLandingPage';
+import { DeveloperHomePage } from './pages/DeveloperHomePage';
 import { ProblemListPage } from './pages/ProblemListPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
@@ -25,7 +26,7 @@ const GOOGLE_CLIENT_ID =
 function HomeRoute() {
   const { isAuthenticated } = useAuthStore();
   if (isAuthenticated) {
-    return <DashboardPage />;
+    return <DeveloperHomePage />;
   }
   return <HeroLandingPage />;
 }

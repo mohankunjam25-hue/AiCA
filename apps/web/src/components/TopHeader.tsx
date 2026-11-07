@@ -76,7 +76,7 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
   // Determine page title context for top bar
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/') return 'Overview';
+    if (path === '/') return 'Daily Coding Hub';
     if (path.startsWith('/problems')) return 'Problem Catalog';
     if (path.startsWith('/algorithms')) return 'Algorithm Visualizer';
     if (path.startsWith('/workspace')) return 'Interactive Code Lab';
