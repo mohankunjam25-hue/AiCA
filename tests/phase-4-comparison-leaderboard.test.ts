@@ -10,7 +10,10 @@ import {
   getProblemComparison,
   getComparisonById
 } from '../apps/api/src/controllers/comparison.controller.js';
-import { getGlobalLeaderboard } from '../apps/api/src/controllers/leaderboard.controller.js';
+import {
+  getGlobalLeaderboard,
+  getUserSolvedProblems
+} from '../apps/api/src/controllers/leaderboard.controller.js';
 import { getProblems } from '../apps/api/src/controllers/problem.controller.js';
 import { createSubmission, submissionQueue } from '../apps/api/src/controllers/submission.controller.js';
 import { SubmissionModel } from '../apps/api/src/models/mongodb/submission.model.js';
@@ -403,6 +406,105 @@ describe('Phase 4: Evolutionary Solution Comparison, Global Leaderboards & Platf
 
       expect(res.statusCode).toBe(202);
       expect(res.data.success).toBe(true);
+    });
+  });
+
+  describe('getUserSolvedProblems API & Developer Solved Dossier', () => {
+    it('returns empty list and valid metadata when user has 0 solved problems', async () => {
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue([]);
+      vi.spyOn(pgPool, 'query').mockResolvedValue({
+        rows: [{ username: 'new_student', avatar_url: 'https://avatar.png', current_streak: 2 }]
+      } as any);
+
+      const { req, res } = mockReqRes({
+        params: { userId: 'usr_new_001' }
+      });
+
+      await getUserSolvedProblems(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.username).toBe('new_student');
+      expect(res.data.data.developer.totalSolved).toBe(0);
+      expect(res.data.data.developer.difficultyBreakdown).toEqual({ easy: 0, medium: 0, hard: 0 });
+      expect(res.data.data.solvedProblems).toEqual([]);
+    });
+
+    it('returns developer solved problem list with difficulty breakdown and performance metrics', async () => {
+      const mockSubmissions = [
+        {
+          userId: 'usr_top_1',
+          username: 'ace_coder',
+          problemId: 'prob_1',
+          language: 'python',
+          compositeScore: 94.5,
+          executionTimeMs: 18,
+          memoryUsedKb: 14200,
+          createdAt: new Date('2026-11-06T12:00:00Z')
+        },
+        {
+          userId: 'usr_top_1',
+          username: 'ace_coder',
+          problemId: 'prob_2',
+          language: 'cpp',
+          compositeScore: 91.0,
+          executionTimeMs: 12,
+          memoryUsedKb: 8400,
+          createdAt: new Date('2026-11-06T15:00:00Z')
+        }
+      ];
+
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue(mockSubmissions);
+
+      const mockProblems = [
+        {
+          _id: { toString: () => 'prob_1' },
+          title: 'Maximum Subarray Sum',
+          slug: 'maximum-subarray-sum',
+          difficulty: 'MEDIUM',
+          tags: ['Arrays', 'Dynamic Programming']
+        },
+        {
+          _id: { toString: () => 'prob_2' },
+          title: 'Two Sum',
+          slug: 'two-sum',
+          difficulty: 'EASY',
+          tags: ['Arrays', 'Hash Table']
+        }
+      ];
+
+      vi.spyOn(ProblemModel, 'find').mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue(mockProblems)
+        })
+      } as any);
+
+      vi.spyOn(pgPool, 'query').mockResolvedValue({
+        rows: [{ username: 'ace_coder', avatar_url: 'https://avatar.png', current_streak: 5 }]
+      } as any);
+
+      const { req, res } = mockReqRes({
+        params: { userId: 'usr_top_1' }
+      });
+
+      await getUserSolvedProblems(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.username).toBe('ace_coder');
+      expect(res.data.data.developer.totalSolved).toBe(2);
+      expect(res.data.data.developer.difficultyBreakdown).toEqual({
+        easy: 1,
+        medium: 1,
+        hard: 0
+      });
+      expect(res.data.data.developer.totalScore).toBe(185.5);
+      expect(res.data.data.developer.league).toBe('Master');
+      expect(res.data.data.solvedProblems.length).toBe(2);
+      expect(res.data.data.solvedProblems[0].title).toBe('Maximum Subarray Sum');
+      expect(res.data.data.solvedProblems[0].bestRuntimeMs).toBe(18);
+      expect(res.data.data.solvedProblems[1].title).toBe('Two Sum');
+      expect(res.data.data.solvedProblems[1].language).toBe('cpp');
     });
   });
 });

@@ -19,6 +19,7 @@ import {
 import { LeaderboardEntry, GlobalLeaderboardEntry, ProblemDifficulty } from '@aica/shared';
 import { LeaderboardView } from '../components/LeaderboardView';
 import { LeaderboardPodium, PodiumEntry } from '../components/LeaderboardPodium';
+import { DeveloperSolvedDrawer } from '../components/DeveloperSolvedDrawer';
 import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -45,6 +46,12 @@ export function LeaderboardPage() {
 
   // Global search input
   const [globalSearch, setGlobalSearch] = useState('');
+
+  // Selected developer for inspecting solved problems drawer
+  const [selectedDeveloper, setSelectedDeveloper] = useState<{
+    userId: string;
+    username: string;
+  } | null>(null);
 
   // Fetch catalog problems on mount
   useEffect(() => {
@@ -295,6 +302,7 @@ export function LeaderboardPage() {
               ? 'Peak composite scores across total solved catalog curriculum problems'
               : 'Fastest deterministic runtimes and highest code cleanliness scores'
           }
+          onSelectUser={(userId, username) => setSelectedDeveloper({ userId, username })}
         />
       )}
 
@@ -329,7 +337,15 @@ export function LeaderboardPage() {
               <div className="flex items-center gap-3 mt-0.5 text-xs text-[#656d76] dark:text-[#848d97]">
                 <span><strong>{myGlobalStanding.score}</strong> pts</span>
                 <span>&bull;</span>
-                <span>{myGlobalStanding.solved} Solved</span>
+                <button
+                  type="button"
+                  onClick={() => currentUserId && setSelectedDeveloper({ userId: currentUserId, username: myGlobalStanding.username })}
+                  className="hover:text-[#8250df] hover:underline cursor-pointer font-bold inline-flex items-center gap-1"
+                  title="View all your solved problems"
+                >
+                  <span>{myGlobalStanding.solved} Solved</span>
+                  <ArrowRight className="w-3 h-3 text-[#8250df]" />
+                </button>
                 {myGlobalStanding.streak > 0 && (
                   <>
                     <span>&bull;</span>
@@ -471,11 +487,13 @@ export function LeaderboardPage() {
                       <tr
                         key={entry.userId}
                         id={`leaderboard-row-${entry.userId}`}
-                        className={`transition ${
+                        onClick={() => setSelectedDeveloper({ userId: entry.userId, username: entry.username })}
+                        className={`transition cursor-pointer group ${
                           isMe
-                            ? 'bg-[#8250df]/10 dark:bg-[#8250df]/15 ring-1 ring-inset ring-[#8250df]/30'
+                            ? 'bg-[#8250df]/10 dark:bg-[#8250df]/15 ring-1 ring-inset ring-[#8250df]/30 hover:bg-[#8250df]/20'
                             : 'hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]/50'
                         }`}
+                        title={`Click to inspect all ${entry.problemsSolved} problems solved by ${entry.username}`}
                       >
                         {/* Rank */}
                         <td className="py-3 px-4 text-center">{getRankBadge(entry.rank)}</td>
@@ -487,14 +505,14 @@ export function LeaderboardPage() {
                               <img
                                 src={entry.avatarUrl}
                                 alt={entry.username}
-                                className="w-6 h-6 rounded-full object-cover shrink-0"
+                                className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#8250df]/20"
                               />
                             ) : (
                               <div className="w-6 h-6 rounded-full bg-[#8250df]/10 text-[#8250df] flex items-center justify-center text-xs font-bold shrink-0">
                                 {entry.username.charAt(0).toUpperCase()}
                               </div>
                             )}
-                            <span className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc]">
+                            <span className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#8250df] transition">
                               {entry.username}
                             </span>
                             {isMe && (
@@ -508,10 +526,19 @@ export function LeaderboardPage() {
 
                         {/* Problems Solved */}
                         <td className="py-3 px-4">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#dafbe1] dark:bg-[#1a7f37]/20 text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b]/30">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDeveloper({ userId: entry.userId, username: entry.username });
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#dafbe1] dark:bg-[#1a7f37]/20 text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b]/30 group-hover:border-[#1a7f37] group-hover:bg-[#c2f6cb] dark:group-hover:bg-[#1a7f37]/35 transition cursor-pointer"
+                            title={`Inspect ${entry.problemsSolved} solved problems`}
+                          >
                             <CheckCircle2 className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950]" />
-                            {entry.problemsSolved} Solved
-                          </span>
+                            <span>{entry.problemsSolved} Solved</span>
+                            <ArrowRight className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950] opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                          </button>
                         </td>
 
                         {/* Streak */}
@@ -572,8 +599,16 @@ export function LeaderboardPage() {
           rankings={rankings}
           problemTitle={currentProblemTitle}
           highlightUserId={currentUserId}
+          onSelectUser={(userId, username) => setSelectedDeveloper({ userId, username })}
         />
       )}
+
+      {/* Developer Solved Problems Slide-Over Drawer */}
+      <DeveloperSolvedDrawer
+        userId={selectedDeveloper?.userId || null}
+        initialUsername={selectedDeveloper?.username}
+        onClose={() => setSelectedDeveloper(null)}
+      />
     </div>
   );
 }

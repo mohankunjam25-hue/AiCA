@@ -21,9 +21,10 @@ interface LeaderboardViewProps {
   rankings: LeaderboardEntry[];
   problemTitle?: string;
   highlightUserId?: string;
+  onSelectUser?: (userId: string, username: string) => void;
 }
 
-export function LeaderboardView({ rankings, problemTitle, highlightUserId }: LeaderboardViewProps) {
+export function LeaderboardView({ rankings, problemTitle, highlightUserId, onSelectUser }: LeaderboardViewProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchHandle, setSearchHandle] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('ALL');
@@ -216,9 +217,16 @@ export function LeaderboardView({ rankings, problemTitle, highlightUserId }: Lea
                     {/* Developer */}
                     <td className="py-3 px-4 font-sans">
                       <div className="flex items-center gap-2.5">
-                        <span className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc]">
+                        <button
+                          type="button"
+                          onClick={() => onSelectUser && onSelectUser(entry.userId, entry.username)}
+                          className={`font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] text-left transition ${
+                            onSelectUser ? 'hover:text-[#8250df] hover:underline cursor-pointer' : ''
+                          }`}
+                          title={onSelectUser ? `Inspect problems solved by ${entry.username}` : undefined}
+                        >
                           {entry.username}
-                        </span>
+                        </button>
                         {isMe && (
                           <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#8250df] text-white">
                             YOU

@@ -15,9 +15,10 @@ interface LeaderboardPodiumProps {
   entries: PodiumEntry[];
   title?: string;
   subtitle?: string;
+  onSelectUser?: (userId: string, username: string) => void;
 }
 
-export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiumProps) {
+export function LeaderboardPodium({ entries, title, subtitle, onSelectUser }: LeaderboardPodiumProps) {
   const first = entries.find((e) => e.rank === 1);
   const second = entries.find((e) => e.rank === 2);
   const third = entries.find((e) => e.rank === 3);
@@ -45,7 +46,19 @@ export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiu
         {/* 2nd Place (Silver - Left) */}
         <div className="flex flex-col items-center text-center">
           {second ? (
-            <div className="w-full flex flex-col items-center space-y-2">
+            <div
+              className={`w-full flex flex-col items-center space-y-2 ${
+                onSelectUser && second.userId
+                  ? 'cursor-pointer group hover:scale-[1.03] transition-transform duration-200'
+                  : ''
+              }`}
+              onClick={() => {
+                if (onSelectUser && second.userId) {
+                  onSelectUser(second.userId, second.username);
+                }
+              }}
+              title={onSelectUser && second.userId ? `Inspect problems solved by ${second.username}` : undefined}
+            >
               <div className="relative">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[#8c959f] dark:border-[#6e7681] p-0.5 shadow-md bg-white dark:bg-[#161b22] overflow-hidden flex items-center justify-center">
                   {second.avatarUrl ? (
@@ -62,7 +75,7 @@ export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiu
               </div>
 
               <div className="min-w-0 w-full px-1">
-                <h4 className="font-bold text-xs sm:text-sm text-[#1f2328] dark:text-[#f0f6fc] truncate">
+                <h4 className="font-bold text-xs sm:text-sm text-[#1f2328] dark:text-[#f0f6fc] truncate group-hover:text-[#8250df] transition">
                   {second.username}
                 </h4>
                 <span className="font-mono font-extrabold text-xs text-[#656d76] dark:text-[#848d97] block">
@@ -92,7 +105,19 @@ export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiu
         {/* 1st Place (Gold - Center) */}
         <div className="flex flex-col items-center text-center">
           {first ? (
-            <div className="w-full flex flex-col items-center space-y-2">
+            <div
+              className={`w-full flex flex-col items-center space-y-2 ${
+                onSelectUser && first.userId
+                  ? 'cursor-pointer group hover:scale-[1.03] transition-transform duration-200'
+                  : ''
+              }`}
+              onClick={() => {
+                if (onSelectUser && first.userId) {
+                  onSelectUser(first.userId, first.username);
+                }
+              }}
+              title={onSelectUser && first.userId ? `Inspect problems solved by ${first.username}` : undefined}
+            >
               <div className="relative">
                 <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-amber-500 animate-bounce">
                   <Crown className="w-6 h-6 fill-amber-500 text-amber-600" />
@@ -112,7 +137,7 @@ export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiu
               </div>
 
               <div className="min-w-0 w-full px-1">
-                <h4 className="font-extrabold text-sm sm:text-base text-[#1f2328] dark:text-[#f0f6fc] truncate">
+                <h4 className="font-extrabold text-sm sm:text-base text-[#1f2328] dark:text-[#f0f6fc] truncate group-hover:text-amber-600 transition">
                   {first.username}
                 </h4>
                 <span className="font-mono font-black text-sm text-amber-600 dark:text-amber-400 block">
@@ -145,7 +170,19 @@ export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiu
         {/* 3rd Place (Bronze - Right) */}
         <div className="flex flex-col items-center text-center">
           {third ? (
-            <div className="w-full flex flex-col items-center space-y-2">
+            <div
+              className={`w-full flex flex-col items-center space-y-2 ${
+                onSelectUser && third.userId
+                  ? 'cursor-pointer group hover:scale-[1.03] transition-transform duration-200'
+                  : ''
+              }`}
+              onClick={() => {
+                if (onSelectUser && third.userId) {
+                  onSelectUser(third.userId, third.username);
+                }
+              }}
+              title={onSelectUser && third.userId ? `Inspect problems solved by ${third.username}` : undefined}
+            >
               <div className="relative">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-amber-700/60 dark:border-amber-700 p-0.5 shadow-md bg-white dark:bg-[#161b22] overflow-hidden flex items-center justify-center">
                   {third.avatarUrl ? (
@@ -162,7 +199,7 @@ export function LeaderboardPodium({ entries, title, subtitle }: LeaderboardPodiu
               </div>
 
               <div className="min-w-0 w-full px-1">
-                <h4 className="font-bold text-xs sm:text-sm text-[#1f2328] dark:text-[#f0f6fc] truncate">
+                <h4 className="font-bold text-xs sm:text-sm text-[#1f2328] dark:text-[#f0f6fc] truncate group-hover:text-[#8250df] transition">
                   {third.username}
                 </h4>
                 <span className="font-mono font-extrabold text-xs text-[#656d76] dark:text-[#848d97] block">
