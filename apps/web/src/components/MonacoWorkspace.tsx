@@ -68,6 +68,16 @@ export function MonacoWorkspace({
   const consoleDragStartY = useRef<number>(0);
   const consoleStartHeight = useRef<number>(240);
 
+  // Monaco Editor instance reference
+  const editorRef = useRef<any>(null);
+
+  // Re-layout Monaco whenever console is toggled or resized
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.layout();
+    }
+  }, [isConsoleCollapsed, consoleHeight, isZenMode]);
+
   // Quick Preferences Popover State
   const [showPreferences, setShowPreferences] = useState<boolean>(false);
   const prefsRef = useRef<HTMLDivElement>(null);
@@ -486,26 +496,34 @@ export function MonacoWorkspace({
         </div>
       )}
 
-      {/* Monaco Code Editor Canvas (Takes 100% of available vertical height with robust minimum height) */}
-      <div className="flex-1 min-h-[320px] lg:min-h-[380px] w-full relative overflow-hidden">
-        <Editor
-          height="100%"
-          language={LANGUAGE_CONFIGS[language].monacoLanguage}
-          theme={isDark ? "vs-dark" : "light"}
-          value={code}
-          onChange={handleCodeChange}
-          options={{
-            fontSize: editorPrefs.fontSize,
-            minimap: { enabled: editorPrefs.minimap },
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: editorPrefs.tabSize,
-            bracketPairColorization: { enabled: editorPrefs.bracketPairColorization },
-            wordWrap: editorPrefs.wordWrap,
-            fontFamily: editorPrefs.fontFamily,
-            padding: { top: 12, bottom: 12 }
-          }}
-        />
+      {/* Monaco Code Editor Canvas (Takes 100% of available vertical height with robust absolute inset layout) */}
+      <div className="flex-1 min-h-[320px] lg:min-h-[380px] w-full relative">
+        <div className="absolute inset-0">
+          <Editor
+            height="100%"
+            width="100%"
+            language={LANGUAGE_CONFIGS[language].monacoLanguage}
+            theme={isDark ? "vs-dark" : "light"}
+            value={code}
+            onChange={handleCodeChange}
+            onMount={(editor) => {
+              editorRef.current = editor;
+              editor.layout();
+              setTimeout(() => editor.layout(), 50);
+            }}
+            options={{
+              fontSize: editorPrefs.fontSize,
+              minimap: { enabled: editorPrefs.minimap },
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: editorPrefs.tabSize,
+              bracketPairColorization: { enabled: editorPrefs.bracketPairColorization },
+              wordWrap: editorPrefs.wordWrap,
+              fontFamily: editorPrefs.fontFamily,
+              padding: { top: 12, bottom: 12 }
+            }}
+          />
+        </div>
       </div>
 
       {/* Horizontal Drag Handle (Visible only when console is expanded) */}
