@@ -77,18 +77,13 @@ export function MonacoWorkspace({
   // Monaco Editor instance reference
   const editorRef = useRef<any>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState<number>(1000);
 
-  // ResizeObserver to detect width changes and re-layout Monaco seamlessly
+  // ResizeObserver to detect layout/container width changes and re-layout Monaco seamlessly
   useEffect(() => {
     if (!editorContainerRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const width = entry.contentRect.width;
-        setContainerWidth(width);
-        if (editorRef.current) {
-          editorRef.current.layout();
-        }
+    const ro = new ResizeObserver(() => {
+      if (editorRef.current) {
+        editorRef.current.layout();
       }
     });
     ro.observe(editorContainerRef.current);
@@ -537,7 +532,7 @@ export function MonacoWorkspace({
       )}
 
       {/* Monaco Code Editor Canvas (Takes 100% of available vertical height with robust absolute inset layout) */}
-      <div ref={editorContainerRef} className="flex-1 min-h-[180px] w-full relative overflow-hidden">
+      <div ref={editorContainerRef} className="flex-1 min-h-[420px] lg:min-h-[480px] w-full relative">
         <div className="absolute inset-0">
           <Editor
             height="100%"
@@ -553,12 +548,12 @@ export function MonacoWorkspace({
             }}
             options={{
               fontSize: editorPrefs.fontSize,
-              minimap: { enabled: containerWidth > 680 && editorPrefs.minimap },
+              minimap: { enabled: editorPrefs.minimap },
               scrollBeyondLastLine: false,
               automaticLayout: true,
               tabSize: editorPrefs.tabSize,
               bracketPairColorization: { enabled: editorPrefs.bracketPairColorization },
-              wordWrap: containerWidth < 768 ? 'on' : editorPrefs.wordWrap,
+              wordWrap: editorPrefs.wordWrap,
               fontFamily: editorPrefs.fontFamily,
               padding: { top: 12, bottom: 12 }
             }}

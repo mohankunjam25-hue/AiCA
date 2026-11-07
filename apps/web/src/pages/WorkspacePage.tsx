@@ -637,7 +637,7 @@ export function WorkspacePage() {
           >
             <div className="flex-1 h-full overflow-y-auto pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
-            <div className="p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-lg space-y-5 shadow-xs">
+            <div className="min-h-full p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-2xl space-y-5 shadow-xs">
               <div>
                 <h2 className="text-xl font-bold text-[#1f2328] dark:text-[#e6edf3]">{problem.title}</h2>
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
