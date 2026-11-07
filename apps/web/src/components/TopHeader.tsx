@@ -85,6 +85,11 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
     if (path.startsWith('/leaderboard')) return 'Global Leaderboards';
     if (path.startsWith('/dashboard')) return 'Developer Dashboard';
     if (path.startsWith('/profile')) return 'Developer Profile';
+    if (path.startsWith('/admin/problems')) {
+      return location.search.includes('create=true') ? 'Problem Authoring Studio' : 'Problem Management';
+    }
+    if (path.startsWith('/admin/proposals')) return 'Proposal Reviews';
+    if (path.startsWith('/create-problem')) return 'Problem Studio';
     return 'AI Code Evolution Lab';
   };
 

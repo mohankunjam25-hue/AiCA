@@ -346,8 +346,8 @@ export function AdminProblemManagementPage() {
 
       {/* Professional Problem Authoring Studio Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-          <div className="w-full max-w-6xl h-full max-h-[95vh] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+          <div className="w-full max-w-6xl h-full max-h-[92vh] rounded-2xl overflow-hidden shadow-2xl border border-[#d0d7de] dark:border-[#30363d] flex flex-col bg-white dark:bg-[#161b22]">
             <ProblemAuthoringStudio
               initialData={initialFormData}
               editingProblemId={editingProblemId}
