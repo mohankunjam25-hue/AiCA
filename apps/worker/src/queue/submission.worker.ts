@@ -371,7 +371,13 @@ export function startSubmissionWorker(): Worker {
         if (outcome.verdict === 'ACCEPTED' && !isTestRun) {
           try {
             const zsetKey = `leaderboard:problem:${problemId}`;
-            await getRedisPublisher().zadd(zsetKey, initialScoring.compositeScore, submissionId);
+            const redis = getRedisPublisher();
+            await redis.zadd(zsetKey, initialScoring.compositeScore, submissionId);
+            // Evict cached leaderboard read responses so new rankings are served immediately
+            const cachedKeys = await redis.keys('cache:leaderboard:*');
+            if (cachedKeys.length > 0) {
+              await redis.del(...cachedKeys);
+            }
           } catch (redisErr: any) {
             console.warn(`[SubmissionWorker] Leaderboard Redis update failed for submission ${submissionId}:`, redisErr.message);
             // Leaderboard Redis failure must NEVER fail the submission evaluation or alter verdict!

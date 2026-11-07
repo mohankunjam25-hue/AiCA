@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
@@ -10,6 +11,9 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
 
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
@@ -23,7 +27,7 @@ export function RegisterPage() {
       const res = await api.post('/auth/register', { email, username, password });
       const { user, accessToken, profile } = res.data.data;
       setAuth(user, accessToken, profile);
-      navigate('/dashboard');
+      navigate(redirectUrl || '/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Failed to create account');
     } finally {
@@ -40,6 +44,14 @@ export function RegisterPage() {
             AiCA
           </h1>
         </div>
+
+        {/* Redirect Notice Banner */}
+        {redirectUrl && (
+          <div className="mb-6 p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2.5">
+            <Lock className="w-4 h-4 shrink-0" />
+            <span>Please create an account to access your requested page.</span>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -101,7 +113,12 @@ export function RegisterPage() {
         </div>
 
         {/* Google Authentication Button */}
-        <GoogleSignInButton onError={(msg) => setError(msg)} text="signup_with" label="Sign up with Google" />
+        <GoogleSignInButton
+          onError={(msg) => setError(msg)}
+          text="signup_with"
+          label="Sign up with Google"
+          redirectUrl={redirectUrl || undefined}
+        />
 
         {/* Bottom Switcher */}
         <div className="border-t border-slate-200 dark:border-slate-700/80 my-8" />
@@ -109,7 +126,7 @@ export function RegisterPage() {
         <div className="text-center text-xs text-slate-600 dark:text-slate-400">
           Already have an account?{' '}
           <Link
-            to="/login"
+            to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
             className="text-[#ee495c] hover:text-[#ff6b7e] font-bold uppercase tracking-wide ml-1 transition"
           >
             LOG IN NOW

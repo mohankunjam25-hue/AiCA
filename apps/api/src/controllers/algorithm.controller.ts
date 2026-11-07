@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import Algorithm from '../models/mongodb/algorithm.model.js';
 import mongoose from 'mongoose';
 import { OpenAIAlgorithmClient } from '@aica/ai-engine';
+import { CacheService } from '../services/cache.service.js';
 
 const getOpenAIClient = () => new OpenAIAlgorithmClient();
 const generationRequests = new Map<string, { count: number; expiresAt: number }>();
@@ -19,13 +20,29 @@ export const getAlgorithms = async (
 ) => {
   try {
     if (mongoose.connection.readyState !== 1) return mongoUnavailable(res);
+
+    const cacheKey = 'cache:algorithms:list';
+    const cached = await CacheService.get<any>(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
+      res.status(200).json(cached);
+      return;
+    }
+
     const algorithms = await Algorithm.find().sort({ name: 1 });
 
-    res.status(200).json({
+    const responseData = {
       success: true,
       count: algorithms.length,
       data: algorithms,
-    });
+    };
+
+    await CacheService.set(cacheKey, responseData, 600);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
+    res.status(200).json(responseData);
   } catch (error) {
     console.error('[Algorithms] Failed to fetch algorithms:', error);
     res.status(500).json({
@@ -42,9 +59,18 @@ export const getAlgorithmBySlug = async (
 ) => {
   try {
     if (mongoose.connection.readyState !== 1) return mongoUnavailable(res);
-    const algorithm = await Algorithm.findOne({
-      slug: req.params.slug,
-    });
+
+    const slug = req.params.slug;
+    const cacheKey = `cache:algorithms:item:${slug}`;
+    const cached = await CacheService.get<any>(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
+      res.status(200).json(cached);
+      return;
+    }
+
+    const algorithm = await Algorithm.findOne({ slug });
 
     if (!algorithm) {
       res.status(404).json({
@@ -54,10 +80,16 @@ export const getAlgorithmBySlug = async (
       return;
     }
 
-    res.status(200).json({
+    const responseData = {
       success: true,
       data: algorithm,
-    });
+    };
+
+    await CacheService.set(cacheKey, responseData, 600);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
+    res.status(200).json(responseData);
   } catch (error) {
     console.error('[Algorithms] Failed to fetch algorithm:', error);
     res.status(500).json({
@@ -110,6 +142,7 @@ export const generateAlgorithm = async (req: Request, res: Response) => {
       { ...generated, slug },
       { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
     );
+    await CacheService.invalidatePattern('cache:algorithms:*');
     return res.status(201).json({ success: true, generated: true, data: algorithm });
   } catch (error: any) {
     console.error('[Algorithms] Failed to generate algorithm:', error);

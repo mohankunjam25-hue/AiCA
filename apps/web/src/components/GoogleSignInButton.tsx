@@ -8,9 +8,10 @@ interface GoogleSignInButtonProps {
   onError?: (errorMessage: string) => void;
   text?: 'signin_with' | 'signup_with' | 'continue_with';
   label?: string;
+  redirectUrl?: string;
 }
 
-export function GoogleSignInButton({ onError, text = 'signin_with', label }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ onError, text = 'signin_with', label, redirectUrl }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ export function GoogleSignInButton({ onError, text = 'signin_with', label }: Goo
 
   const defaultLabel = text === 'signup_with' ? 'Sign up with Google' : 'Sign in with Google';
   const buttonLabel = label || defaultLabel;
+
+  const targetPath = redirectUrl || '/dashboard';
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
@@ -35,7 +38,7 @@ export function GoogleSignInButton({ onError, text = 'signin_with', label }: Goo
 
       const { user, profile, accessToken } = res.data.data;
       setAuth(user, accessToken, profile);
-      navigate('/dashboard');
+      navigate(targetPath);
     } catch (err: any) {
       console.error('[GoogleAuth] Backend verification failed:', err);
       const msg = err.response?.data?.error?.message || 'Google authentication failed. Please try again.';
@@ -59,7 +62,7 @@ export function GoogleSignInButton({ onError, text = 'signin_with', label }: Goo
       });
       const { user, profile, accessToken } = res.data.data;
       setAuth(user, accessToken, profile);
-      navigate('/dashboard');
+      navigate(targetPath);
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Dev Google login failed';
       onError?.(msg);

@@ -1,0 +1,38 @@
+name: 24/7 Production Keep-Alive Uptime Ping
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent Render free-tier container sleep (15 min inactivity timeout)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Optional custom URL to ping'
+        required: false
+        default: ''
+
+jobs:
+  keep-alive:
+    name: Ping Production API Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping API Health Endpoint
+        run: |
+          TARGET="${{ github.event.inputs.target_url || secrets.API_PRODUCTION_URL || 'https://aica-api.onrender.com' }}"
+          HEALTH_URL="${TARGET%/}/api/v1/health"
+          echo "Pinging health endpoint: $HEALTH_URL"
+
+          # Perform lightweight HEAD ping with up to 3 retries and 15s timeout
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET -m 15 "$HEALTH_URL" || echo "FAILED")
+          echo "HTTP Response Status: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Production API is warm and healthy."
+            exit 0
+          else
+            echo "⚠️ Warning: Healthcheck returned status $HTTP_STATUS or timed out."
+            # Do not fail workflow to avoid GitHub disabling scheduled actions on temporary sleep
+            exit 0
+          fi

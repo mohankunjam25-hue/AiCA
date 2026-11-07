@@ -4,6 +4,7 @@ import { SubmissionModel } from '../models/mongodb/submission.model.js';
 import { ProblemModel } from '../models/mongodb/problem.model.js';
 import { EvaluationReportModel } from '../models/mongodb/evaluation-report.model.js';
 import { pgPool } from '../config/db.js';
+import { CacheService } from '../services/cache.service.js';
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -21,6 +22,16 @@ export async function getProblemLeaderboard(req: Request, res: Response): Promis
   const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 25));
   const skip = (page - 1) * limit;
+
+  // 1. Check Redis Cache First (< 2ms)
+  const cacheKey = `cache:leaderboard:problem:${problemId}:${page}:${limit}`;
+  const cached = await CacheService.get<ProblemLeaderboardResponse>(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    res.status(200).json(createSuccessResponse(cached));
+    return;
+  }
 
   try {
     // Correctness Gate: ONLY ACCEPTED submissions are eligible for leaderboard ranking!
@@ -96,6 +107,11 @@ export async function getProblemLeaderboard(req: Request, res: Response): Promis
       rankings
     };
 
+    // Cache in Redis for 30 seconds
+    await CacheService.set(cacheKey, responseData, 30);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     res.status(200).json(createSuccessResponse(responseData));
   } catch (err: any) {
     console.error('[LeaderboardController] getProblemLeaderboard error:', err.message);
@@ -107,6 +123,16 @@ export async function getGlobalLeaderboard(req: Request, res: Response): Promise
   const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 25));
   const skip = (page - 1) * limit;
+
+  // 1. Check Redis Cache First (< 2ms)
+  const cacheKey = `cache:leaderboard:global:${page}:${limit}`;
+  const cached = await CacheService.get<GlobalLeaderboardResponse>(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    res.status(200).json(createSuccessResponse(cached));
+    return;
+  }
 
   try {
     // 1. Aggregation pipeline across all problems
@@ -199,6 +225,11 @@ export async function getGlobalLeaderboard(req: Request, res: Response): Promise
       rankings: formattedRankings
     };
 
+    // Cache in Redis for 30 seconds
+    await CacheService.set(cacheKey, responseData, 30);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     res.status(200).json(createSuccessResponse(responseData));
   } catch (err: any) {
     console.error('[LeaderboardController] getGlobalLeaderboard error:', err.message);
@@ -211,6 +242,16 @@ export async function getUserSolvedProblems(req: Request, res: Response): Promis
 
   if (!userId) {
     res.status(400).json(createErrorResponse('VALIDATION_ERROR', 'User ID is required'));
+    return;
+  }
+
+  // 1. Check Redis Cache First (< 2ms)
+  const cacheKey = `cache:leaderboard:user:${userId}:solved`;
+  const cached = await CacheService.get<DeveloperSolvedResponse>(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    res.status(200).json(createSuccessResponse(cached));
     return;
   }
 
@@ -340,6 +381,11 @@ export async function getUserSolvedProblems(req: Request, res: Response): Promis
       solvedProblems
     };
 
+    // Cache in Redis for 60 seconds
+    await CacheService.set(cacheKey, responseData, 60);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     res.status(200).json(createSuccessResponse(responseData));
   } catch (err: any) {
     console.error('[LeaderboardController] getUserSolvedProblems error:', err.message);
