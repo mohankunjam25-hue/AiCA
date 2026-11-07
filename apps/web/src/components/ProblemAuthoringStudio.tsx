@@ -440,6 +440,30 @@ export function ProblemAuthoringStudio({
     }
   }
 
+  const [showLivePreview, setShowLivePreview] = useState(true);
+
+  const isStepComplete = (key: StudioTab): boolean => {
+    switch (key) {
+      case 'metadata':
+        return Boolean(formData.title.trim().length >= 3 && formData.slug.trim().length >= 3 && formData.tags.length > 0);
+      case 'description':
+        return Boolean(formData.description.trim().length >= 10);
+      case 'examples':
+        return Boolean(formData.examples.length >= 1 && formData.examples[0].input && formData.examples[0].output);
+      case 'code':
+        return Boolean(formData.starterPython.trim() || formData.starterCpp.trim() || formData.starterJava.trim() || formData.starterJs.trim());
+      case 'testcases':
+        return Boolean(formData.testCases.length >= 2 && publicTestCount >= 1 && hiddenTestCount >= 1);
+      case 'review':
+        return Boolean(validationIssues.length === 0);
+      default:
+        return false;
+    }
+  };
+
+  const completedStepsCount = STUDIO_STEPS.filter((s) => isStepComplete(s.key)).length;
+  const progressPercent = Math.round((completedStepsCount / STUDIO_STEPS.length) * 100);
+
   // Handle Form Submission
   const handleSubmit = async (targetStatus?: ProblemLifecycleStatus) => {
     setError(null);
@@ -529,18 +553,32 @@ export function ProblemAuthoringStudio({
   };
 
   return (
-    <div className={`flex flex-col bg-white dark:bg-[#161b22] ${isStandalone ? 'min-h-[85vh] rounded-2xl border border-[#d0d7de] dark:border-[#30363d] shadow-xl overflow-hidden' : 'h-full overflow-hidden'}`}>
+    <div className="w-full flex-1 flex flex-col bg-white dark:bg-[#0d1117] min-h-[calc(100vh-64px)]">
       {/* Studio Header Bar */}
-      <div className="shrink-0 px-4 sm:px-6 py-3 border-b border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff]">
+      <header className="shrink-0 h-14 border-b border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 sm:px-6 flex items-center justify-between gap-3 z-10 sticky top-0">
+        <div className="flex items-center gap-3 min-w-0">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-xs font-semibold cursor-pointer transition shrink-0"
+              title="Return to Problem Management"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Back to Problems</span>
+            </button>
+          )}
+
+          <div className="h-4 w-px bg-[#d0d7de] dark:bg-[#30363d] shrink-0" />
+
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1 rounded-md bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff] shrink-0">
               <ShieldCheck className="w-4 h-4" />
             </span>
-            <h2 className="text-sm sm:text-base font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
-              {editingProblemId ? 'Edit Curriculum Problem' : 'Problem Authoring Studio'}
-            </h2>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+            <h1 className="text-xs sm:text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] truncate">
+              {editingProblemId ? `Edit: ${formData.title || 'Untitled Problem'}` : 'Problem Authoring Studio'}
+            </h1>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border shrink-0 ${
               formData.status === 'PUBLISHED'
                 ? 'bg-[#dafbe1] text-[#1a7f37] dark:bg-[#1a7f37]/20 dark:text-[#3fb950] border-[#4ac26b]/30'
                 : 'bg-[#fff8c5] text-[#9a6700] dark:bg-[#9a6700]/20 dark:text-[#d29922] border-[#d4a72c]/30'
@@ -548,22 +586,23 @@ export function ProblemAuthoringStudio({
               {formData.status}
             </span>
           </div>
-          <p className="text-[11px] text-[#656d76] dark:text-[#848d97] mt-0.5 font-sans">
-            Configure metadata, markdown specification, multi-language starter code, and strict zero-leakage test suites.
-          </p>
         </div>
 
-        {/* Global Action Buttons */}
-        <div className="flex items-center gap-2">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-xs font-semibold cursor-pointer transition"
-            >
-              Cancel
-            </button>
-          )}
+        {/* Global Studio Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowLivePreview((prev) => !prev)}
+            className={`hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition ${
+              showLivePreview
+                ? 'border-[#8250df]/40 bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff]'
+                : 'border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+            }`}
+            title="Toggle Live Catalog Card Preview"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>{showLivePreview ? 'Hide Preview' : 'Show Preview'}</span>
+          </button>
 
           <button
             type="button"
@@ -578,17 +617,17 @@ export function ProblemAuthoringStudio({
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSubmit('PUBLISHED')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8250df] hover:bg-[#6639ba] text-white text-xs font-bold shadow-2xs cursor-pointer transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] text-white text-xs font-bold shadow-2xs cursor-pointer transition disabled:opacity-50"
           >
             {isSubmitting ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Check className="w-3.5 h-3.5" />
             )}
-            {editingProblemId ? 'Save & Publish' : 'Publish Problem'}
+            <span>{editingProblemId ? 'Save & Publish' : 'Publish Problem'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Alert Notices */}
       {error && (
@@ -605,54 +644,90 @@ export function ProblemAuthoringStudio({
         </div>
       )}
 
-      {/* Responsive Studio Stepper Wizard Bar */}
-      <div className="shrink-0 px-4 sm:px-6 py-2 border-b border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22]">
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-          {STUDIO_STEPS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            const count =
-              tab.key === 'metadata'
-                ? formData.tags.length
-                : tab.key === 'examples'
-                ? formData.examples.length
-                : tab.key === 'testcases'
-                ? formData.testCases.length
-                : undefined;
+      {/* 3-Panel Studio Body */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Step Sidebar (240px fixed) */}
+        <aside className="w-60 shrink-0 border-r border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] flex flex-col justify-between overflow-y-auto p-3.5">
+          <div className="space-y-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#656d76] dark:text-[#848d97] px-2 block">
+              Curriculum Steps
+            </span>
 
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-semibold cursor-pointer transition text-center ${
-                  isActive
-                    ? 'bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff] border border-[#8250df]/30 font-bold shadow-2xs'
-                    : 'text-[#656d76] dark:text-[#848d97] hover:bg-white dark:hover:bg-[#21262d] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
-                }`}
-              >
-                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 ${
-                  isActive ? 'bg-[#8250df] text-white' : 'bg-white dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d]'
-                }`}>
-                  {tab.stepNum}
-                </span>
-                <span className="truncate">{tab.label}</span>
-                {typeof count === 'number' && (
-                  <span className={`text-[10px] font-mono px-1 rounded-full ${
-                    isActive ? 'bg-[#8250df]/20 text-[#8250df] dark:text-[#bc8cff]' : 'text-[#8c959f]'
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+            <nav className="space-y-1">
+              {STUDIO_STEPS.map((step) => {
+                const isCurrent = activeTab === step.key;
+                const isComplete = isStepComplete(step.key);
+                const count =
+                  step.key === 'metadata'
+                    ? formData.tags.length
+                    : step.key === 'examples'
+                    ? formData.examples.length
+                    : step.key === 'testcases'
+                    ? formData.testCases.length
+                    : undefined;
 
-      {/* Studio Workspace Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 text-xs">
-        {/* TAB 1: METADATA & IDENTITY */}
-        {activeTab === 'metadata' && (
+                return (
+                  <button
+                    key={step.key}
+                    type="button"
+                    onClick={() => setActiveTab(step.key)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition cursor-pointer ${
+                      isCurrent
+                        ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold shadow-xs border border-[#d0d7de] dark:border-[#30363d]'
+                        : 'text-[#656d76] dark:text-[#848d97] hover:bg-white/60 dark:hover:bg-[#21262d]/60 hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 ${
+                        isComplete
+                          ? 'bg-[#1f883d] text-white'
+                          : isCurrent
+                          ? 'bg-[#8250df] text-white'
+                          : 'bg-[#eaeef2] dark:bg-[#30363d] text-[#656d76] dark:text-[#848d97]'
+                      }`}>
+                        {isComplete ? '✓' : step.stepNum}
+                      </span>
+                      <span className="text-xs truncate">{step.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {typeof count === 'number' && (
+                        <span className="text-[10px] font-mono px-1 rounded-full bg-[#d0d7de]/50 dark:bg-[#30363d] text-[#656d76] dark:text-[#848d97]">
+                          {count}
+                        </span>
+                      )}
+                      {isCurrent && <ChevronRight className="w-3.5 h-3.5 text-[#8250df]" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Sidebar Bottom Progress Box */}
+          <div className="p-3 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] space-y-2 mt-4">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc]">Step Progress</span>
+              <span className="font-mono font-bold text-[#8250df] dark:text-[#bc8cff]">{progressPercent}%</span>
+            </div>
+            <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-[#1f883d] h-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-[#656d76] dark:text-[#848d97] block">
+              {completedStepsCount} of {STUDIO_STEPS.length} steps validated
+            </span>
+          </div>
+        </aside>
+
+        {/* Center Workspace (flex-1 flex flex-col) */}
+        <main className="flex-1 min-w-0 flex flex-col bg-white dark:bg-[#0d1117] overflow-hidden">
+          {/* Active Tab Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 text-xs">
+            {/* TAB 1: METADATA & IDENTITY */}
+            {activeTab === 'metadata' && (
           <div className="max-w-4xl space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Problem Title */}
@@ -1692,71 +1767,181 @@ export function ProblemAuthoringStudio({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Docked Studio Wizard Navigation Footer */}
-      <div className="shrink-0 px-4 sm:px-6 py-3 border-t border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] flex items-center justify-between gap-3">
-        {/* Left: Previous Step Button */}
-        <div>
-          {prevStep ? (
-            <button
-              type="button"
-              onClick={() => setActiveTab(prevStep.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Back: {prevStep.label}</span>
-            </button>
-          ) : onCancel ? (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] text-xs font-semibold cursor-pointer transition"
-            >
-              Cancel
-            </button>
-          ) : <div />}
         </div>
 
-        {/* Center: Step Progress Pill */}
-        <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-[#656d76] dark:text-[#848d97]">
-          <span>Step <strong className="text-[#1f2328] dark:text-[#f0f6fc]">{currentStepIdx + 1}</strong> of {STUDIO_STEPS.length}:</span>
-          <span className="font-semibold text-[#8250df] dark:text-[#bc8cff]">{STUDIO_STEPS[currentStepIdx]?.label}</span>
-        </div>
+        {/* Docked Wizard Footer */}
+        <footer className="shrink-0 h-14 border-t border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] px-6 flex items-center justify-between gap-3">
+          {/* Left: Previous Step Button */}
+          <div>
+            {prevStep ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab(prevStep.key)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Back: {prevStep.label}</span>
+              </button>
+            ) : onCancel ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] text-xs font-semibold cursor-pointer transition"
+              >
+                Cancel
+              </button>
+            ) : <div />}
+          </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => handleSubmit('UNPUBLISHED')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition disabled:opacity-50"
-          >
-            Save Draft
-          </button>
+          {/* Center: Step Progress Pill */}
+          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-[#656d76] dark:text-[#848d97]">
+            <span>Step <strong className="text-[#1f2328] dark:text-[#f0f6fc]">{currentStepIdx + 1}</strong> of {STUDIO_STEPS.length}:</span>
+            <span className="font-semibold text-[#8250df] dark:text-[#bc8cff]">{STUDIO_STEPS[currentStepIdx]?.label}</span>
+          </div>
 
-          {nextStep ? (
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setActiveTab(nextStep.key)}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#8250df] hover:bg-[#6639ba] text-white text-xs font-bold shadow-2xs cursor-pointer transition"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit('UNPUBLISHED')}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] text-xs font-semibold cursor-pointer transition disabled:opacity-50"
             >
-              <span>Next: {nextStep.label}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              Save Draft
             </button>
-          ) : (
-            <button
-              type="button"
-              disabled={isSubmitting || validationIssues.length > 0}
-              onClick={() => handleSubmit('PUBLISHED')}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] text-white text-xs font-bold shadow-2xs cursor-pointer transition disabled:opacity-50"
-            >
-              {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              <span>Publish Problem</span>
-            </button>
-          )}
-        </div>
-      </div>
+
+            {nextStep ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab(nextStep.key)}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#8250df] hover:bg-[#6639ba] text-white text-xs font-bold shadow-2xs cursor-pointer transition"
+              >
+                <span>Next: {nextStep.label}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isSubmitting || validationIssues.length > 0}
+                onClick={() => handleSubmit('PUBLISHED')}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] text-white text-xs font-bold shadow-2xs cursor-pointer transition disabled:opacity-50"
+              >
+                {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Publish Problem</span>
+              </button>
+            )}
+          </div>
+        </footer>
+      </main>
+
+      {/* Right Live Catalog Preview Panel (320px fixed, collapsible) */}
+      {showLivePreview && (
+        <aside className="hidden xl:flex w-80 shrink-0 border-l border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] flex-col overflow-y-auto p-5 space-y-5">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#656d76] dark:text-[#848d97] flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-[#8250df]" />
+                Live Student Preview
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-[#8250df]/10 text-[#8250df] dark:text-[#bc8cff] font-semibold">
+                Catalog Card
+              </span>
+            </div>
+            <p className="text-[11px] text-[#656d76] dark:text-[#848d97]">
+              Real-time preview of how students will see this problem in the library:
+            </p>
+          </div>
+
+          {/* Simulated Problem Catalog Card */}
+          <div className="p-4 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] shadow-xs space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className="font-bold text-sm text-[#1f2328] dark:text-[#f0f6fc] leading-snug truncate">
+                  {formData.title.trim() || 'Untitled Problem'}
+                </h4>
+                <span className="font-mono text-[10px] text-[#656d76] dark:text-[#848d97] truncate block">
+                  /workspace/{formData.slug || 'url-slug'}
+                </span>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border shrink-0 ${
+                formData.difficulty === 'EASY'
+                  ? 'bg-[#dafbe1] text-[#1a7f37] dark:bg-[#1a7f37]/20 dark:text-[#3fb950] border-[#4ac26b]/30'
+                  : formData.difficulty === 'MEDIUM'
+                  ? 'bg-[#fff8c5] text-[#9a6700] dark:bg-[#9a6700]/20 dark:text-[#d29922] border-[#d4a72c]/30'
+                  : 'bg-[#ffebe9] text-[#cf222e] dark:bg-[#cf222e]/20 dark:text-[#ff7b72] border-[#ff8182]/30'
+              }`}>
+                {formData.difficulty}
+              </span>
+            </div>
+
+            {/* Execution Limit Badges */}
+            <div className="flex items-center gap-3 text-[11px] text-[#656d76] dark:text-[#848d97]">
+              <span className="flex items-center gap-1 font-mono">
+                <Clock className="w-3 h-3 text-[#8250df]" />
+                {formData.timeLimitMs}ms
+              </span>
+              <span className="flex items-center gap-1 font-mono">
+                <Cpu className="w-3 h-3 text-[#8250df]" />
+                {Math.round(formData.memoryLimitKb / 1024)}MB
+              </span>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono ${
+                formData.status === 'PUBLISHED'
+                  ? 'bg-[#dafbe1] text-[#1a7f37]'
+                  : 'bg-[#fff8c5] text-[#9a6700]'
+              }`}>
+                {formData.status}
+              </span>
+            </div>
+
+            {/* Problem Snippet */}
+            <p className="text-[11px] text-[#656d76] dark:text-[#848d97] line-clamp-3 leading-relaxed">
+              {formData.description.trim() || 'Problem description statement snippet will render here...'}
+            </p>
+
+            {/* Topic Chips */}
+            <div className="flex flex-wrap gap-1 pt-1 border-t border-[#d0d7de]/60 dark:border-[#30363d]/60">
+              {formData.tags.map((t) => (
+                <span
+                  key={t}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d]"
+                >
+                  {t}
+                </span>
+              ))}
+              {formData.tags.length === 0 && (
+                <span className="text-[10px] text-[#8c959f] italic">No topic tags added</span>
+              )}
+            </div>
+          </div>
+
+          {/* Pre-Flight Checklist Card */}
+          <div className="p-4 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] shadow-xs space-y-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#656d76] dark:text-[#848d97] block">
+              Pre-Flight Sanity Checks
+            </span>
+            <div className="space-y-1.5 text-xs">
+              {[
+                { label: 'Title & Slug (≥ 3 chars)', ok: formData.title.trim().length >= 3 && formData.slug.trim().length >= 3 },
+                { label: 'Topic Tags (≥ 1 tag)', ok: formData.tags.length > 0 },
+                { label: 'Problem Statement (≥ 10 chars)', ok: formData.description.trim().length >= 10 },
+                { label: 'Sample Examples (≥ 1)', ok: formData.examples.length >= 1 },
+                { label: 'Public Test Cases (≥ 1)', ok: publicTestCount >= 1 },
+                { label: 'Hidden Test Cases (≥ 1)', ok: hiddenTestCount >= 1 }
+              ].map((chk, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px]">
+                  <span className={chk.ok ? 'text-[#1f2328] dark:text-[#f0f6fc]' : 'text-[#8c959f]'}>
+                    {chk.label}
+                  </span>
+                  <span className={chk.ok ? 'text-[#1a7f37] font-bold' : 'text-[#cf222e] font-mono'}>
+                    {chk.ok ? '✓' : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      )}
+    </div>
 
       {/* Bulk JSON Import / Export Modal */}
       {showJsonBulkModal && (
