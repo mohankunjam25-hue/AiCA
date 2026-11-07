@@ -30,7 +30,7 @@ import {
   CustomRunResult
 } from '@aica/shared';
 import { api } from '../services/api';
-import { useSubmissionSSE, useLocalStorage } from '../hooks';
+import { useSubmissionSSE, useLocalStorage, useKeyboardShortcuts, isMacOS } from '../hooks';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 
@@ -256,29 +256,34 @@ export function MonacoWorkspace({
     }
   };
 
-  // Keyboard Shortcuts (Ctrl+Enter to Run, Ctrl+Shift+Enter to Submit, Ctrl+` to toggle console)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        if (e.shiftKey) {
-          e.preventDefault();
-          if (!isSubmitting && !isRunningCustom && !isStreaming) {
-            handleSubmit();
-          }
-        } else {
-          e.preventDefault();
-          if (!isSubmitting && !isRunningCustom && !isStreaming) {
-            handleRunCustom();
-          }
-        }
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.key === "'")) {
-        e.preventDefault();
-        setIsConsoleCollapsed((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [code, language, customStdin, activeTestIndex, activeTab, isSubmitting, isRunningCustom, isStreaming]);
+  // Reusable Keyboard Shortcuts (Ctrl+Enter to Run, Ctrl+Shift+Enter to Submit, Ctrl+` to toggle console)
+  useKeyboardShortcuts([
+    {
+      key: 'Enter',
+      ctrlOrMeta: true,
+      shift: true,
+      description: 'Submit Solution',
+      allowInInputs: true,
+      disabled: isSubmitting || isRunningCustom || isStreaming,
+      action: () => handleSubmit()
+    },
+    {
+      key: 'Enter',
+      ctrlOrMeta: true,
+      shift: false,
+      description: 'Run Test Cases',
+      allowInInputs: true,
+      disabled: isSubmitting || isRunningCustom || isStreaming,
+      action: () => handleRunCustom()
+    },
+    {
+      key: '`',
+      ctrlOrMeta: true,
+      description: 'Toggle Test Console',
+      allowInInputs: true,
+      action: () => setIsConsoleCollapsed((prev) => !prev)
+    }
+  ]);
 
   // Console Resizing Drag Handlers
   useEffect(() => {
@@ -489,7 +494,9 @@ export function MonacoWorkspace({
               <Play className="w-3.5 h-3.5 text-[#1a7f37] dark:text-[#3fb950] fill-[#1a7f37] dark:fill-[#3fb950]" />
             )}
             <span>{isRunningCustom ? 'Running...' : 'Run'}</span>
-            <span className="hidden xl:inline text-[10px] text-[#8c959f] font-mono">⌘↵</span>
+            <span className="hidden xl:inline text-[10px] text-[#8c959f] font-mono">
+              {isMacOS() ? '⌘↵' : 'Ctrl+↵'}
+            </span>
           </button>
 
           {/* Submit Solution */}
@@ -505,7 +512,9 @@ export function MonacoWorkspace({
               <Send className="w-3.5 h-3.5" />
             )}
             <span>{isSubmitting ? 'Evaluating...' : 'Submit'}</span>
-            <span className="hidden xl:inline text-[10px] text-emerald-200 font-mono">⌘⇧↵</span>
+            <span className="hidden xl:inline text-[10px] text-emerald-200 font-mono">
+              {isMacOS() ? '⌘⇧↵' : 'Ctrl+Shift+↵'}
+            </span>
           </button>
         </div>
       </div>
