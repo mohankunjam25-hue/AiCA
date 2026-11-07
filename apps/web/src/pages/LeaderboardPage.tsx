@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Award,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Users
 } from 'lucide-react';
 import { LeaderboardEntry, GlobalLeaderboardEntry, ProblemDifficulty } from '@aica/shared';
 import { LeaderboardView } from '../components/LeaderboardView';
@@ -263,32 +264,44 @@ export function LeaderboardPage() {
           </p>
         </div>
 
-        {/* Global vs Problem Tab Switcher */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] self-start md:self-auto shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('global')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              activeTab === 'global'
-                ? 'bg-white dark:bg-[#21262d] text-[#8250df] dark:text-[#bc8cff] shadow-xs border border-[#d0d7de] dark:border-[#30363d]'
-                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
-            }`}
+        {/* Actions & Tab Switcher */}
+        <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
+          <Link
+            to="/developers"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] transition shadow-2xs"
+            title="Search and discover all platform developers"
           >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Global Standings</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('problem')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              activeTab === 'problem'
-                ? 'bg-white dark:bg-[#21262d] text-[#8250df] dark:text-[#bc8cff] shadow-xs border border-[#d0d7de] dark:border-[#30363d]'
-                : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Problem Leaderboard</span>
-          </button>
+            <Users className="w-3.5 h-3.5 text-[#8250df]" />
+            <span>Discover Developers</span>
+          </Link>
+
+          {/* Global vs Problem Tab Switcher */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab('global')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                activeTab === 'global'
+                  ? 'bg-white dark:bg-[#21262d] text-[#8250df] dark:text-[#bc8cff] shadow-xs border border-[#d0d7de] dark:border-[#30363d]'
+                  : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Global Standings</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('problem')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                activeTab === 'problem'
+                  ? 'bg-white dark:bg-[#21262d] text-[#8250df] dark:text-[#bc8cff] shadow-xs border border-[#d0d7de] dark:border-[#30363d]'
+                  : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Problem Leaderboard</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -512,9 +525,14 @@ export function LeaderboardPage() {
                                 {entry.username.charAt(0).toUpperCase()}
                               </div>
                             )}
-                            <span className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#8250df] transition">
+                            <Link
+                              to={`/developers/${entry.username}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] hover:text-[#8250df] dark:hover:text-[#bc8cff] hover:underline transition cursor-pointer"
+                              title={`View ${entry.username}'s full public portfolio`}
+                            >
                               {entry.username}
-                            </span>
+                            </Link>
                             {isMe && (
                               <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#8250df] text-white">
                                 YOU
