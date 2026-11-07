@@ -2,7 +2,8 @@ import {
   LANGUAGE_CONFIGS,
   SupportedLanguage,
   CustomRunResult,
-  CustomRunVerdict
+  CustomRunVerdict,
+  FunctionSignature
 } from '@aica/shared';
 import { executeLocally } from './local-runner.service.js';
 
@@ -12,6 +13,7 @@ export interface SandboxExecutionOptions {
   stdin?: string;
   baseTimeLimitSec?: number;
   memoryLimitKb?: number;
+  signature?: FunctionSignature;
 }
 
 export class SandboxRunnerService {
@@ -124,7 +126,8 @@ export class SandboxRunnerService {
         code,
         stdin,
         timeoutMs: Math.round(scaledCpuLimit * 1000),
-        memoryLimitKb
+        memoryLimitKb,
+        signature: options.signature
       });
 
       const { verdict, isError } = this.mapStatusToVerdict(
