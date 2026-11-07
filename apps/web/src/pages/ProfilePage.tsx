@@ -178,8 +178,12 @@ const BADGES = [
 type ProfileTab = 'info' | 'settings' | 'activity' | 'logout';
 
 export function ProfilePage() {
-  const { user, profile, updateProfile, logout } = useAuthStore();
-  const { theme, setTheme } = useThemeStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const logout = useAuthStore((s) => s.logout);
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
   const editorPrefs = useEditorPreferencesStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();

@@ -59,7 +59,8 @@ const SORT_OPTIONS: { label: string; value: ProblemSortOption }[] = [
 ];
 
 export function ProblemListPage() {
-  const { user, profile } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const [problems, setProblems] = useState<ProblemListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -14,7 +14,7 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const redirectUrl = searchParams.get('redirect');
 
-  const { setAuth } = useAuthStore();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {

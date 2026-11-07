@@ -36,7 +36,8 @@ import { useAuthStore } from '../store/useAuthStore';
 export function DeveloperProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user: currentUser, isAuthenticated } = useAuthStore();
+  const currentUser = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [data, setData] = useState<DeveloperProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);

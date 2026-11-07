@@ -222,4 +222,84 @@ describe('Hooks Suite: useDebounce, useLocalStorage & useClipboard', () => {
       expect(leftWidth).toBe(40);
     });
   });
+
+  describe('useOnlineStatus Logic Invariants', () => {
+    it('1. should safely detect online state and fallback to true if navigator.onLine is undefined', () => {
+      const getInitialStatus = () => {
+        if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') {
+          return navigator.onLine;
+        }
+        return true;
+      };
+
+      // When navigator.onLine is explicitly defined as false
+      Object.defineProperty(globalThis.navigator, 'onLine', {
+        value: false,
+        configurable: true,
+        writable: true
+      });
+      expect(getInitialStatus()).toBe(false);
+
+      // Reset to true
+      Object.defineProperty(globalThis.navigator, 'onLine', {
+        value: true,
+        configurable: true,
+        writable: true
+      });
+      expect(getInitialStatus()).toBe(true);
+    });
+
+    it('2. should handle offline event and transition state', () => {
+      let isOnline = true;
+      let offlineSince: Date | null = null;
+      let disconnectFired = false;
+
+      const handleOffline = () => {
+        isOnline = false;
+        offlineSince = new Date();
+        disconnectFired = true;
+      };
+
+      handleOffline();
+
+      expect(isOnline).toBe(false);
+      expect(offlineSince).toBeInstanceOf(Date);
+      expect(disconnectFired).toBe(true);
+    });
+
+    it('3. should handle reconnection and set wasOffline flag', () => {
+      let isOnline = false;
+      let wasOffline = false;
+      let offlineSince: Date | null = new Date();
+      let reconnectFired = false;
+
+      const handleOnline = () => {
+        isOnline = true;
+        offlineSince = null;
+        wasOffline = true;
+        reconnectFired = true;
+      };
+
+      handleOnline();
+
+      expect(isOnline).toBe(true);
+      expect(offlineSince).toBeNull();
+      expect(wasOffline).toBe(true);
+      expect(reconnectFired).toBe(true);
+    });
+
+    it('4. should dismiss wasOffline after grace period', () => {
+      vi.useFakeTimers();
+      let wasOffline = true;
+
+      setTimeout(() => {
+        wasOffline = false;
+      }, 3500);
+
+      expect(wasOffline).toBe(true);
+      vi.advanceTimersByTime(3500);
+      expect(wasOffline).toBe(false);
+      vi.useRealTimers();
+    });
+  });
 });

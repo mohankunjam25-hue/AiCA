@@ -21,9 +21,11 @@ import { LeaderboardEntry, GlobalLeaderboardEntry, ProblemDifficulty } from '@ai
 import { LeaderboardView } from '../components/LeaderboardView';
 import { LeaderboardPodium, PodiumEntry } from '../components/LeaderboardPodium';
 import { DeveloperSolvedDrawer } from '../components/DeveloperSolvedDrawer';
+import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
 import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface ProblemItem {
   id: string;
@@ -33,7 +35,7 @@ interface ProblemItem {
 }
 
 export function LeaderboardPage() {
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const currentUserId = user?.id;
 
   const [activeTab, setActiveTab] = useState<'global' | 'problem'>('global');
@@ -44,6 +46,7 @@ export function LeaderboardPage() {
   const [globalRankings, setGlobalRankings] = useState<GlobalLeaderboardEntry[]>(cachedGlobal || []);
   const [rankings, setRankings] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(!cachedGlobal);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Global search input
   const [globalSearch, setGlobalSearch] = useState('');
@@ -88,6 +91,7 @@ export function LeaderboardPage() {
     }
 
     if (!cached) setLoading(true);
+    setFetchError(null);
     try {
       const res = await api.get('/leaderboards/global');
       const data = res.data?.data?.rankings || [];
@@ -95,6 +99,7 @@ export function LeaderboardPage() {
       useDataCacheStore.getState().set('leaderboard_global', data);
     } catch (err: any) {
       console.warn('[LeaderboardPage] Failed to fetch global leaderboard:', err.message);
+      setFetchError(getErrorMessage(err, 'Failed to retrieve global leaderboard standings'));
       if (!cached) setGlobalRankings([]);
     } finally {
       setLoading(false);
@@ -111,6 +116,7 @@ export function LeaderboardPage() {
     }
 
     if (!cached) setLoading(true);
+    setFetchError(null);
     try {
       const res = await api.get(`/leaderboards/problem/${probId}`);
       const data = res.data?.data?.rankings || [];
@@ -118,6 +124,7 @@ export function LeaderboardPage() {
       useDataCacheStore.getState().set(cacheKey, data);
     } catch (err: any) {
       console.warn('[LeaderboardPage] Failed to fetch problem rankings:', err.message);
+      setFetchError(getErrorMessage(err, 'Failed to retrieve problem challenge rankings'));
       if (!cached) setRankings([]);
     } finally {
       setLoading(false);
@@ -434,6 +441,19 @@ export function LeaderboardPage() {
             Fetching latest rankings from PostgreSQL & MongoDB...
           </p>
         </div>
+      ) : fetchError && (activeTab === 'global' ? globalRankings.length === 0 : rankings.length === 0) ? (
+        <DataFetchErrorCard
+          title="Leaderboard Unavailable"
+          message={fetchError}
+          onRetry={() => {
+            if (activeTab === 'global') {
+              fetchGlobalLeaderboard(true);
+            } else {
+              fetchProblemLeaderboard(selectedProblem, true);
+            }
+          }}
+          isRetrying={loading}
+        />
       ) : activeTab === 'global' ? (
         globalRankings.length === 0 ? (
           <div className="p-16 text-center bg-white dark:bg-[#161b22] rounded-2xl border border-[#d0d7de] dark:border-[#30363d] space-y-3">

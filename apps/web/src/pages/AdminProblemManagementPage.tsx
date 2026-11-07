@@ -24,6 +24,8 @@ import {
 import { Problem, ProblemDifficulty, ProblemLifecycleStatus } from '@aica/shared';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { toast } from '../store/useToastStore';
+import { getErrorMessage } from '../utils/errorUtils';
 import {
   ProblemAuthoringStudio,
   ProblemFormData
@@ -43,7 +45,8 @@ interface AdminProblemItem {
 }
 
 export function AdminProblemManagementPage() {
-  const { user, isAuthenticated } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -137,7 +140,7 @@ export function AdminProblemManagementPage() {
       });
       setIsModalOpen(true);
     } catch (err: any) {
-      alert(`Failed to load full problem: ${err.message}`);
+      toast.error(getErrorMessage(err, 'Failed to load full problem definition'));
     }
   };
 
@@ -147,9 +150,10 @@ export function AdminProblemManagementPage() {
     }
     try {
       await api.delete(`/problems/${problemId}`);
+      toast.success(`Problem "${title}" archived successfully.`);
       fetchAdminProblems();
     } catch (err: any) {
-      alert(`Archive failed: ${err.response?.data?.error?.message || err.message}`);
+      toast.error(getErrorMessage(err, 'Archive operation failed'));
     }
   };
 
