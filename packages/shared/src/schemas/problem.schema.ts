@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+export const FunctionParameterSchema = z.object({
+  name: z.string(),
+  type: z.string()
+});
+
+export const FunctionSignatureSchema = z.object({
+  functionName: z.string(),
+  className: z.string().optional().default('Solution'),
+  returnType: z.string(),
+  parameters: z.array(FunctionParameterSchema),
+  isInPlaceMutation: z.boolean().optional().default(false)
+});
+
 export const TestCaseSchema = z.object({
   id: z.string().optional(),
   input: z.string(),
@@ -27,6 +40,7 @@ export const ProblemCreateSchema = z.object({
   ).default([]),
   timeLimitMs: z.number().int().min(100).max(10000).default(2000),
   memoryLimitKb: z.number().int().min(16384).max(524288).default(262144),
+  functionSignature: FunctionSignatureSchema.optional(),
   starterCode: z.object({
     python: z.string().optional().default(''),
     javascript: z.string().optional().default(''),
@@ -55,6 +69,7 @@ export const ProblemUpdateSchema = z.object({
   ).optional(),
   timeLimitMs: z.number().int().min(100).max(10000).optional(),
   memoryLimitKb: z.number().int().min(16384).max(524288).optional(),
+  functionSignature: FunctionSignatureSchema.optional(),
   starterCode: z.object({
     python: z.string().optional(),
     javascript: z.string().optional(),

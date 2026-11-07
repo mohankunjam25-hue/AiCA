@@ -87,6 +87,14 @@ const HAS_PRLIMIT: boolean = (() => {
   }
 })();
 
+const HAS_NSJAIL: boolean = (() => {
+  try {
+    return fs.existsSync('/usr/bin/nsjail') || fs.existsSync('/usr/local/bin/nsjail');
+  } catch {
+    return false;
+  }
+})();
+
 /**
  * Execute a command inside a Linux-kernel hardware sandbox (prlimit + detached process group).
  * Enforces hard memory boundaries, CPU execution caps, and guarantees zero zombie child processes.
@@ -104,9 +112,20 @@ export async function executeInLinuxSandbox(
   const {
     stdin = '',
     cwd = process.cwd(),
-    env = { ...process.env, PYTHONUNBUFFERED: '1', NODE_OPTIONS: '--max-old-space-size=256' },
     limits = {}
   } = options;
+
+  // Stripped secure environment: Prevent untrusted code from accessing host secrets (JWT_SECRET, DB URLs, etc.)
+  const env: NodeJS.ProcessEnv = options.env || {
+    PATH: process.env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+    HOME: cwd,
+    USER: 'sandbox_guest',
+    TMPDIR: cwd,
+    PYTHONUNBUFFERED: '1',
+    NODE_OPTIONS: '--max-old-space-size=256',
+    LANG: 'C.UTF-8',
+    LC_ALL: 'C.UTF-8'
+  };
 
   const memoryLimitBytes = limits.memoryLimitBytes || 256 * 1024 * 1024; // 256MB default
   const cpuTimeSeconds = limits.cpuTimeSeconds || 2; // 2s default
@@ -127,8 +146,33 @@ export async function executeInLinuxSandbox(
     effectiveMemoryLimit = Math.max(memoryLimitBytes, 4 * 1024 * 1024 * 1024);
   }
 
-  // If Linux prlimit is available, wrap the executable with hard kernel ceilings
-  if (HAS_PRLIMIT && process.platform === 'linux') {
+  // Impenetrable Defense-in-Depth:
+  // 1. Tier 1: If Google nsjail is available, use kernel namespaces + network isolation
+  // 2. Tier 2: Linux kernel prlimit with nproc, nofile, as, and cpu caps
+  if (HAS_NSJAIL && process.platform === 'linux') {
+    const nsjailBin = fs.existsSync('/usr/bin/nsjail') ? '/usr/bin/nsjail' : '/usr/local/bin/nsjail';
+    spawnExecutable = nsjailBin;
+    spawnArgs = [
+      '--mode', 'o',
+      '-u', '65534',
+      '-g', '65534',
+      '--chroot', '/',
+      '-R', '/',
+      '-B', `${cwd}:/tmp`,
+      '--cwd', '/tmp',
+      '--disable_proc',
+      '--clone_newnet',
+      '--clone_newpid',
+      '--clone_newipc',
+      '--clone_newuts',
+      '--rlimit_as', String(Math.ceil(effectiveMemoryLimit / (1024 * 1024))),
+      '--rlimit_cpu', String(cpuTimeSeconds),
+      '--rlimit_fsize', String(Math.ceil(maxFileBytes / (1024 * 1024))),
+      '--',
+      executable,
+      ...args
+    ];
+  } else if (HAS_PRLIMIT && process.platform === 'linux') {
     spawnExecutable = '/usr/bin/prlimit';
     spawnArgs = [
       `--as=${effectiveMemoryLimit}:${effectiveMemoryLimit}`,

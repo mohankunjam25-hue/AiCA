@@ -21,3 +21,4 @@ export * from './schemas/api.schema.js';
 
 // Utilities
 export * from './utils/sanitizers.js';
+export * from './utils/universal-driver.js';
