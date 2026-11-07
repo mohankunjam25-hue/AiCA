@@ -17,6 +17,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { CreateProblemPage } from './pages/CreateProblemPage';
 import { AdminProblemReviewPage } from './pages/AdminProblemReviewPage';
 import { AdminProblemManagementPage } from './pages/AdminProblemManagementPage';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 
 const GOOGLE_CLIENT_ID =
@@ -60,11 +61,46 @@ function AppLayout() {
             <Route path="/algorithms/:slug" element={<AlgorithmDetailPage />} />
             <Route path="/workspace/:id" element={<WorkspacePage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/create-problem" element={<CreateProblemPage />} />
-            <Route path="/admin/proposals" element={<AdminProblemReviewPage />} />
-            <Route path="/admin/problems" element={<AdminProblemManagementPage />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute requireAuth>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute requireAuth>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-problem"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                  <CreateProblemPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/proposals"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                  <AdminProblemReviewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/problems"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                  <AdminProblemManagementPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </Routes>
