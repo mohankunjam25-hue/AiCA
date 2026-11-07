@@ -30,7 +30,7 @@ import {
   CustomRunResult
 } from '@aica/shared';
 import { api } from '../services/api';
-import { useSubmissionSSE } from '../hooks/useSSE';
+import { useSubmissionSSE, useLocalStorage } from '../hooks';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 

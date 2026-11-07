@@ -28,6 +28,7 @@ import { ProblemListItem, ProblemDifficulty, ProblemSortOption } from '@aica/sha
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
+import { useDebounce } from '../hooks';
 
 const TOPIC_TAGS = [
   'All Topics',
@@ -65,7 +66,7 @@ export function ProblemListPage() {
 
   // Filters & Search
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 250);
   const [difficulty, setDifficulty] = useState<string>('ALL');
   const [selectedTag, setSelectedTag] = useState<string>('All Topics');
   const [sortBy, setSortBy] = useState<ProblemSortOption>('latest');
@@ -81,14 +82,10 @@ export function ProblemListPage() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Debounce search input by 250ms
+  // Reset to page 1 whenever debounced search query changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [search]);
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Keyboard shortcut: Pressing "/" or "Ctrl+K" focuses search input
   useEffect(() => {
@@ -158,7 +155,6 @@ export function ProblemListPage() {
 
   const handleClearFilters = () => {
     setSearch('');
-    setDebouncedSearch('');
     setDifficulty('ALL');
     setSelectedTag('All Topics');
     setSortBy('latest');

@@ -21,7 +21,9 @@ import {
   ArrowRight,
   PanelLeftClose,
   PanelLeftOpen,
-  Columns
+  Columns,
+  Copy,
+  Check
 } from 'lucide-react';
 import {
   Problem,
@@ -33,6 +35,7 @@ import {
 } from '@aica/shared';
 import { MonacoWorkspace } from '../components/MonacoWorkspace';
 import { EvaluationReportView } from '../components/EvaluationReportView';
+import { useClipboard } from '../hooks';
 import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
 import { api } from '../services/api';
@@ -185,6 +188,33 @@ const FALLBACK_CATALOG_PROBLEMS: Record<string, Problem> = {
 FALLBACK_CATALOG_PROBLEMS['6aec58907aa3af64a5e5568a'] = FALLBACK_CATALOG_PROBLEMS['container-with-most-water'];
 FALLBACK_CATALOG_PROBLEMS['6aec58907aa3af64a5e55689'] = FALLBACK_CATALOG_PROBLEMS['longest-substring-without-repeating'];
 FALLBACK_CATALOG_PROBLEMS['6aec58907aa3af64a5e55688'] = FALLBACK_CATALOG_PROBLEMS['two-sum-optimal'];
+
+function CopyableCodeBlock({ text, className = '' }: { text: string; className?: string }) {
+  const { copy, copied } = useClipboard({ timeout: 1800 });
+  return (
+    <div className="relative group">
+      <pre className={className}>{text}</pre>
+      <button
+        type="button"
+        onClick={() => copy(text)}
+        className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded text-[10px] font-sans font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer flex items-center gap-1 shadow-2xs"
+        title="Copy to clipboard"
+      >
+        {copied ? (
+          <>
+            <Check className="w-3 h-3 text-emerald-500" />
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">Copied!</span>
+          </>
+        ) : (
+          <>
+            <Copy className="w-3 h-3" />
+            <span>Copy</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
 
 export function WorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -663,11 +693,17 @@ export function WorkspacePage() {
                   <div key={idx} className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] text-xs font-mono space-y-2">
                     <div>
                       <span className="text-[#57606a] dark:text-[#8b949e] font-sans block mb-1 font-semibold">Input:</span>
-                      <pre className="text-[#1f2328] dark:text-[#e6edf3] p-2 rounded bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] overflow-x-auto">{ex.input}</pre>
+                      <CopyableCodeBlock
+                        text={ex.input}
+                        className="text-[#1f2328] dark:text-[#e6edf3] p-2 rounded bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] overflow-x-auto"
+                      />
                     </div>
                     <div>
                       <span className="text-[#57606a] dark:text-[#8b949e] font-sans block mb-1 font-semibold">Output:</span>
-                      <pre className="text-[#1a7f37] dark:text-[#3fb950] p-2 rounded bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] overflow-x-auto font-bold">{ex.output}</pre>
+                      <CopyableCodeBlock
+                        text={ex.output}
+                        className="text-[#1a7f37] dark:text-[#3fb950] p-2 rounded bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] overflow-x-auto font-bold"
+                      />
                     </div>
                     {ex.explanation && (
                       <p className="text-[#57606a] dark:text-[#8b949e] font-sans text-xs pt-1 border-t border-[#d0d7de] dark:border-[#30363d]">

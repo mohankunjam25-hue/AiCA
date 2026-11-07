@@ -20,6 +20,7 @@ import {
 import { api } from '../services/api';
 import { DeveloperDirectoryItem } from '@aica/shared';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDebounce } from '../hooks';
 
 export function DeveloperDirectoryPage() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export function DeveloperDirectoryPage() {
   const [developers, setDevelopers] = useState<DeveloperDirectoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 250);
   const [leagueFilter, setLeagueFilter] = useState<string>('ALL');
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const [followerCountMap, setFollowerCountMap] = useState<Record<string, number>>({});
@@ -95,7 +97,7 @@ export function DeveloperDirectoryPage() {
 
   const filteredDevelopers = useMemo(() => {
     return developers.filter((dev) => {
-      const q = search.toLowerCase().trim();
+      const q = debouncedSearch.toLowerCase().trim();
       const matchesSearch =
         !q ||
         dev.username.toLowerCase().includes(q) ||
@@ -107,7 +109,7 @@ export function DeveloperDirectoryPage() {
 
       return matchesSearch && matchesLeague;
     });
-  }, [developers, search, leagueFilter]);
+  }, [developers, debouncedSearch, leagueFilter]);
 
   const getTierBadge = (league?: string) => {
     const l = league || 'Challenger';
