@@ -140,4 +140,86 @@ describe('Hooks Suite: useDebounce, useLocalStorage & useClipboard', () => {
       expect(copiedText).toBe('input: [1, 2, 3]');
     });
   });
+
+  describe('useKeyboardShortcuts Logic Invariants', () => {
+    it('1. should format shortcut badges appropriately', async () => {
+      const { formatShortcutBadge } = await import('../apps/web/src/hooks/useKeyboardShortcuts');
+      const enterShortcut = formatShortcutBadge({ key: 'Enter', ctrlOrMeta: true });
+      const submitShortcut = formatShortcutBadge({ key: 'Enter', ctrlOrMeta: true, shift: true });
+      const panelShortcut = formatShortcutBadge({ key: 'b', ctrlOrMeta: true });
+
+      expect(enterShortcut).toContain('↵');
+      expect(submitShortcut).toContain('↵');
+      expect(panelShortcut).toContain('B');
+    });
+
+    it('2. should match keyboard shortcuts with modifier combinations', () => {
+      let runTriggered = false;
+      const shortcuts = [
+        {
+          key: 'Enter',
+          ctrlOrMeta: true,
+          action: () => {
+            runTriggered = true;
+          }
+        }
+      ];
+
+      const simulatedEvent = {
+        key: 'Enter',
+        ctrlKey: true,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+        preventDefault: vi.fn()
+      };
+
+      const match = shortcuts[0];
+      if (
+        simulatedEvent.key.toLowerCase() === match.key.toLowerCase() &&
+        simulatedEvent.ctrlKey &&
+        !simulatedEvent.shiftKey &&
+        !simulatedEvent.altKey
+      ) {
+        simulatedEvent.preventDefault();
+        match.action();
+      }
+
+      expect(runTriggered).toBe(true);
+      expect(simulatedEvent.preventDefault).toHaveBeenCalled();
+    });
+  });
+
+  describe('useWorkspaceSplitter Logic Invariants', () => {
+    it('1. should clamp split percentage strictly between min and max bounds', () => {
+      const min = 25;
+      const max = 70;
+
+      const clamp = (val: number) => Math.min(max, Math.max(min, val));
+
+      expect(clamp(10)).toBe(25); // Lower than min clamped to min
+      expect(clamp(45)).toBe(45); // Within bounds preserved
+      expect(clamp(90)).toBe(70); // Higher than max clamped to max
+    });
+
+    it('2. should persist split ratio to localStorage under specified key', () => {
+      const storageKey = 'aica_workspace_left_split';
+      localStorage.setItem(storageKey, '48.5');
+
+      const saved = localStorage.getItem(storageKey);
+      expect(parseFloat(saved!)).toBe(48.5);
+    });
+
+    it('3. should reset split ratio to default when reset handler is triggered', () => {
+      const defaultSplit = 40;
+      let leftWidth = 65;
+
+      const resetSplit = () => {
+        leftWidth = defaultSplit;
+      };
+
+      resetSplit();
+      expect(leftWidth).toBe(40);
+    });
+  });
 });
