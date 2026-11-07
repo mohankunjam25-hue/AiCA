@@ -19,6 +19,7 @@ import { api } from '../services/api';
 import type { Algorithm } from './AlgorithmsPage';
 import { AlgorithmVisualizerCanvas, SupportedAlgoKey } from '../components/algorithms/AlgorithmVisualizerCanvas';
 import { parseComplexityBreakdown } from '../components/algorithms/ComplexityBadgeWithPopover';
+import { AlgorithmCodeViewer, SupportedCodeLanguage } from '../components/algorithms/AlgorithmCodeViewer';
 
 type SupportedLanguage = 'javascript' | 'python' | 'cpp' | 'java';
 
@@ -104,9 +105,6 @@ export function AlgorithmDetailPage() {
   const [algorithm, setAlgorithm] = useState<Algorithm | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [language, setLanguage] = useState<SupportedLanguage>('python');
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -142,36 +140,17 @@ export function AlgorithmDetailPage() {
     return parseComplexityBreakdown(algorithm.timeComplexity, algorithm.spaceComplexity, algorithm.name);
   }, [algorithm]);
 
-  // Resolve code snippet based on selected language
-  const resolvedCode = useMemo(() => {
-    if (!algorithm) return '';
-    if (language === 'javascript') return algorithm.code.javascript || '';
-    if (language === 'python') return algorithm.code.python || '';
-
-    // Check custom C++ or Java snippets
-    const customForSlug = EXTENDED_CODE_SNIPPETS[algorithm.slug];
-    if (customForSlug && customForSlug[language]) {
-      return customForSlug[language]!;
-    }
-
-    // Default template if language isn't explicitly defined
-    if (language === 'cpp') {
-      return `// Standard C++ implementation for ${algorithm.name}\n// Time: ${algorithm.timeComplexity} | Space: ${algorithm.spaceComplexity}\n\n#include <iostream>\n#include <vector>\n\n// Refer to Python/JavaScript tab for exact algorithm logic.`;
-    }
-    return `// Standard Java implementation for ${algorithm.name}\n// Time: ${algorithm.timeComplexity} | Space: ${algorithm.spaceComplexity}\n\npublic class Solution {\n    // Refer to Python/JavaScript tab for exact algorithm logic.\n}`;
-  }, [algorithm, language]);
-
-  const copyCode = async () => {
-    if (!resolvedCode) return;
-    try {
-      await navigator.clipboard.writeText(resolvedCode);
-      setCopyError('');
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopyError('Clipboard access is restricted in this browser.');
-    }
-  };
+  // Structured multi-language code implementations
+  const codeMap = useMemo<Record<SupportedCodeLanguage, string>>(() => {
+    if (!algorithm) return { python: '', javascript: '', cpp: '', java: '' };
+    const custom = EXTENDED_CODE_SNIPPETS[algorithm.slug] || {};
+    return {
+      python: algorithm.code.python || '',
+      javascript: algorithm.code.javascript || '',
+      cpp: custom.cpp || `// Standard C++ implementation for ${algorithm.name}\n// Time: ${algorithm.timeComplexity} | Space: ${algorithm.spaceComplexity}\n\n#include <iostream>\n#include <vector>\n\n// Refer to Python/JavaScript tab for exact algorithm logic.`,
+      java: custom.java || `// Standard Java implementation for ${algorithm.name}\n// Time: ${algorithm.timeComplexity} | Space: ${algorithm.spaceComplexity}\n\npublic class Solution {\n    // Refer to Python/JavaScript tab for exact algorithm logic.\n}`
+    };
+  }, [algorithm]);
 
   if (loading) {
     return (
@@ -307,58 +286,20 @@ export function AlgorithmDetailPage() {
           </section>
         )}
 
-        {/* 4. Multi-Language Code Playground */}
-        <section className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-[#0d1117] text-[#e6edf3] shadow-xs overflow-hidden">
-          {/* Language tabs and Copy */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-[#30363d]">
-            <div className="flex items-center gap-1.5" role="tablist">
-              {(['python', 'javascript', 'cpp', 'java'] as const).map((lang) => (
-                <button
-                  key={lang}
-                  role="tab"
-                  aria-selected={language === lang}
-                  onClick={() => {
-                    setLanguage(lang);
-                    setCopied(false);
-                  }}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold capitalize transition cursor-pointer ${
-                    language === lang
-                      ? 'bg-[#1f6feb] text-white shadow-2xs'
-                      : 'text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]'
-                  }`}
-                >
-                  {lang === 'javascript' ? 'JavaScript' : lang === 'cpp' ? 'C++' : lang === 'java' ? 'Java' : 'Python 3'}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={copyCode}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-[#c9d1d9] hover:bg-[#21262d] transition cursor-pointer"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-[#3fb950]" />
-                  <span className="text-[#3fb950]">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copy Code</span>
-                </>
-              )}
-            </button>
+        {/* 4. Multi-Language Code Playground (GitHub Primer Syntax Viewer) */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+              <Code2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+              Implementation &amp; Multi-Language Code
+            </h2>
           </div>
-
-          {/* Code Viewer */}
-          <pre className="p-5 font-mono text-xs leading-relaxed overflow-x-auto text-[#f0f6fc]">
-            <code>{resolvedCode}</code>
-          </pre>
+          <AlgorithmCodeViewer
+            codeMap={codeMap}
+            algorithmName={algorithm.name}
+            defaultLanguage="python"
+          />
         </section>
-
-        {copyError && (
-          <p className="text-xs text-[#cf222e] dark:text-[#f85149]">{copyError}</p>
-        )}
 
         {/* 5. Step-by-Step Logic Breakdown */}
         <section className="p-6 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
