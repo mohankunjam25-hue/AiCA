@@ -4,11 +4,15 @@ import {
   createMultiComparison,
   getComparisonById,
   getProblemComparison,
-  getProblemMultiComparison
+  getProblemMultiComparison,
+  getFeaturedComparisons
 } from '../controllers/comparison.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
 
 const router = Router();
+
+// Featured comparison for landing showcase (must precede /:id)
+router.get('/featured', getFeaturedComparisons);
 
 // Multi-solution evolution comparison endpoints (must precede /:id)
 router.get('/problem/:problemId/multi', optionalAuth, getProblemMultiComparison);

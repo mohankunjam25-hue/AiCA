@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 import {
   ArrowRight,
   ShieldCheck,
@@ -219,6 +220,7 @@ export function HeroLandingPage() {
   const [simStep, setSimStep] = useState<string>('idle'); // 'idle' | 'compiling' | 'executing' | 'analyzing' | 'done'
   const [liveRuntime, setLiveRuntime] = useState<number>(18);
   const [liveMemory, setLiveMemory] = useState<number>(15.3);
+  const [featuredData, setFeaturedData] = useState<any>(null);
 
   // Mouse spotlight & 3D tilt interactive coordinates
   const heroRef = useRef<HTMLDivElement>(null);
@@ -227,12 +229,46 @@ export function HeroLandingPage() {
 
   const currentSample = SAMPLE_COMPARISONS[selectedLang][activeTab];
 
-  // Update live metrics on tab change
+  // Fetch live community benchmark on mount with graceful fallback
   useEffect(() => {
-    setLiveRuntime(currentSample.runtimeMs);
-    setLiveMemory(currentSample.memoryMb);
+    let isMounted = true;
+    api.get('/comparisons/featured')
+      .then((res) => {
+        if (isMounted && res.data?.data) {
+          setFeaturedData(res.data.data);
+        }
+      })
+      .catch(() => {
+        // Graceful silent fallback to curated baseline with zero CLS
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Update live metrics on tab change or when live benchmark arrives
+  useEffect(() => {
+    let effectiveRuntime = currentSample.runtimeMs;
+    let effectiveMemory = currentSample.memoryMb;
+
+    if (featuredData) {
+      if (activeTab === 1 && featuredData.submissionB?.executionTimeMs) {
+        effectiveRuntime = featuredData.submissionB.executionTimeMs;
+        if (featuredData.submissionB.memoryUsedKb) {
+          effectiveMemory = Math.round((featuredData.submissionB.memoryUsedKb / 1024) * 10) / 10;
+        }
+      } else if (activeTab === 0 && featuredData.submissionA?.executionTimeMs) {
+        effectiveRuntime = featuredData.submissionA.executionTimeMs;
+        if (featuredData.submissionA.memoryUsedKb) {
+          effectiveMemory = Math.round((featuredData.submissionA.memoryUsedKb / 1024) * 10) / 10;
+        }
+      }
+    }
+
+    setLiveRuntime(effectiveRuntime);
+    setLiveMemory(effectiveMemory);
     setSimStep('idle');
-  }, [selectedLang, activeTab]);
+  }, [selectedLang, activeTab, featuredData, currentSample]);
 
   const handleHeroMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!heroRef.current) return;
@@ -464,7 +500,7 @@ export function HeroLandingPage() {
                 <span className="w-3 h-3 rounded-full bg-emerald-400/90" />
                 <span className="ml-2 text-xs font-mono font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                   <Terminal className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                  evolution-lab :: Problem #1 [Two Sum]
+                  evolution-lab :: Problem #1 [{featuredData?.problemTitle || 'Two Sum'}]
                 </span>
               </div>
 
