@@ -39,8 +39,12 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAuthenticated, logout } = useAuthStore();
-  const { isDark, toggleTheme } = useThemeStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
+  const isDark = useThemeStore((s) => s.isDark);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   // Clean, minimal navigation items (no subtitles, no extra badges)
   const navItems: NavItem[] = [

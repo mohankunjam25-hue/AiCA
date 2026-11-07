@@ -35,12 +35,15 @@ import {
 } from '@aica/shared';
 import { MonacoWorkspace } from '../components/MonacoWorkspace';
 import { EvaluationReportView } from '../components/EvaluationReportView';
-import { useClipboard } from '../hooks';
+import { useClipboard, useWorkspaceSplitter, useKeyboardShortcuts } from '../hooks';
 import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
+import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
+import { toast } from '../store/useToastStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const FALLBACK_CATALOG_PROBLEMS: Record<string, Problem> = {
   'container-with-most-water': {
@@ -228,63 +231,51 @@ export function WorkspacePage() {
   const [compareViewMode, setCompareViewMode] = useState<'matrix' | 'diff'>('matrix');
   const [pastSubmissions, setPastSubmissions] = useState<any[]>([]);
   const [loadingPastSubmissions, setLoadingPastSubmissions] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null);
   const [inspectedCode, setInspectedCode] = useState<{ code: string; language: string; verdict: string; date: string } | null>(null);
   const [loadedCode, setLoadedCode] = useState<{ code: string; language: SupportedLanguage } | null>(null);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [generatingComparison, setGeneratingComparison] = useState(false);
   const [mobileWorkspaceTab, setMobileWorkspaceTab] = useState<'problem' | 'editor'>('editor');
 
-  // Resizable Splitter & Zen Mode States
-  const [leftWidth, setLeftWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('aica_workspace_left_split');
-    return saved ? Math.min(70, Math.max(25, parseFloat(saved))) : 40;
+  // Decoupled Resizable Splitter State
+  const { containerRef, leftWidth, splitterProps } = useWorkspaceSplitter({
+    storageKey: 'aica_workspace_left_split',
+    defaultSplit: 40,
+    min: 25,
+    max: 70
   });
-  const [isDraggingSplitter, setIsDraggingSplitter] = useState<boolean>(false);
   const [isZenMode, setIsZenMode] = useState<boolean>(false);
   const [isLeftCollapsed, setIsLeftCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('aica_workspace_left_collapsed') === 'true';
   });
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const toggleLeftCollapse = () => {
     setIsLeftCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem('aica_workspace_left_collapsed', String(next));
+      try {
+        localStorage.setItem('aica_workspace_left_collapsed', String(next));
+      } catch {}
       return next;
     });
   };
 
-  // Dragging event listeners for smooth panel resizing
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingSplitter || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const newPercent = Math.min(70, Math.max(25, ((e.clientX - rect.left) / rect.width) * 100));
-      setLeftWidth(newPercent);
-    };
-
-    const handleMouseUp = () => {
-      if (isDraggingSplitter) {
-        setIsDraggingSplitter(false);
-        localStorage.setItem('aica_workspace_left_split', String(leftWidth));
+  // Keyboard Shortcuts for Workspace
+  useKeyboardShortcuts([
+    {
+      key: 'b',
+      ctrlOrMeta: true,
+      description: 'Toggle Problem Panel',
+      action: toggleLeftCollapse
+    },
+    {
+      key: 'Escape',
+      description: 'Close Modal',
+      action: () => {
+        if (inspectedCode) setInspectedCode(null);
       }
-    };
-
-    if (isDraggingSplitter) {
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
     }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDraggingSplitter, leftWidth]);
+  ]);
 
   const toggleCompareSelect = (subId: string) => {
     setSelectedForCompare((prev) => {
@@ -326,7 +317,7 @@ export function WorkspacePage() {
       setActiveLeftTab('compare');
       setSelectedForCompare([]);
     } catch (err: any) {
-      alert(`Comparison failed: ${err.response?.data?.error?.message || err.message}`);
+      toast.error(`Comparison failed: ${getErrorMessage(err)}`);
     } finally {
       setGeneratingComparison(false);
     }
@@ -391,6 +382,7 @@ export function WorkspacePage() {
     }
 
     if (!cached) setLoadingPastSubmissions(true);
+    setSubmissionsError(null);
     try {
       const token = useAuthStore.getState().accessToken;
       const requests: Promise<any>[] = [
@@ -427,6 +419,7 @@ export function WorkspacePage() {
       useDataCacheStore.getState().set(cacheKey, combined);
     } catch (err: any) {
       console.warn('[WorkspacePage] Submissions fetch failed:', err.message);
+      setSubmissionsError(getErrorMessage(err, 'Failed to retrieve problem submissions'));
     } finally {
       setLoadingPastSubmissions(false);
     }
@@ -950,6 +943,15 @@ export function WorkspacePage() {
                   <Loader2 className="w-6 h-6 animate-spin mb-2" />
                   <p className="text-xs">Loading past submissions...</p>
                 </div>
+              ) : submissionsError && pastSubmissions.length === 0 ? (
+                <div className="p-4">
+                  <DataFetchErrorCard
+                    compact
+                    message={submissionsError}
+                    onRetry={() => fetchProblemSubmissions(true)}
+                    isRetrying={loadingPastSubmissions}
+                  />
+                </div>
               ) : pastSubmissions.length === 0 ? (
                 <div className="py-12 text-center text-[#57606a] dark:text-[#8b949e] border border-dashed border-[#d0d7de] dark:border-[#30363d] rounded-md space-y-2">
                   <History className="w-8 h-8 text-[#8c959f] mx-auto" />
@@ -1072,16 +1074,8 @@ export function WorkspacePage() {
         {/* Vertical Draggable Splitter Handle (Desktop only, hidden in Zen Mode or when Left Panel is Collapsed) */}
         {!isZenMode && !isLeftCollapsed && (
           <div
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsDraggingSplitter(true);
-            }}
-            onDoubleClick={() => {
-              setLeftWidth(40);
-              localStorage.setItem('aica_workspace_left_split', '40');
-            }}
+            {...splitterProps}
             className="hidden lg:flex items-center justify-center w-2.5 hover:w-3 cursor-col-resize group shrink-0 transition-all z-10 select-none"
-            title="Drag to resize panels (Double click to reset 40/60)"
           >
             <div className="w-1 h-8 rounded-full bg-[#d0d7de] dark:bg-[#30363d] group-hover:bg-[#8250df] group-hover:h-12 transition-all" />
           </div>

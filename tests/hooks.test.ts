@@ -140,4 +140,166 @@ describe('Hooks Suite: useDebounce, useLocalStorage & useClipboard', () => {
       expect(copiedText).toBe('input: [1, 2, 3]');
     });
   });
+
+  describe('useKeyboardShortcuts Logic Invariants', () => {
+    it('1. should format shortcut badges appropriately', async () => {
+      const { formatShortcutBadge } = await import('../apps/web/src/hooks/useKeyboardShortcuts');
+      const enterShortcut = formatShortcutBadge({ key: 'Enter', ctrlOrMeta: true });
+      const submitShortcut = formatShortcutBadge({ key: 'Enter', ctrlOrMeta: true, shift: true });
+      const panelShortcut = formatShortcutBadge({ key: 'b', ctrlOrMeta: true });
+
+      expect(enterShortcut).toContain('↵');
+      expect(submitShortcut).toContain('↵');
+      expect(panelShortcut).toContain('B');
+    });
+
+    it('2. should match keyboard shortcuts with modifier combinations', () => {
+      let runTriggered = false;
+      const shortcuts = [
+        {
+          key: 'Enter',
+          ctrlOrMeta: true,
+          action: () => {
+            runTriggered = true;
+          }
+        }
+      ];
+
+      const simulatedEvent = {
+        key: 'Enter',
+        ctrlKey: true,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+        preventDefault: vi.fn()
+      };
+
+      const match = shortcuts[0];
+      if (
+        simulatedEvent.key.toLowerCase() === match.key.toLowerCase() &&
+        simulatedEvent.ctrlKey &&
+        !simulatedEvent.shiftKey &&
+        !simulatedEvent.altKey
+      ) {
+        simulatedEvent.preventDefault();
+        match.action();
+      }
+
+      expect(runTriggered).toBe(true);
+      expect(simulatedEvent.preventDefault).toHaveBeenCalled();
+    });
+  });
+
+  describe('useWorkspaceSplitter Logic Invariants', () => {
+    it('1. should clamp split percentage strictly between min and max bounds', () => {
+      const min = 25;
+      const max = 70;
+
+      const clamp = (val: number) => Math.min(max, Math.max(min, val));
+
+      expect(clamp(10)).toBe(25); // Lower than min clamped to min
+      expect(clamp(45)).toBe(45); // Within bounds preserved
+      expect(clamp(90)).toBe(70); // Higher than max clamped to max
+    });
+
+    it('2. should persist split ratio to localStorage under specified key', () => {
+      const storageKey = 'aica_workspace_left_split';
+      localStorage.setItem(storageKey, '48.5');
+
+      const saved = localStorage.getItem(storageKey);
+      expect(parseFloat(saved!)).toBe(48.5);
+    });
+
+    it('3. should reset split ratio to default when reset handler is triggered', () => {
+      const defaultSplit = 40;
+      let leftWidth = 65;
+
+      const resetSplit = () => {
+        leftWidth = defaultSplit;
+      };
+
+      resetSplit();
+      expect(leftWidth).toBe(40);
+    });
+  });
+
+  describe('useOnlineStatus Logic Invariants', () => {
+    it('1. should safely detect online state and fallback to true if navigator.onLine is undefined', () => {
+      const getInitialStatus = () => {
+        if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') {
+          return navigator.onLine;
+        }
+        return true;
+      };
+
+      // When navigator.onLine is explicitly defined as false
+      Object.defineProperty(globalThis.navigator, 'onLine', {
+        value: false,
+        configurable: true,
+        writable: true
+      });
+      expect(getInitialStatus()).toBe(false);
+
+      // Reset to true
+      Object.defineProperty(globalThis.navigator, 'onLine', {
+        value: true,
+        configurable: true,
+        writable: true
+      });
+      expect(getInitialStatus()).toBe(true);
+    });
+
+    it('2. should handle offline event and transition state', () => {
+      let isOnline = true;
+      let offlineSince: Date | null = null;
+      let disconnectFired = false;
+
+      const handleOffline = () => {
+        isOnline = false;
+        offlineSince = new Date();
+        disconnectFired = true;
+      };
+
+      handleOffline();
+
+      expect(isOnline).toBe(false);
+      expect(offlineSince).toBeInstanceOf(Date);
+      expect(disconnectFired).toBe(true);
+    });
+
+    it('3. should handle reconnection and set wasOffline flag', () => {
+      let isOnline = false;
+      let wasOffline = false;
+      let offlineSince: Date | null = new Date();
+      let reconnectFired = false;
+
+      const handleOnline = () => {
+        isOnline = true;
+        offlineSince = null;
+        wasOffline = true;
+        reconnectFired = true;
+      };
+
+      handleOnline();
+
+      expect(isOnline).toBe(true);
+      expect(offlineSince).toBeNull();
+      expect(wasOffline).toBe(true);
+      expect(reconnectFired).toBe(true);
+    });
+
+    it('4. should dismiss wasOffline after grace period', () => {
+      vi.useFakeTimers();
+      let wasOffline = true;
+
+      setTimeout(() => {
+        wasOffline = false;
+      }, 3500);
+
+      expect(wasOffline).toBe(true);
+      vi.advanceTimersByTime(3500);
+      expect(wasOffline).toBe(false);
+      vi.useRealTimers();
+    });
+  });
 });

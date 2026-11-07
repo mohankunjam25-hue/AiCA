@@ -19,6 +19,36 @@ export type ProposalStatus =
   | 'REJECTED'
   | 'DISCARDED';
 
+export type DataType =
+  | 'int'
+  | 'float'
+  | 'string'
+  | 'boolean'
+  | 'list<int>'
+  | 'list<float>'
+  | 'list<string>'
+  | 'list<boolean>'
+  | 'matrix<int>'
+  | 'matrix<string>'
+  | 'matrix<char>'
+  | 'ListNode'
+  | 'list<ListNode>'
+  | 'TreeNode'
+  | 'void';
+
+export interface FunctionParameter {
+  name: string;
+  type: DataType | string;
+}
+
+export interface FunctionSignature {
+  functionName: string;
+  className?: string; // default: "Solution"
+  returnType: DataType | string;
+  parameters: FunctionParameter[];
+  isInPlaceMutation?: boolean; // If true (e.g. reverseString/sortColors), print mutated param[0]
+}
+
 export interface TestCase {
   id: string;
   input: string;
@@ -58,6 +88,7 @@ export interface Problem {
   timeLimitMs: number;
   memoryLimitKb: number;
   benchmarks: ProblemBenchmarks;
+  functionSignature?: FunctionSignature;
   starterCode: Record<SupportedLanguage, string>;
   testCases?: TestCase[]; // Populated only for admin or internally by worker
   solutionApproaches?: SolutionApproach[];
@@ -107,6 +138,7 @@ export interface ProblemProposalGeneratedContent {
   description: string;
   constraints: string[];
   examples: ProblemExample[];
+  functionSignature?: FunctionSignature;
   starterCode: Record<SupportedLanguage, string>;
   referenceSolutions: {
     canonicalPython: string;

@@ -42,7 +42,7 @@ const STAGES: { key: string; label: string; description: string }[] = [
 ];
 
 export function CreateProblemPage() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [creationMode, setCreationMode] = useState<'manual' | 'ai'>(

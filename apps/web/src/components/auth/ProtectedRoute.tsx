@@ -15,7 +15,8 @@ export function ProtectedRoute({
   allowedRoles,
   requireAuth = true
 }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const location = useLocation();
 
   // If route requires authentication and user is not signed in

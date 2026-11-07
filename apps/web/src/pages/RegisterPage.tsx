@@ -15,7 +15,7 @@ export function RegisterPage() {
   const [searchParams] = useSearchParams();
   const redirectUrl = searchParams.get('redirect');
 
-  const { setAuth } = useAuthStore();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {

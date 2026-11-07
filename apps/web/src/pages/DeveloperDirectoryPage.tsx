@@ -24,7 +24,8 @@ import { useDebounce } from '../hooks';
 
 export function DeveloperDirectoryPage() {
   const navigate = useNavigate();
-  const { user: currentUser, isAuthenticated } = useAuthStore();
+  const currentUser = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [developers, setDevelopers] = useState<DeveloperDirectoryItem[]>([]);
   const [loading, setLoading] = useState(true);

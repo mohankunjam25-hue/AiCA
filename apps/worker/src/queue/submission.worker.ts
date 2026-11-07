@@ -186,6 +186,7 @@ export function startSubmissionWorker(): Worker {
             timeoutMs: scaledTimeLimitMs,
             memoryLimitKb: problem.memoryLimitKb || 262144,
             shortCircuitOnFailure: !isTestRun,
+            signature: problem.functionSignature,
             onProgress: async ({ current, total }) => {
               await publishProgress(submissionId, 'EXECUTING', 'PENDING', 2, 4, {
                 currentTest: current,
