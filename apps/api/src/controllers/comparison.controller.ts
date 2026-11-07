@@ -390,3 +390,64 @@ export async function getProblemMultiComparison(req: Request, res: Response): Pr
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'Failed to retrieve multi-solution comparison'));
   }
 }
+
+export async function getFeaturedComparisons(req: Request, res: Response): Promise<void> {
+  try {
+    // 1. Try to fetch the latest high-quality solution comparison from DB
+    const recent = await SolutionComparisonModel.findOne({
+      'deltaAnalysis.executionTimeDiffMs': { $gt: 0 }
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (recent) {
+      res.status(200).json(createSuccessResponse(recent));
+      return;
+    }
+
+    // 2. Fallback: Query top problem and aggregate its best vs average submissions
+    const topProblem = await ProblemModel.findOne({ status: 'PUBLISHED' }).sort({ totalSubmissions: -1 }).lean();
+    if (topProblem) {
+      const topSubs = await SubmissionModel.find({
+        problemId: topProblem._id.toString(),
+        verdict: 'ACCEPTED',
+        isTestRun: false
+      })
+        .sort({ executionTimeMs: 1 })
+        .limit(2)
+        .lean();
+
+      if (topSubs.length >= 2) {
+        const subA = topSubs[1]; // Slower/baseline
+        const subB = topSubs[0]; // Faster/optimal
+        const timeDiff = Math.max(0, (subA.executionTimeMs || 0) - (subB.executionTimeMs || 0));
+        res.status(200).json(
+          createSuccessResponse({
+            problemId: topProblem._id.toString(),
+            problemTitle: topProblem.title,
+            submissionA: {
+              language: subA.language,
+              executionTimeMs: subA.executionTimeMs,
+              memoryUsedKb: subA.memoryUsedKb
+            },
+            submissionB: {
+              language: subB.language,
+              executionTimeMs: subB.executionTimeMs,
+              memoryUsedKb: subB.memoryUsedKb
+            },
+            deltaAnalysis: {
+              executionTimeDiffMs: timeDiff,
+              tradeOffSummary: `Optimized implementation reduced runtime by ${timeDiff}ms.`
+            }
+          })
+        );
+        return;
+      }
+    }
+
+    res.status(200).json(createSuccessResponse(null, 'No featured comparisons currently available'));
+  } catch (err: any) {
+    console.error('[ComparisonController] getFeaturedComparisons error:', err.message);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'Failed to retrieve featured comparisons'));
+  }
+}

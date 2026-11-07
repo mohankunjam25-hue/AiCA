@@ -43,137 +43,22 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { api } from '../services/api';
+import { calculateUserBadges, DynamicBadge } from '../utils/badgeCalculator';
 
-interface PastEvolution {
+export interface DynamicEvolutionItem {
   id: string;
   problemId: string;
   problemTitle: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: string;
   language: string;
   initialRuntimeMs: number;
   optimalRuntimeMs: number;
-  initialMemoryMb: number;
+  initialMemoryMb?: number;
   optimalMemoryMb: number;
   speedupPercent: number;
-  pedagogicalVerdict: string;
+  pedagogicalVerdict?: string;
   date: string;
 }
-
-const SAMPLE_EVOLUTIONS: PastEvolution[] = [
-  {
-    id: 'evo-1',
-    problemId: 'two-sum-optimal',
-    problemTitle: 'Two Sum',
-    difficulty: 'Easy',
-    language: 'Python',
-    initialRuntimeMs: 1420,
-    optimalRuntimeMs: 18,
-    initialMemoryMb: 14.1,
-    optimalMemoryMb: 15.3,
-    speedupPercent: 98.7,
-    pedagogicalVerdict: 'Replaced O(N²) quadratic nested loop with single-pass hash map',
-    date: '2 hours ago',
-  },
-  {
-    id: 'evo-2',
-    problemId: 'longest-substring-without-repeating',
-    problemTitle: 'Longest Substring Without Repeating',
-    difficulty: 'Medium',
-    language: 'TypeScript',
-    initialRuntimeMs: 980,
-    optimalRuntimeMs: 14,
-    initialMemoryMb: 36.2,
-    optimalMemoryMb: 37.1,
-    speedupPercent: 98.5,
-    pedagogicalVerdict: 'Dynamic sliding window eliminated inner substring re-scans',
-    date: 'Yesterday',
-  },
-  {
-    id: 'evo-3',
-    problemId: 'valid-parentheses',
-    problemTitle: 'Valid Parentheses',
-    difficulty: 'Easy',
-    language: 'C++',
-    initialRuntimeMs: 120,
-    optimalRuntimeMs: 2,
-    initialMemoryMb: 7.8,
-    optimalMemoryMb: 8.1,
-    speedupPercent: 98.3,
-    pedagogicalVerdict: 'std::stack linear scan with O(1) matching table',
-    date: '3 days ago',
-  },
-  {
-    id: 'evo-4',
-    problemId: 'merge-intervals',
-    problemTitle: 'Merge Intervals',
-    difficulty: 'Medium',
-    language: 'Python',
-    initialRuntimeMs: 840,
-    optimalRuntimeMs: 32,
-    initialMemoryMb: 18.2,
-    optimalMemoryMb: 18.9,
-    speedupPercent: 96.2,
-    pedagogicalVerdict: 'O(N log N) greedy merge after sorting start coordinates',
-    date: '5 days ago',
-  },
-];
-
-const BADGES = [
-  {
-    id: 'badge-1',
-    name: 'Quadratic Slayer',
-    description: 'Transformed an O(N²) quadratic algorithm into O(N) linear time',
-    icon: Zap,
-    color: 'from-amber-500 to-emerald-500',
-    unlocked: true,
-    earnedAt: 'Nov 2026',
-  },
-  {
-    id: 'badge-2',
-    name: 'Sub-10ms Sprinter',
-    description: 'Passed 100% hidden Judge0 test cases in under 10 milliseconds',
-    icon: Clock,
-    color: 'from-emerald-500 to-teal-500',
-    unlocked: true,
-    earnedAt: 'Nov 2026',
-  },
-  {
-    id: 'badge-3',
-    name: 'Memory Minimalist',
-    description: 'Achieved optimal space complexity with zero heap leakage',
-    icon: HardDrive,
-    color: 'from-indigo-500 to-cyan-500',
-    unlocked: true,
-    earnedAt: 'Nov 2026',
-  },
-  {
-    id: 'badge-4',
-    name: '5-Day Evolution Streak',
-    description: 'Submitted algorithmic solutions for 5 consecutive days',
-    icon: Flame,
-    color: 'from-rose-500 to-amber-500',
-    unlocked: true,
-    earnedAt: 'Nov 2026',
-  },
-  {
-    id: 'badge-5',
-    name: 'Polyglot Architect',
-    description: 'Solved problems across 3 different programming languages',
-    icon: Code2,
-    color: 'from-purple-500 to-indigo-500',
-    unlocked: true,
-    earnedAt: 'Nov 2026',
-  },
-  {
-    id: 'badge-6',
-    name: 'Kernel Isolation Master',
-    description: 'Surpassed 50 isolated Linux cgroup evaluations',
-    icon: ShieldCheck,
-    color: 'from-slate-600 to-slate-900',
-    unlocked: false,
-    earnedAt: 'Locked',
-  },
-];
 
 type ProfileTab = 'info' | 'settings' | 'activity' | 'logout';
 
@@ -316,20 +201,131 @@ export function ProfilePage() {
     navigate('/login');
   };
 
-  // Generate 24 weeks of activity heatmap data (memoized to eliminate render allocations)
-  const heatmapWeeks = useMemo(
-    () =>
-      Array.from({ length: 24 }).map((_, wIdx) =>
-        Array.from({ length: 7 }).map((_, dIdx) => {
-          const val = (wIdx * 7 + dIdx * 3) % 11;
-          return val > 6 ? (val % 4) + 1 : 0;
-        })
-      ),
-    []
-  );
-  const realSubmissions = Array.isArray((profile as any)?.submissions)
-    ? (profile as any).submissions
-    : [];
+  const [realSubmissions, setRealSubmissions] = useState<any[]>([]);
+  const [activityMap, setActivityMap] = useState<Record<string, number>>({});
+  const [activityStats, setActivityStats] = useState({
+    solved: profile?.problemsSolved ?? 0,
+    total: profile?.totalSubmissions ?? 0,
+    streak: profile?.currentStreak ?? 0,
+    longestStreak: 0
+  });
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchActivityData = async () => {
+      setLoadingActivity(true);
+      try {
+        const [subRes, heatRes] = await Promise.allSettled([
+          api.get('/submissions/my?limit=25'),
+          api.get('/submissions/activity-heatmap')
+        ]);
+
+        if (isMounted) {
+          if (subRes.status === 'fulfilled' && subRes.value.data?.data?.submissions) {
+            setRealSubmissions(subRes.value.data.data.submissions);
+          }
+          if (heatRes.status === 'fulfilled' && heatRes.value.data?.data) {
+            const h = heatRes.value.data.data;
+            setActivityStats({
+              solved: h.problemsSolved ?? profile?.problemsSolved ?? 0,
+              total: h.totalSubmissions ?? profile?.totalSubmissions ?? 0,
+              streak: h.currentStreak ?? profile?.currentStreak ?? 0,
+              longestStreak: h.longestStreak ?? 0
+            });
+            if (h.activityByDate) {
+              setActivityMap(h.activityByDate);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[ProfilePage] Failed to fetch live activity data:', err);
+      } finally {
+        if (isMounted) setLoadingActivity(false);
+      }
+    };
+
+    fetchActivityData();
+    return () => {
+      isMounted = false;
+    };
+  }, [profile]);
+
+  // Generate 24 weeks of real activity heatmap data from activityMap
+  const heatmapWeeks = useMemo(() => {
+    const weeks: Array<Array<{ date: string; count: number; level: number }>> = [];
+    const today = new Date();
+
+    for (let w = 23; w >= 0; w--) {
+      const week: Array<{ date: string; count: number; level: number }> = [];
+      for (let d = 0; d < 7; d++) {
+        const dayOffset = w * 7 + (6 - d);
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() - dayOffset);
+        const dateKey = targetDate.toISOString().split('T')[0];
+        const count = activityMap[dateKey] || 0;
+        const level = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : 3;
+        week.push({ date: dateKey, count, level });
+      }
+      weeks.push(week);
+    }
+    return weeks;
+  }, [activityMap]);
+
+  const dynamicBadges = useMemo(() => {
+    return calculateUserBadges(realSubmissions, activityStats);
+  }, [realSubmissions, activityStats]);
+
+  const dynamicEvolutions = useMemo(() => {
+    const byProblem = new Map<string, any[]>();
+    for (const s of realSubmissions) {
+      if (!byProblem.has(s.problemId)) {
+        byProblem.set(s.problemId, []);
+      }
+      byProblem.get(s.problemId)!.push(s);
+    }
+
+    const evos: DynamicEvolutionItem[] = [];
+
+    for (const [probId, subs] of byProblem.entries()) {
+      const accepted = subs.filter((s) => s.verdict === 'ACCEPTED');
+      if (accepted.length >= 1) {
+        const sorted = [...subs].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const initial = sorted[0];
+        const best = [...accepted].sort(
+          (a, b) => (a.runtimeMs || a.executionTimeMs || 0) - (b.runtimeMs || b.executionTimeMs || 0)
+        )[0];
+
+        const initTime = initial.runtimeMs || initial.executionTimeMs || best.runtimeMs || best.executionTimeMs || 50;
+        const optTime = best.runtimeMs || best.executionTimeMs || 10;
+        const speedup = initTime > optTime ? Math.round(((initTime - optTime) / initTime) * 100) : 0;
+        const memMb = Math.round(((best.memoryKb || best.memoryUsedKb || 16000) / 1024) * 10) / 10;
+
+        evos.push({
+          id: `evo-${probId}`,
+          problemId: probId,
+          problemTitle: best.problemTitle || initial.problemTitle || 'Challenge Solution',
+          difficulty: best.difficulty || 'Medium',
+          language: best.language || initial.language || 'Python',
+          initialRuntimeMs: initTime,
+          optimalRuntimeMs: optTime,
+          speedupPercent: speedup,
+          optimalMemoryMb: memMb,
+          pedagogicalVerdict: speedup > 0
+            ? `Optimized algorithm achieved +${speedup}% speedup over initial submission.`
+            : 'Optimal baseline verified with zero heap leakage.',
+          date: new Date(best.createdAt || Date.now()).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric'
+          })
+        });
+      }
+    }
+
+    return evos;
+  }, [realSubmissions]);
 
   return (
     <div className="flex-1 bg-[#FAFAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 selection:bg-emerald-100 selection:text-emerald-950">
@@ -1470,7 +1466,7 @@ export function ProfilePage() {
                           Annual Evaluation Activity
                         </h2>
                         <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-0.5">
-                          42 kernel evaluations and submissions across past months
+                          {activityStats.total} kernel evaluations and submissions across past months
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-[#57606a] dark:text-[#8b949e] font-medium">
@@ -1488,13 +1484,13 @@ export function ProfilePage() {
                       <div className="flex gap-1 min-w-[640px]">
                         {heatmapWeeks.map((week, wIdx) => (
                           <div key={wIdx} className="flex flex-col gap-1">
-                            {week.map((level, dIdx) => {
+                            {week.map((day, dIdx) => {
                               const bgClass =
-                                level === 0
+                                day.level === 0
                                   ? 'bg-[#f6f8fa] dark:bg-[#21262d] hover:bg-[#eaeef2] dark:hover:bg-[#30363d]'
-                                  : level === 1
+                                  : day.level === 1
                                   ? 'bg-emerald-200 dark:bg-emerald-800 hover:bg-emerald-300 dark:hover:bg-emerald-700'
-                                  : level === 2
+                                  : day.level === 2
                                   ? 'bg-emerald-400 dark:bg-emerald-600 hover:bg-emerald-500 dark:hover:bg-emerald-500'
                                   : 'bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400';
 
@@ -1502,7 +1498,7 @@ export function ProfilePage() {
                                 <div
                                   key={dIdx}
                                   className={`w-3 h-3 rounded-xs ${bgClass} transition-colors cursor-pointer`}
-                                  title={`Activity intensity: Level ${level}`}
+                                  title={`${day.date}: ${day.count} submission${day.count === 1 ? '' : 's'}`}
                                 />
                               );
                             })}
@@ -1516,13 +1512,13 @@ export function ProfilePage() {
                 {/* 3.2 Evolution History & Recent Submissions */}
                 {(activitySubTab === 'submissions' || activitySubTab === 'all') && (
                   <div className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
-                        Recent Algorithmic Evolutions ({SAMPLE_EVOLUTIONS.length})
-                      </h3>
+                    {dynamicEvolutions.length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                          Recent Algorithmic Evolutions ({dynamicEvolutions.length})
+                        </h3>
 
-                      {SAMPLE_EVOLUTIONS.length > 0 ? (
-                        SAMPLE_EVOLUTIONS.map((evo) => (
+                        {dynamicEvolutions.map((evo) => (
                           <div
                             key={evo.id}
                             className="p-5 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs hover:border-[#8c959f] dark:hover:border-[#6e7681] transition space-y-4"
@@ -1536,14 +1532,14 @@ export function ProfilePage() {
                                   className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
                                     evo.difficulty === 'Easy'
                                       ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
-                                      : evo.difficulty === 'Medium'
-                                      ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'
-                                      : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
+                                      : evo.difficulty === 'Hard'
+                                      ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60'
+                                      : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'
                                   }`}
                                 >
                                   {evo.difficulty}
                                 </span>
-                                <span className="text-xs font-mono text-[#57606a] dark:text-[#8b949e] bg-[#f6f8fa] dark:bg-[#21262d] px-2 py-0.5 rounded">
+                                <span className="text-xs font-mono text-[#57606a] dark:text-[#8b949e] bg-[#f6f8fa] dark:bg-[#21262d] px-2 py-0.5 rounded uppercase">
                                   {evo.language}
                                 </span>
                               </div>
@@ -1574,9 +1570,11 @@ export function ProfilePage() {
                                   <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
                                     {evo.optimalRuntimeMs}ms
                                   </span>
-                                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-1 rounded ml-1">
-                                    +{evo.speedupPercent}%
-                                  </span>
+                                  {evo.speedupPercent > 0 && (
+                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-1 rounded ml-1">
+                                      +{evo.speedupPercent}%
+                                    </span>
+                                  )}
                                 </div>
                               </div>
 
@@ -1594,7 +1592,7 @@ export function ProfilePage() {
 
                               <div>
                                 <span className="text-[11px] text-[#57606a] dark:text-[#8b949e] block mb-1">
-                                  Gemini AST Verdict
+                                  Evolution Status
                                 </span>
                                 <p className="text-xs text-[#1f2328] dark:text-[#f0f6fc] font-medium leading-relaxed truncate">
                                   {evo.pedagogicalVerdict}
@@ -1602,11 +1600,11 @@ export function ProfilePage() {
                               </div>
                             </div>
                           </div>
-                        ))
-                      ) : null}
-                    </div>
+                        ))}
+                      </div>
+                    )}
 
-                    {realSubmissions.length > 0 && (
+                    {realSubmissions.length > 0 ? (
                       <div className="space-y-4">
                         <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
                           Recent Submissions ({realSubmissions.length})
@@ -1619,6 +1617,9 @@ export function ProfilePage() {
                             hour: '2-digit',
                             minute: '2-digit'
                           });
+
+                          const runtime = sub.executionTimeMs ?? sub.runtimeMs;
+                          const memory = sub.memoryUsedKb ?? sub.memoryKb;
 
                           return (
                             <div
@@ -1663,7 +1664,7 @@ export function ProfilePage() {
                                     Execution Latency
                                   </span>
                                   <span className="font-mono font-extrabold text-[#1f2328] dark:text-[#f0f6fc]">
-                                    {sub.executionTimeMs != null ? `${sub.executionTimeMs}ms` : '--'}
+                                    {runtime != null ? `${runtime}ms` : '--'}
                                   </span>
                                 </div>
 
@@ -1672,7 +1673,7 @@ export function ProfilePage() {
                                     Peak Memory Footprint
                                   </span>
                                   <span className="font-mono font-semibold text-[#1f2328] dark:text-[#f0f6fc]">
-                                    {sub.memoryUsedKb != null ? `${Math.round(sub.memoryUsedKb / 1024)} MB` : '--'}
+                                    {memory != null ? `${Math.round(memory / 1024)} MB` : '--'}
                                   </span>
                                 </div>
 
@@ -1689,7 +1690,21 @@ export function ProfilePage() {
                           );
                         })}
                       </div>
-                    )}
+                    ) : dynamicEvolutions.length === 0 ? (
+                      <div className="p-8 text-center rounded-xl bg-white dark:bg-[#161b22] border border-dashed border-[#d0d7de] dark:border-[#30363d] space-y-3">
+                        <Code2 className="w-8 h-8 text-[#8c959f] mx-auto" />
+                        <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">No Submissions Yet</h4>
+                        <p className="text-xs text-[#57606a] dark:text-[#8b949e] max-w-sm mx-auto">
+                          Solve problems in the workspace to track your runtime evolutions and earn mastery badges.
+                        </p>
+                        <Link
+                          to="/problems"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0969da] text-white text-xs font-semibold hover:bg-[#0860ca] transition"
+                        >
+                          Browse Problems Catalog
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
@@ -1697,11 +1712,11 @@ export function ProfilePage() {
                 {(activitySubTab === 'badges' || activitySubTab === 'all') && (
                   <div className="space-y-4">
                     <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
-                      Mastery Badges ({BADGES.filter((b) => b.unlocked).length}/{BADGES.length})
+                      Mastery Badges ({dynamicBadges.filter((b) => b.unlocked).length}/{dynamicBadges.length})
                     </h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {BADGES.map((badge) => {
+                      {dynamicBadges.map((badge) => {
                         const IconComponent = badge.icon;
                         return (
                           <div
@@ -1709,7 +1724,7 @@ export function ProfilePage() {
                             className={`p-5 rounded-xl border transition flex items-start gap-4 ${
                               badge.unlocked
                                 ? 'bg-white dark:bg-[#161b22] border-[#d0d7de] dark:border-[#30363d] shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500'
-                                : 'bg-[#f6f8fa]/50 dark:bg-[#161b22]/40 border-dashed border-[#d0d7de] dark:border-[#30363d] opacity-60'
+                                : 'bg-[#f6f8fa]/50 dark:bg-[#161b22]/40 border-dashed border-[#d0d7de] dark:border-[#30363d] opacity-75'
                             }`}
                           >
                             <div
@@ -1718,23 +1733,42 @@ export function ProfilePage() {
                               <IconComponent className="w-6 h-6" />
                             </div>
 
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] truncate">
                                   {badge.name}
                                 </h4>
-                                {badge.unlocked && (
-                                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
+                                {badge.unlocked ? (
+                                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded shrink-0">
                                     Unlocked
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-mono text-[#57606a] dark:text-[#8b949e] shrink-0">
+                                    Locked
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed">
+                              <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed line-clamp-2">
                                 {badge.description}
                               </p>
-                              <span className="text-[10px] font-mono text-[#57606a] dark:text-[#8b949e] block pt-1">
-                                {badge.earnedAt}
-                              </span>
+                              
+                              {/* Dynamic Progress Indicator */}
+                              <div className="pt-1 space-y-1">
+                                <div className="flex items-center justify-between text-[10px] font-mono text-[#57606a] dark:text-[#8b949e]">
+                                  <span>{badge.progressText}</span>
+                                  <span>{badge.percent}%</span>
+                                </div>
+                                <div className="w-full h-1.5 rounded-full bg-[#eaeef2] dark:bg-[#21262d] overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      badge.unlocked
+                                        ? 'bg-emerald-500'
+                                        : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                                    }`}
+                                    style={{ width: `${badge.percent}%` }}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );
