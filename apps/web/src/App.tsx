@@ -7,6 +7,8 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { PageLoadingFallback } from './components/ui/PageLoadingFallback';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
+import { ToastContainer } from './components/ui/ToastContainer';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
 // 🚀 Dynamic Route-Level Code Splitting (Lazy-loaded on demand)
 const HeroLandingPage = React.lazy(() => import('./pages/HeroLandingPage').then(m => ({ default: m.HeroLandingPage })));
@@ -48,6 +50,9 @@ function AppLayout() {
     <div className="min-h-screen flex flex-col bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] font-sans transition-colors duration-200">
       {/* Network Connectivity Indicator */}
       <NetworkStatusIndicator />
+
+      {/* Global Non-blocking Notification Toasts */}
+      <ToastContainer />
 
       {/* Top Utility Header Bar with Profile & Logout dropdown */}
       {!isAuthPage && (
