@@ -445,9 +445,9 @@ export function WorkspacePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden bg-white dark:bg-[#0d1117]">
+    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] min-h-0 overflow-hidden bg-white dark:bg-[#0d1117]">
       {/* Workspace Subheader (GitHub Repo Header Style) */}
-      <div className="px-4 sm:px-6 py-2.5 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <Link
             to="/problems"
@@ -586,7 +586,7 @@ export function WorkspacePage() {
       {/* Main Resizable Canvas with Draggable Splitter */}
       <div
         ref={containerRef}
-        className="flex-1 flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
+        className="flex-1 min-h-0 h-full flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
       >
         {/* Left Pane (Description / Report / Comparison) */}
         {!isZenMode && (
@@ -594,7 +594,7 @@ export function WorkspacePage() {
             style={{ width: `${leftWidth}%` }}
             className={`${
               mobileWorkspaceTab === 'problem' ? 'flex' : 'hidden'
-            } lg:flex flex-col h-full overflow-hidden w-full lg:w-auto shrink-0`}
+            } lg:flex flex-col h-full min-h-0 overflow-hidden w-full lg:w-auto shrink-0`}
           >
             <div className="flex-1 h-full overflow-y-auto pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
@@ -1017,7 +1017,7 @@ export function WorkspacePage() {
           style={{ width: isZenMode ? '100%' : `${100 - leftWidth}%` }}
           className={`${
             mobileWorkspaceTab === 'editor' ? 'flex' : 'hidden'
-          } lg:flex flex-col h-full w-full lg:w-auto flex-1 min-w-0`}
+          } lg:flex flex-col h-full min-h-0 w-full lg:w-auto flex-1 min-w-0`}
         >
           <MonacoWorkspace
             problem={problem}

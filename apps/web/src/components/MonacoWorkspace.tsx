@@ -283,7 +283,7 @@ export function MonacoWorkspace({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-2xl overflow-hidden shadow-xs transition-colors duration-200">
+    <div className="flex-1 flex flex-col h-full min-h-0 w-full bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-2xl overflow-hidden shadow-xs transition-colors duration-200">
       {/* Editor Toolbar (GitHub IDE Style) */}
       <div className="flex items-center justify-between px-3.5 py-2 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] transition-colors shrink-0">
         <div className="flex items-center gap-2">
@@ -486,8 +486,8 @@ export function MonacoWorkspace({
         </div>
       )}
 
-      {/* Monaco Code Editor Canvas (Takes 100% of available vertical height when console is collapsed!) */}
-      <div className="flex-1 min-h-0 relative">
+      {/* Monaco Code Editor Canvas (Takes 100% of available vertical height with robust minimum height) */}
+      <div className="flex-1 min-h-[320px] lg:min-h-[380px] w-full relative overflow-hidden">
         <Editor
           height="100%"
           language={LANGUAGE_CONFIGS[language].monacoLanguage}
@@ -517,10 +517,10 @@ export function MonacoWorkspace({
         />
       )}
 
-      {/* Collapsible & Draggable Bottom Test Case & Console Panel */}
+      {/* Collapsible & Draggable Bottom Test Case & Console Panel (Always anchored to bottom) */}
       <div
         style={{ height: isConsoleCollapsed ? '38px' : `${consoleHeight}px` }}
-        className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] flex flex-col transition-[height] duration-200 shrink-0 overflow-hidden"
+        className="mt-auto border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] flex flex-col transition-[height] duration-200 shrink-0 overflow-hidden"
       >
         {/* Console Header Bar */}
         <div className="flex items-center justify-between px-3 h-[37px] border-b border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] text-xs font-medium shrink-0">
