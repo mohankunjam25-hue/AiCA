@@ -1,26 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { SidebarDrawer } from './components/SidebarDrawer';
 import { TopHeader } from './components/TopHeader';
-import { HeroLandingPage } from './pages/HeroLandingPage';
-import { DeveloperHomePage } from './pages/DeveloperHomePage';
-import { ProblemListPage } from './pages/ProblemListPage';
-import { WorkspacePage } from './pages/WorkspacePage';
-import { LeaderboardPage } from './pages/LeaderboardPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { AlgorithmsPage } from './pages/AlgorithmsPage';
-import { AlgorithmDetailPage } from './pages/AlgorithmDetailPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { CreateProblemPage } from './pages/CreateProblemPage';
-import { AdminProblemReviewPage } from './pages/AdminProblemReviewPage';
-import { AdminProblemManagementPage } from './pages/AdminProblemManagementPage';
-import { DeveloperProfilePage } from './pages/DeveloperProfilePage';
-import { DeveloperDirectoryPage } from './pages/DeveloperDirectoryPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
+import { PageLoadingFallback } from './components/ui/PageLoadingFallback';
+
+// 🚀 Dynamic Route-Level Code Splitting (Lazy-loaded on demand)
+const HeroLandingPage = React.lazy(() => import('./pages/HeroLandingPage').then(m => ({ default: m.HeroLandingPage })));
+const DeveloperHomePage = React.lazy(() => import('./pages/DeveloperHomePage').then(m => ({ default: m.DeveloperHomePage })));
+const ProblemListPage = React.lazy(() => import('./pages/ProblemListPage').then(m => ({ default: m.ProblemListPage })));
+const WorkspacePage = React.lazy(() => import('./pages/WorkspacePage').then(m => ({ default: m.WorkspacePage })));
+const LeaderboardPage = React.lazy(() => import('./pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const LoginPage = React.lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const RegisterPage = React.lazy(() => import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage })));
+const AlgorithmsPage = React.lazy(() => import('./pages/AlgorithmsPage').then(m => ({ default: m.AlgorithmsPage })));
+const AlgorithmDetailPage = React.lazy(() => import('./pages/AlgorithmDetailPage').then(m => ({ default: m.AlgorithmDetailPage })));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const CreateProblemPage = React.lazy(() => import('./pages/CreateProblemPage').then(m => ({ default: m.CreateProblemPage })));
+const AdminProblemReviewPage = React.lazy(() => import('./pages/AdminProblemReviewPage').then(m => ({ default: m.AdminProblemReviewPage })));
+const AdminProblemManagementPage = React.lazy(() => import('./pages/AdminProblemManagementPage').then(m => ({ default: m.AdminProblemManagementPage })));
+const DeveloperProfilePage = React.lazy(() => import('./pages/DeveloperProfilePage').then(m => ({ default: m.DeveloperProfilePage })));
+const DeveloperDirectoryPage = React.lazy(() => import('./pages/DeveloperDirectoryPage').then(m => ({ default: m.DeveloperDirectoryPage })));
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
@@ -56,58 +59,109 @@ function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 flex flex-col min-w-0">
-          <Routes>
-            <Route path="/" element={<HomeRoute />} />
-            <Route path="/problems" element={<ProblemListPage />} />
-            <Route path="/algorithms" element={<AlgorithmsPage />} />
-            <Route path="/algorithms/:slug" element={<AlgorithmDetailPage />} />
-            <Route path="/workspace/:id" element={<WorkspacePage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/developers" element={<DeveloperDirectoryPage />} />
-            <Route path="/developers/:username" element={<DeveloperProfilePage />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute requireAuth>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute requireAuth>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-problem"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
-                  <CreateProblemPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/proposals"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
-                  <AdminProblemReviewPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/problems"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
-                  <AdminProblemManagementPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Routes>
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<HomeRoute />} />
+              <Route
+                path="/problems"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <ProblemListPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/algorithms"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <AlgorithmsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/algorithms/:slug"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <AlgorithmDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/workspace/:id"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <WorkspacePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <LeaderboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/developers"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <DeveloperDirectoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/developers/:username"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <DeveloperProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute requireAuth>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-problem"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                    <CreateProblemPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/proposals"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                    <AdminProblemReviewPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/problems"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                    <AdminProblemManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+            </Routes>
+          </Suspense>
         </main>
         <footer className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">

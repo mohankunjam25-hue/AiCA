@@ -34,7 +34,9 @@ export const pgPool = new Pool(
           : false,
         max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000
+        connectionTimeoutMillis: 5000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000
       }
     : {
         host: process.env.POSTGRES_HOST || 'localhost',
@@ -44,7 +46,9 @@ export const pgPool = new Pool(
         database: process.env.POSTGRES_DB || 'aica_lab',
         max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000
+        connectionTimeoutMillis: 5000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000
       }
 );
 
@@ -73,6 +77,7 @@ const redisOptions = {
   enableReadyCheck: false,
   lazyConnect: true,
   connectTimeout: 4000,
+  keepAlive: 10000,
   retryStrategy(times: number) {
     if (times > 3) return null; // stop reconnecting after 3 failed tries if offline
     return Math.min(times * 300, 1000);
@@ -118,7 +123,9 @@ export async function initializeDatabases(): Promise<void> {
   try {
     const mongoUri = sanitizeMongoUri(process.env.MONGODB_URI);
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      heartbeatFrequencyMS: 10000
     });
     console.log('[MongoDB] Connected successfully to Mongoose store.');
 

@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -74,21 +75,46 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use(morgan('dev'));
+app.use(
+  morgan('dev', {
+    skip: (req) => req.url === '/health' || req.url === '/api/v1/health'
+  })
+);
 app.use(express.json({ limit: '64kb' })); // Max payload limit to prevent buffer overflow attacks
 app.use(cookieParser());
 
-// Healthcheck Route
-app.get('/health', (_, res) => {
+// High-Performance HTTP Response Compression (gzip / deflate)
+app.use(
+  compression({
+    level: 6, // Optimal balance between CPU usage and compression ratio
+    threshold: 1024, // Skip compressing tiny micro-responses under 1 KB to save CPU cycles
+    filter: (req, res) => {
+      // ⚠️ Invariant: Never buffer or compress Server-Sent Events (SSE) streaming progress
+      if (req.headers.accept === 'text/event-stream' || req.originalUrl?.includes('/status-stream')) {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
+  })
+);
+
+// Healthcheck Routes (Root & /api/v1/health, supporting GET & HEAD for ultra-fast keep-alive pings)
+const healthHandler = (_req: express.Request, res: express.Response) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.status(200).json(
     createSuccessResponse({
       status: 'HEALTHY',
       service: 'aica-api-gateway',
       version: '2.0.0',
-      uptime: process.uptime()
+      uptime: Math.round(process.uptime()),
+      timestamp: new Date().toISOString()
     })
   );
-});
+};
+app.get('/health', healthHandler);
+app.head('/health', healthHandler);
+app.get('/api/v1/health', healthHandler);
+app.head('/api/v1/health', healthHandler);
 
 // Mount Domain API Routes (v1)
 app.use('/api/v1/auth', authRoutes);

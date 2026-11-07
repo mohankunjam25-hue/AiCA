@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
@@ -9,6 +10,9 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
 
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
@@ -22,7 +26,7 @@ export function LoginPage() {
       const res = await api.post('/auth/login', { email, password });
       const { user, accessToken, profile } = res.data.data;
       setAuth(user, accessToken, profile);
-      navigate('/dashboard');
+      navigate(redirectUrl || '/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Invalid email or password');
     } finally {
@@ -39,6 +43,14 @@ export function LoginPage() {
             AiCA
           </h1>
         </div>
+
+        {/* Redirect Notice Banner */}
+        {redirectUrl && (
+          <div className="mb-6 p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2.5">
+            <Lock className="w-4 h-4 shrink-0" />
+            <span>Please sign in to access your requested page.</span>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -95,7 +107,11 @@ export function LoginPage() {
         </div>
 
         {/* Google Authentication Button */}
-        <GoogleSignInButton onError={(msg) => setError(msg)} text="signin_with" />
+        <GoogleSignInButton
+          onError={(msg) => setError(msg)}
+          text="signin_with"
+          redirectUrl={redirectUrl || undefined}
+        />
 
         {/* Bottom Switcher */}
         <div className="border-t border-slate-200 dark:border-slate-700/80 my-8" />
@@ -103,7 +119,7 @@ export function LoginPage() {
         <div className="text-center text-xs text-slate-600 dark:text-slate-400">
           Don&apos;t have an account yet?{' '}
           <Link
-            to="/register"
+            to={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}` : '/register'}
             className="text-[#ee495c] hover:text-[#ff6b7e] font-bold uppercase tracking-wide ml-1 transition"
           >
             CREATE ONE NOW

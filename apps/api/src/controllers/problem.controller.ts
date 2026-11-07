@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { ProblemModel } from '../models/mongodb/problem.model.js';
 import { SubmissionModel } from '../models/mongodb/submission.model.js';
+import { CacheService } from '../services/cache.service.js';
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -41,6 +42,19 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
   try {
     const { page, limit, difficulty, tag, search, sortBy } = parseQuery.data;
     const skip = (page - 1) * limit;
+
+    // Check Redis Cache if unauthenticated or general view (< 2ms)
+    const userId = req.user?.id;
+    const cacheKey = `cache:problems:list:${JSON.stringify(parseQuery.data)}`;
+    if (!userId) {
+      const cached = await CacheService.get<any>(cacheKey);
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+        res.status(200).json(createSuccessResponse(cached));
+        return;
+      }
+    }
 
     const filter: Record<string, any> = {
       // Only serve PUBLISHED problems to general catalog (or legacy unmigrated problems)
@@ -87,7 +101,6 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
       ProblemModel.countDocuments(filter)
     ]);
 
-    const userId = req.user?.id;
     const userProblemStatusMap = new Map<string, 'SOLVED' | 'ATTEMPTED' | 'TODO'>();
 
     if (userId && problems.length > 0) {
@@ -131,17 +144,23 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
       };
     });
 
-    res.status(200).json(
-      createSuccessResponse({
-        problems: formattedList,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit)
-        }
-      })
-    );
+    const responseData = {
+      problems: formattedList,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+
+    if (!userId) {
+      await CacheService.set(cacheKey, responseData, 60);
+    }
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+    res.status(200).json(createSuccessResponse(responseData));
 
   } catch (err: any) {
     console.error('[ProblemController] getProblems error:', err.message);
@@ -161,11 +180,23 @@ export async function getProblemById(req: Request, res: Response): Promise<void>
   }
 
   try {
+    const isStaff = req.user?.role === 'ADMIN' || req.user?.role === 'INSTRUCTOR';
+    const cacheKey = `cache:problems:item:${id}`;
+
+    if (!isStaff) {
+      const cached = await CacheService.get<any>(cacheKey);
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        res.status(200).json(createSuccessResponse(cached));
+        return;
+      }
+    }
+
     // Support dual lookup: by MongoDB ObjectId OR URL-friendly slug
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { slug: id };
     const problem: any = await ProblemModel.findOne(query).lean();
 
-    const isStaff = req.user?.role === 'ADMIN' || req.user?.role === 'INSTRUCTOR';
     if (!problem || (problem.status && problem.status !== 'PUBLISHED' && !isStaff)) {
       res.status(404).json(createErrorResponse('NOT_FOUND', 'Problem not found or unpublished'));
       return;
@@ -198,6 +229,12 @@ export async function getProblemById(req: Request, res: Response): Promise<void>
     delete sanitizedProblem._id;
     delete sanitizedProblem.__v;
 
+    if (!isStaff) {
+      await CacheService.set(cacheKey, sanitizedProblem, 300);
+    }
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     res.status(200).json(
       createSuccessResponse(sanitizedProblem)
     );
@@ -272,6 +309,9 @@ export async function createProblem(req: Request, res: Response): Promise<void> 
       testCases: processedTestCases,
       createdBy: userId
     });
+
+    // Invalidate problem catalog caches
+    await CacheService.invalidatePattern('cache:problems:*');
 
     res.status(201).json(
       createSuccessResponse(
@@ -363,6 +403,9 @@ export async function updateProblem(req: Request, res: Response): Promise<void> 
       { new: true, runValidators: true }
     );
 
+    // Invalidate problem catalog caches
+    await CacheService.invalidatePattern('cache:problems:*');
+
     res.status(200).json(createSuccessResponse(updated, 'Problem updated successfully'));
   } catch (err: any) {
     console.error('[ProblemController] updateProblem error:', err.message);
@@ -392,6 +435,9 @@ export async function deleteProblem(req: Request, res: Response): Promise<void> 
 
     // Soft-delete/Archive: preserves all historical student submissions, streaks, and heatmap data
     await ProblemModel.findByIdAndUpdate(problem._id, { $set: { status: 'ARCHIVED' } });
+
+    // Invalidate problem catalog caches
+    await CacheService.invalidatePattern('cache:problems:*');
 
     res.status(200).json(
       createSuccessResponse(
