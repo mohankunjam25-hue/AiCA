@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -15,7 +15,10 @@ import {
   Code2,
   X,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  Maximize2,
+  Minimize2,
+  ArrowRight
 } from 'lucide-react';
 import {
   Problem,
@@ -197,6 +200,47 @@ export function WorkspacePage() {
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [generatingComparison, setGeneratingComparison] = useState(false);
   const [mobileWorkspaceTab, setMobileWorkspaceTab] = useState<'problem' | 'editor'>('editor');
+
+  // Resizable Splitter & Zen Mode States
+  const [leftWidth, setLeftWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('aica_workspace_left_split');
+    return saved ? Math.min(70, Math.max(25, parseFloat(saved))) : 40;
+  });
+  const [isDraggingSplitter, setIsDraggingSplitter] = useState<boolean>(false);
+  const [isZenMode, setIsZenMode] = useState<boolean>(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Dragging event listeners for smooth panel resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingSplitter || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newPercent = Math.min(70, Math.max(25, ((e.clientX - rect.left) / rect.width) * 100));
+      setLeftWidth(newPercent);
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingSplitter) {
+        setIsDraggingSplitter(false);
+        localStorage.setItem('aica_workspace_left_split', String(leftWidth));
+      }
+    };
+
+    if (isDraggingSplitter) {
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingSplitter, leftWidth]);
 
   const toggleCompareSelect = (subId: string) => {
     setSelectedForCompare((prev) => {
@@ -452,34 +496,34 @@ export function WorkspacePage() {
         </div>
 
         {/* Tab Switcher for Left Panel (GitHub Subnav Style) */}
-        <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        <nav className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <button
             onClick={() => {
               setActiveLeftTab('desc');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               activeLeftTab === 'desc'
-                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                 : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            Description
+            <span>Description</span>
           </button>
           <button
             onClick={() => {
               setActiveLeftTab('report');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               activeLeftTab === 'report'
-                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                 : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            Report
+            <span>Report</span>
             {report && (
               <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#2ea04340]">
                 ✓
@@ -492,14 +536,14 @@ export function WorkspacePage() {
               setActiveLeftTab('compare');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               activeLeftTab === 'compare'
-                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                 : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
-            Compare
+            <span>Compare</span>
           </button>
           <button
             onClick={() => {
@@ -507,27 +551,52 @@ export function WorkspacePage() {
               setActiveLeftTab('submissions');
               setMobileWorkspaceTab('problem');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               activeLeftTab === 'submissions'
-                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-xs'
+                ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                 : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
             }`}
           >
             <History className="w-3.5 h-3.5" />
-            Submissions
+            <span>Submissions</span>
             {pastSubmissions.length > 0 && (
               <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#afb8c133] dark:bg-[#6e768166] text-[#24292f] dark:text-[#c9d1d9]">
                 {pastSubmissions.length}
               </span>
             )}
           </button>
+
+          {/* Zen Mode Button in Subheader */}
+          <button
+            type="button"
+            onClick={() => setIsZenMode((prev) => !prev)}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ml-1 ${
+              isZenMode
+                ? 'bg-[#8250df] text-white border-[#8250df] shadow-xs'
+                : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+            }`}
+            title={isZenMode ? 'Exit Zen Mode (Show Description)' : 'Zen Focus Mode (Fullscreen Code Editor)'}
+          >
+            {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span>{isZenMode ? 'Exit Zen' : 'Zen Focus'}</span>
+          </button>
         </nav>
       </div>
 
-      {/* Main Dual-Pane Canvas */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409]">
+      {/* Main Resizable Canvas with Draggable Splitter */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
+      >
         {/* Left Pane (Description / Report / Comparison) */}
-        <div className={`${mobileWorkspaceTab === 'problem' ? 'block' : 'hidden'} lg:block h-full overflow-y-auto pr-0 lg:pr-1`}>
+        {!isZenMode && (
+          <div
+            style={{ width: `${leftWidth}%` }}
+            className={`${
+              mobileWorkspaceTab === 'problem' ? 'flex' : 'hidden'
+            } lg:flex flex-col h-full overflow-hidden w-full lg:w-auto shrink-0`}
+          >
+            <div className="flex-1 h-full overflow-y-auto pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
             <div className="p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-lg space-y-5 shadow-xs">
               <div>
@@ -909,14 +978,53 @@ export function WorkspacePage() {
               )}
             </div>
           )}
+
+          {/* Mobile Bottom CTA: jump to Editor */}
+          <div className="pt-2 pb-1 lg:hidden flex justify-end">
+            <button
+              type="button"
+              onClick={() => setMobileWorkspaceTab('editor')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#8250df] text-white font-bold text-xs shadow-xs cursor-pointer"
+            >
+              <span>Code Solution in Editor</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
+      </div>
+    )}
+
+        {/* Vertical Draggable Splitter Handle (Desktop only, hidden in Zen Mode) */}
+        {!isZenMode && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsDraggingSplitter(true);
+            }}
+            onDoubleClick={() => {
+              setLeftWidth(40);
+              localStorage.setItem('aica_workspace_left_split', '40');
+            }}
+            className="hidden lg:flex items-center justify-center w-2.5 hover:w-3 cursor-col-resize group shrink-0 transition-all z-10 select-none"
+            title="Drag to resize panels (Double click to reset 40/60)"
+          >
+            <div className="w-1 h-8 rounded-full bg-[#d0d7de] dark:bg-[#30363d] group-hover:bg-[#8250df] group-hover:h-12 transition-all" />
+          </div>
+        )}
 
         {/* Right Pane (Monaco Editor Workspace) */}
-        <div className={`${mobileWorkspaceTab === 'editor' ? 'block' : 'hidden'} lg:block h-full`}>
+        <div
+          style={{ width: isZenMode ? '100%' : `${100 - leftWidth}%` }}
+          className={`${
+            mobileWorkspaceTab === 'editor' ? 'flex' : 'hidden'
+          } lg:flex flex-col h-full w-full lg:w-auto flex-1 min-w-0`}
+        >
           <MonacoWorkspace
             problem={problem}
             onEvaluationComplete={handleEvaluationComplete}
             loadedCode={loadedCode}
+            isZenMode={isZenMode}
+            onToggleZenMode={() => setIsZenMode((prev) => !prev)}
           />
         </div>
       </div>
