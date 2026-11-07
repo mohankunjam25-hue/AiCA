@@ -83,6 +83,7 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
     if (path.startsWith('/algorithms')) return 'Algorithm Visualizer';
     if (path.startsWith('/workspace')) return 'Interactive Code Lab';
     if (path.startsWith('/leaderboard')) return 'Global Leaderboards';
+    if (path.startsWith('/developers')) return 'Developer Community';
     if (path.startsWith('/dashboard')) return 'Developer Dashboard';
     if (path.startsWith('/profile')) return 'Developer Profile';
     if (path.startsWith('/admin/problems')) {

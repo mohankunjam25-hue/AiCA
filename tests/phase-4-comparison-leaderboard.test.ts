@@ -14,6 +14,11 @@ import {
   getGlobalLeaderboard,
   getUserSolvedProblems
 } from '../apps/api/src/controllers/leaderboard.controller.js';
+import {
+  toggleFollowDeveloper,
+  getDeveloperProfile,
+  getDeveloperDirectory
+} from '../apps/api/src/controllers/developer.controller.js';
 import { getProblems } from '../apps/api/src/controllers/problem.controller.js';
 import { createSubmission, submissionQueue } from '../apps/api/src/controllers/submission.controller.js';
 import { SubmissionModel } from '../apps/api/src/models/mongodb/submission.model.js';
@@ -505,6 +510,141 @@ describe('Phase 4: Evolutionary Solution Comparison, Global Leaderboards & Platf
       expect(res.data.data.solvedProblems[0].bestRuntimeMs).toBe(18);
       expect(res.data.data.solvedProblems[1].title).toBe('Two Sum');
       expect(res.data.data.solvedProblems[1].language).toBe('cpp');
+    });
+  });
+
+  describe('Developer Follow System, Gated Code Access & Directory Search', () => {
+    it('toggleFollowDeveloper: rejects unauthenticated visitor (401)', async () => {
+      const { req, res } = mockReqRes({
+        params: { targetUserId: 'target_123' }
+      });
+      await toggleFollowDeveloper(req, res);
+      expect(res.statusCode).toBe(401);
+      expect(res.data.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('toggleFollowDeveloper: rejects following oneself (400)', async () => {
+      const { req, res } = mockReqRes({
+        user: { id: 'usr_same' },
+        params: { targetUserId: 'usr_same' }
+      });
+      await toggleFollowDeveloper(req, res);
+      expect(res.statusCode).toBe(400);
+      expect(res.data.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('toggleFollowDeveloper: successfully toggles follow and returns updated follower count', async () => {
+      vi.spyOn(pgPool, 'query')
+        .mockResolvedValueOnce({ rows: [{ id: 'target_456', username: 'pro_coder' }] } as any) // target check
+        .mockResolvedValueOnce({ rows: [] } as any) // follow check (not currently following)
+        .mockResolvedValueOnce({ rows: [] } as any) // insert follow
+        .mockResolvedValueOnce({ rows: [{ count: 1 }] } as any); // count
+
+      const { req, res } = mockReqRes({
+        user: { id: 'usr_fan' },
+        params: { targetUserId: 'target_456' }
+      });
+
+      await toggleFollowDeveloper(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.isFollowing).toBe(true);
+      expect(res.data.data.followerCount).toBe(1);
+    });
+
+    it('getDeveloperProfile: STRICT INVARIANT - masks code when viewer is NOT following target developer', async () => {
+      vi.spyOn(pgPool, 'query')
+        .mockResolvedValueOnce({
+          rows: [{ id: 'target_user_id', username: 'mohan', full_name: 'Mohan' }]
+        } as any)
+        .mockResolvedValueOnce({ rows: [] } as any) // not following
+        .mockResolvedValueOnce({ rows: [{ followers: 0, following: 0 }] } as any);
+
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue([
+        {
+          problemId: 'prob_100',
+          language: 'python',
+          compositeScore: 92.0,
+          code: 'secret_solution_code()',
+          executionTimeMs: 20,
+          memoryUsedKb: 14000
+        }
+      ]);
+
+      vi.spyOn(ProblemModel, 'find').mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([
+            {
+              _id: { toString: () => 'prob_100' },
+              title: 'Trapping Rain Water',
+              slug: 'trapping-rain-water',
+              difficulty: 'HARD',
+              tags: ['Arrays']
+            }
+          ])
+        })
+      } as any);
+
+      const { req, res } = mockReqRes({
+        user: { id: 'stranger_viewer_id' },
+        params: { username: 'mohan' }
+      });
+
+      await getDeveloperProfile(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.isFollowing).toBe(false);
+      expect(res.data.data.solvedProblems[0].isCodeLocked).toBe(true);
+      expect(res.data.data.solvedProblems[0].code).toBeUndefined(); // Zero code leakage
+    });
+
+    it('getDeveloperProfile: unlocks code when viewer IS following target developer', async () => {
+      vi.spyOn(pgPool, 'query')
+        .mockResolvedValueOnce({
+          rows: [{ id: 'target_user_id', username: 'mohan', full_name: 'Mohan' }]
+        } as any)
+        .mockResolvedValueOnce({ rows: [{ 1: 1 }] } as any) // IS FOLLOWING!
+        .mockResolvedValueOnce({ rows: [{ followers: 5, following: 2 }] } as any);
+
+      vi.spyOn(SubmissionModel, 'aggregate').mockResolvedValue([
+        {
+          problemId: 'prob_100',
+          language: 'python',
+          compositeScore: 92.0,
+          code: 'def solve(): return True',
+          executionTimeMs: 20,
+          memoryUsedKb: 14000
+        }
+      ]);
+
+      vi.spyOn(ProblemModel, 'find').mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([
+            {
+              _id: { toString: () => 'prob_100' },
+              title: 'Trapping Rain Water',
+              slug: 'trapping-rain-water',
+              difficulty: 'HARD',
+              tags: ['Arrays']
+            }
+          ])
+        })
+      } as any);
+
+      const { req, res } = mockReqRes({
+        user: { id: 'follower_viewer_id' },
+        params: { username: 'mohan' }
+      });
+
+      await getDeveloperProfile(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.data.developer.isFollowing).toBe(true);
+      expect(res.data.data.solvedProblems[0].isCodeLocked).toBe(false);
+      expect(res.data.data.solvedProblems[0].code).toBe('def solve(): return True'); // Unlocked!
     });
   });
 });

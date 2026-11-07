@@ -10,6 +10,7 @@ export * from './types/submission.js';
 export * from './types/evaluation.js';
 export * from './types/comparison.js';
 export * from './types/leaderboard.js';
+export * from './types/developer.js';
 
 // Schemas & DTOs
 export * from './schemas/auth.schema.js';

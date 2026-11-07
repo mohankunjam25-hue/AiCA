@@ -534,9 +534,18 @@ export function DeveloperSolvedDrawer({
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#161b22] flex items-center justify-between shrink-0 text-xs">
-            <span className="text-[#656d76] dark:text-[#848d97]">
-              Inspect developer achievements & problem solutions
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate(`/developers/${username}`);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8250df] hover:bg-[#6639ba] text-white font-bold transition shadow-2xs cursor-pointer"
+            >
+              <span>View Full Profile Page</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+
             <button
               type="button"
               onClick={onClose}

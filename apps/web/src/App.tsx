@@ -17,6 +17,8 @@ import { ProfilePage } from './pages/ProfilePage';
 import { CreateProblemPage } from './pages/CreateProblemPage';
 import { AdminProblemReviewPage } from './pages/AdminProblemReviewPage';
 import { AdminProblemManagementPage } from './pages/AdminProblemManagementPage';
+import { DeveloperProfilePage } from './pages/DeveloperProfilePage';
+import { DeveloperDirectoryPage } from './pages/DeveloperDirectoryPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 
@@ -61,6 +63,8 @@ function AppLayout() {
             <Route path="/algorithms/:slug" element={<AlgorithmDetailPage />} />
             <Route path="/workspace/:id" element={<WorkspacePage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/developers" element={<DeveloperDirectoryPage />} />
+            <Route path="/developers/:username" element={<DeveloperProfilePage />} />
             <Route
               path="/dashboard"
               element={

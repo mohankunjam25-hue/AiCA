@@ -14,7 +14,8 @@ import {
   User as UserIcon,
   Code2,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Users
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
@@ -254,6 +255,19 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             >
               <Trophy className="w-4 h-4 text-[#9a6700] dark:text-[#d29922]" />
               Leaderboards
+            </Link>
+
+            <Link
+              to="/developers"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md transition ${
+                location.pathname.startsWith('/developers')
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#8250df] dark:border-[#a371f7]'
+                  : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
+              }`}
+            >
+              <Users className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
+              Developers
             </Link>
 
             <Link
