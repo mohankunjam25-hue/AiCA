@@ -20,6 +20,7 @@ import {
 import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { AlgorithmVisualizerCanvas } from '../components/algorithms/AlgorithmVisualizerCanvas';
+import { ComplexityBadgeWithPopover, SpaceComplexityBadgeWithPopover } from '../components/algorithms/ComplexityBadgeWithPopover';
 
 export type Algorithm = {
   _id?: string;
@@ -151,36 +152,6 @@ export function AlgorithmsPage() {
     }
   };
 
-  const getComplexityBadge = (complexity: string) => {
-    const c = complexity.toLowerCase();
-    if (c.includes('1') || (c.includes('log n') && !c.includes('n log'))) {
-      return (
-        <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d]">
-          {complexity}
-        </span>
-      );
-    }
-    if (c.includes('n') && !c.includes('n log') && !c.includes('n²') && !c.includes('n^2') && !c.includes('v + e')) {
-      return (
-        <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-[#ddf4ff] dark:bg-[#388bfd26] text-[#0969da] dark:text-[#58a6ff] border border-[#54aeff66] dark:border-[#388bfd4d]">
-          {complexity}
-        </span>
-      );
-    }
-    if (c.includes('n log') || c.includes('v + e')) {
-      return (
-        <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] border border-[#d4a72c66] dark:border-[#bb80094d]">
-          {complexity}
-        </span>
-      );
-    }
-    return (
-      <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-[#ffebe9] dark:bg-[#f8514926] text-[#cf222e] dark:text-[#f85149] border border-[#ff818266] dark:border-[#f851494d]">
-        {complexity}
-      </span>
-    );
-  };
-
   const isFiltered = search.trim() !== '' || category !== 'All';
 
   return (
@@ -288,9 +259,9 @@ export function AlgorithmsPage() {
             </div>
 
             {/* High-Density Algorithm Data Table */}
-            <div className="rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] shadow-xs overflow-hidden">
+            <div className="rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] shadow-xs">
               {/* Column Headers */}
-              <div className="grid grid-cols-12 px-4 py-2.5 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider items-center">
+              <div className="grid grid-cols-12 px-4 py-2.5 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider items-center rounded-t-xl">
                 <div className="col-span-5 sm:col-span-4">Algorithm &amp; Category</div>
                 <div className="hidden sm:block sm:col-span-4 text-left">Summary / Logic</div>
                 <div className="col-span-3 sm:col-span-2 text-center">Time Complexity</div>
@@ -376,12 +347,16 @@ export function AlgorithmsPage() {
 
                       {/* Time Complexity */}
                       <div className="col-span-3 sm:col-span-2 flex justify-center">
-                        {getComplexityBadge(algo.timeComplexity)}
+                        <ComplexityBadgeWithPopover
+                          timeComplexity={algo.timeComplexity}
+                          spaceComplexity={algo.spaceComplexity}
+                          algorithmName={algo.name}
+                        />
                       </div>
 
                       {/* Space Complexity */}
-                      <div className="hidden sm:flex sm:col-span-1 justify-center font-mono text-[11px] text-[#656d76] dark:text-[#848d97]">
-                        <code>{algo.spaceComplexity}</code>
+                      <div className="hidden sm:flex sm:col-span-1 justify-center">
+                        <SpaceComplexityBadgeWithPopover spaceComplexity={algo.spaceComplexity} />
                       </div>
 
                       {/* Action */}
@@ -425,7 +400,7 @@ export function AlgorithmsPage() {
                     className="p-2 rounded-lg bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de]/70 dark:border-[#30363d] flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${item.bg} ${item.tone}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 whitespace-nowrap min-w-[70px] text-center ${item.bg} ${item.tone}`}>
                         {item.notation}
                       </span>
                       <span className="text-xs font-semibold text-[#1f2328] dark:text-[#f0f6fc]">

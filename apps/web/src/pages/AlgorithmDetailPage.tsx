@@ -18,6 +18,7 @@ import {
 import { api } from '../services/api';
 import type { Algorithm } from './AlgorithmsPage';
 import { AlgorithmVisualizerCanvas, SupportedAlgoKey } from '../components/algorithms/AlgorithmVisualizerCanvas';
+import { parseComplexityBreakdown } from '../components/algorithms/ComplexityBadgeWithPopover';
 
 type SupportedLanguage = 'javascript' | 'python' | 'cpp' | 'java';
 
@@ -136,6 +137,11 @@ export function AlgorithmDetailPage() {
     return null;
   }, [slug]);
 
+  const breakdown = useMemo(() => {
+    if (!algorithm) return null;
+    return parseComplexityBreakdown(algorithm.timeComplexity, algorithm.spaceComplexity, algorithm.name);
+  }, [algorithm]);
+
   // Resolve code snippet based on selected language
   const resolvedCode = useMemo(() => {
     if (!algorithm) return '';
@@ -244,19 +250,19 @@ export function AlgorithmDetailPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="p-3 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117]">
               <span className="text-[10px] font-bold text-[#656d76] dark:text-[#8b949e] uppercase tracking-wider block">
-                Time Complexity
+                Primary Asymptotic Time
               </span>
               <code className="text-sm font-bold text-[#0969da] dark:text-[#58a6ff] font-mono mt-1 block">
-                {algorithm.timeComplexity}
+                {breakdown?.primaryTime || algorithm.timeComplexity}
               </code>
             </div>
 
             <div className="p-3 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117]">
               <span className="text-[10px] font-bold text-[#656d76] dark:text-[#8b949e] uppercase tracking-wider block">
-                Space Complexity
+                Auxiliary Space
               </span>
               <code className="text-sm font-bold text-[#1a7f37] dark:text-[#3fb950] font-mono mt-1 block">
-                {algorithm.spaceComplexity}
+                {breakdown?.primarySpace || algorithm.spaceComplexity}
               </code>
             </div>
 
@@ -265,19 +271,24 @@ export function AlgorithmDetailPage() {
                 Best Case
               </span>
               <code className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] font-mono mt-1 block">
-                {algorithm.timeComplexity.includes('log') ? 'O(1) found mid' : 'O(n)'}
+                {breakdown?.bestCase || 'O(n)'}
               </code>
             </div>
 
             <div className="p-3 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117]">
               <span className="text-[10px] font-bold text-[#656d76] dark:text-[#8b949e] uppercase tracking-wider block">
-                Auxiliary Memory
+                Worst Case
               </span>
-              <code className="text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] font-mono mt-1 block">
-                {algorithm.spaceComplexity.includes('1') ? 'In-Place O(1)' : 'Allocated Heap'}
+              <code className="text-xs font-bold text-[#cf222e] dark:text-[#f85149] font-mono mt-1 block">
+                {breakdown?.worstCase || 'O(n²)'}
               </code>
             </div>
           </div>
+          {breakdown?.note && (
+            <div className="p-3 rounded-xl bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de]/70 dark:border-[#30363d] text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed">
+              <strong className="text-[#1f2328] dark:text-[#f0f6fc]">Performance Note:</strong> {breakdown.note}
+            </div>
+          )}
         </div>
 
         {/* 3. Embedded Interactive Visualizer Canvas */}
