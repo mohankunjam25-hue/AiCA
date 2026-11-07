@@ -30,7 +30,7 @@ import {
   CustomRunResult
 } from '@aica/shared';
 import { api } from '../services/api';
-import { useSubmissionSSE, useLocalStorage, useKeyboardShortcuts, isMacOS } from '../hooks';
+import { useSubmissionSSE, useLocalStorage, useKeyboardShortcuts, isMacOS, useOnlineStatus } from '../hooks';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 
@@ -53,8 +53,9 @@ export function MonacoWorkspace({
   isPanelCollapsed = false,
   onTogglePanelCollapse
 }: MonacoWorkspaceProps) {
-  const { isDark } = useThemeStore();
+  const isDark = useThemeStore((s) => s.isDark);
   const editorPrefs = useEditorPreferencesStore();
+  const { isOnline } = useOnlineStatus();
 
   const [language, setLanguage] = useState<SupportedLanguage>('python');
   const [code, setCode] = useState<string>('');
@@ -264,7 +265,7 @@ export function MonacoWorkspace({
       shift: true,
       description: 'Submit Solution',
       allowInInputs: true,
-      disabled: isSubmitting || isRunningCustom || isStreaming,
+      disabled: isSubmitting || isRunningCustom || isStreaming || !isOnline,
       action: () => handleSubmit()
     },
     {
@@ -273,7 +274,7 @@ export function MonacoWorkspace({
       shift: false,
       description: 'Run Test Cases',
       allowInInputs: true,
-      disabled: isSubmitting || isRunningCustom || isStreaming,
+      disabled: isSubmitting || isRunningCustom || isStreaming || !isOnline,
       action: () => handleRunCustom()
     },
     {
@@ -484,9 +485,9 @@ export function MonacoWorkspace({
           {/* Run Code */}
           <button
             onClick={handleRunCustom}
-            disabled={isSubmitting || isRunningCustom || isStreaming}
+            disabled={isSubmitting || isRunningCustom || isStreaming || !isOnline}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f6f8fa] hover:bg-[#eaeef2] dark:bg-[#21262d] dark:hover:bg-[#30363d] text-[#1f2328] dark:text-[#e6edf3] border border-[#d0d7de] dark:border-[#30363d] text-xs font-semibold shadow-2xs disabled:opacity-50 transition cursor-pointer"
-            title="Run against test inputs (Ctrl+Enter)"
+            title={!isOnline ? "Network is offline (execution disabled)" : "Run against test inputs (Ctrl+Enter)"}
           >
             {isRunningCustom ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1a7f37] dark:text-[#3fb950]" />
@@ -502,9 +503,9 @@ export function MonacoWorkspace({
           {/* Submit Solution */}
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || isRunningCustom || isStreaming}
+            disabled={isSubmitting || isRunningCustom || isStreaming || !isOnline}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#1f883d] to-[#1a7f37] hover:from-[#1a7f37] hover:to-[#16682c] dark:from-[#238636] dark:to-[#2ea043] text-white text-xs font-bold shadow-xs border border-[rgba(27,31,36,0.15)] dark:border-[#2ea04366] disabled:opacity-50 transition cursor-pointer"
-            title="Submit for official ranking and AI evaluation (Ctrl+Shift+Enter)"
+            title={!isOnline ? "Network is offline (submission disabled)" : "Submit for official ranking and AI evaluation (Ctrl+Shift+Enter)"}
           >
             {isSubmitting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

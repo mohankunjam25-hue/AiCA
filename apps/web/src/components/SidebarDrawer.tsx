@@ -37,7 +37,10 @@ interface QuickProblem {
 }
 
 export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
-  const { user, profile, isAuthenticated, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
 

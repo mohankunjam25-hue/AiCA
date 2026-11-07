@@ -57,7 +57,8 @@ interface DashboardCacheData {
 }
 
 export function DashboardPage() {
-  const { user, profile } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const cacheKey = `dashboard_data_${user?.id || 'anon'}`;
   const initialCache = useDataCacheStore.getState().get<DashboardCacheData>(cacheKey);
 

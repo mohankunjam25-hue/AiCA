@@ -13,7 +13,7 @@ export function AccessDeniedView({
   requiredRoles = ['ADMIN', 'INSTRUCTOR'],
   currentRole
 }: AccessDeniedViewProps) {
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
   const activeRole = currentRole || user?.role || 'STUDENT';

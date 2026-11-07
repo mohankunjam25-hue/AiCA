@@ -6,6 +6,7 @@ import { TopHeader } from './components/TopHeader';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { PageLoadingFallback } from './components/ui/PageLoadingFallback';
+import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 
 // 🚀 Dynamic Route-Level Code Splitting (Lazy-loaded on demand)
 const HeroLandingPage = React.lazy(() => import('./pages/HeroLandingPage').then(m => ({ default: m.HeroLandingPage })));
@@ -30,7 +31,7 @@ const GOOGLE_CLIENT_ID =
   '1000000000000-dummygoogleclientidforinitialization.apps.googleusercontent.com';
 
 function HomeRoute() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (isAuthenticated) {
     return <DeveloperHomePage />;
   }
@@ -44,6 +45,9 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] font-sans transition-colors duration-200">
+      {/* Network Connectivity Indicator */}
+      <NetworkStatusIndicator />
+
       {/* Top Utility Header Bar with Profile & Logout dropdown */}
       {!isAuthPage && (
         <TopHeader

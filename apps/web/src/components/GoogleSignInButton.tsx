@@ -13,7 +13,7 @@ interface GoogleSignInButtonProps {
 
 export function GoogleSignInButton({ onError, text = 'signin_with', label, redirectUrl }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
-  const { setAuth } = useAuthStore();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const navigate = useNavigate();
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
