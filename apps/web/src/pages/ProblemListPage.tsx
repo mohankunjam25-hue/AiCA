@@ -20,6 +20,7 @@ import {
 import { ProblemListItem, ProblemDifficulty, ProblemSortOption } from '@aica/shared';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDataCacheStore } from '../store/useDataCacheStore';
 
 const TOPIC_TAGS = [
   'All Topics',
@@ -70,12 +71,22 @@ export function ProblemListPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Refetch when filters or pagination change
+  // Refetch or serve from cache when filters or pagination change
   useEffect(() => {
     fetchProblems();
   }, [page, difficulty, selectedTag, sortBy, debouncedSearch]);
 
   const fetchProblems = async () => {
+    const cacheKey = `problems_${page}_${difficulty}_${selectedTag}_${sortBy}_${debouncedSearch}`;
+    const cached = useDataCacheStore.getState().get<{ problems: ProblemListItem[]; pagination: any }>(cacheKey);
+
+    if (cached) {
+      setProblems(cached.problems);
+      if (cached.pagination) setPagination(cached.pagination);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -91,10 +102,19 @@ export function ProblemListPage() {
 
       const res = await api.get('/problems', { params });
       const data = res.data.data;
-      setProblems(data.problems || []);
-      if (data.pagination) {
-        setPagination(data.pagination);
+      const fetchedProblems = data.problems || [];
+      const fetchedPagination = data.pagination || null;
+
+      setProblems(fetchedProblems);
+      if (fetchedPagination) {
+        setPagination(fetchedPagination);
       }
+
+      // Store in client cache
+      useDataCacheStore.getState().set(cacheKey, {
+        problems: fetchedProblems,
+        pagination: fetchedPagination
+      });
     } catch (err: any) {
       console.warn('[ProblemListPage] Failed to fetch problems:', err.message);
       setError('Unable to load problems from catalog. Please verify your connection.');

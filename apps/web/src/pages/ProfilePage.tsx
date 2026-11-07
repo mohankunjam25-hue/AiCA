@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -227,8 +227,9 @@ export function ProfilePage() {
   }, [paramTab]);
 
   const handleTabSelect = (tab: ProfileTab) => {
+    if (tab === activeTab) return;
     setActiveTab(tab);
-    setSearchParams({ tab });
+    setSearchParams({ tab }, { replace: true });
   };
 
   useEffect(() => {
@@ -311,12 +312,16 @@ export function ProfilePage() {
     navigate('/login');
   };
 
-  // Generate 24 weeks of activity heatmap data
-  const heatmapWeeks = Array.from({ length: 24 }).map((_, wIdx) =>
-    Array.from({ length: 7 }).map((_, dIdx) => {
-      const val = (wIdx * 7 + dIdx * 3) % 11;
-      return val > 6 ? (val % 4) + 1 : 0;
-    })
+  // Generate 24 weeks of activity heatmap data (memoized to eliminate render allocations)
+  const heatmapWeeks = useMemo(
+    () =>
+      Array.from({ length: 24 }).map((_, wIdx) =>
+        Array.from({ length: 7 }).map((_, dIdx) => {
+          const val = (wIdx * 7 + dIdx * 3) % 11;
+          return val > 6 ? (val % 4) + 1 : 0;
+        })
+      ),
+    []
   );
   const realSubmissions = Array.isArray((profile as any)?.submissions)
     ? (profile as any).submissions

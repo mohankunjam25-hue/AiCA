@@ -3,41 +3,83 @@ import { Trophy, Globe, Flame, CheckCircle2, Clock, User as UserIcon, Loader2 } 
 import { LeaderboardEntry, GlobalLeaderboardEntry } from '@aica/shared';
 import { LeaderboardView } from '../components/LeaderboardView';
 import { api } from '../services/api';
+import { useDataCacheStore } from '../store/useDataCacheStore';
 
 export function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<'global' | 'problem'>('global');
   const [problems, setProblems] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedProblem, setSelectedProblem] = useState<string>('');
+
+  const cachedGlobal = useDataCacheStore.getState().get<GlobalLeaderboardEntry[]>('leaderboard_global');
+  const [globalRankings, setGlobalRankings] = useState<GlobalLeaderboardEntry[]>(cachedGlobal || []);
   const [rankings, setRankings] = useState<LeaderboardEntry[]>([]);
-  const [globalRankings, setGlobalRankings] = useState<GlobalLeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedGlobal);
 
   // Fetch published problems list on mount
   useEffect(() => {
     const loadProblems = async () => {
+      const cachedCatalog = useDataCacheStore.getState().get<Array<{ id: string; title: string }>>('leaderboard_catalog_problems');
+      if (cachedCatalog && cachedCatalog.length > 0) {
+        setProblems(cachedCatalog);
+        if (!selectedProblem) setSelectedProblem(cachedCatalog[0].id);
+        return;
+      }
+
       try {
         const res = await api.get('/problems');
         const list = res.data?.data?.problems || [];
         if (list.length > 0) {
           setProblems(list);
-          setSelectedProblem(list[0].id);
+          useDataCacheStore.getState().set('leaderboard_catalog_problems', list);
+          if (!selectedProblem) setSelectedProblem(list[0].id);
         }
       } catch (err: any) {
         console.warn('[LeaderboardPage] Failed to fetch catalog:', err.message);
       }
     };
     loadProblems();
-    fetchGlobalLeaderboard();
   }, []);
 
-  const fetchGlobalLeaderboard = async () => {
-    setLoading(true);
+  const fetchGlobalLeaderboard = async (force: boolean = false) => {
+    const cached = useDataCacheStore.getState().get<GlobalLeaderboardEntry[]>('leaderboard_global');
+    if (cached && !force) {
+      setGlobalRankings(cached);
+      setLoading(false);
+      return;
+    }
+
+    if (!cached) setLoading(true);
     try {
       const res = await api.get('/leaderboards/global');
-      setGlobalRankings(res.data?.data?.rankings || []);
+      const data = res.data?.data?.rankings || [];
+      setGlobalRankings(data);
+      useDataCacheStore.getState().set('leaderboard_global', data);
     } catch (err: any) {
       console.warn('[LeaderboardPage] Failed to fetch global leaderboard:', err.message);
-      setGlobalRankings([]);
+      if (!cached) setGlobalRankings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProblemLeaderboard = async (probId: string, force: boolean = false) => {
+    const cacheKey = `leaderboard_problem_${probId}`;
+    const cached = useDataCacheStore.getState().get<LeaderboardEntry[]>(cacheKey);
+    if (cached && !force) {
+      setRankings(cached);
+      setLoading(false);
+      return;
+    }
+
+    if (!cached) setLoading(true);
+    try {
+      const res = await api.get(`/leaderboards/problem/${probId}`);
+      const data = res.data?.data?.rankings || [];
+      setRankings(data);
+      useDataCacheStore.getState().set(cacheKey, data);
+    } catch (err: any) {
+      console.warn('[LeaderboardPage] Failed to fetch problem rankings:', err.message);
+      if (!cached) setRankings([]);
     } finally {
       setLoading(false);
     }
@@ -50,19 +92,6 @@ export function LeaderboardPage() {
       fetchGlobalLeaderboard();
     }
   }, [activeTab, selectedProblem]);
-
-  const fetchProblemLeaderboard = async (probId: string) => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/leaderboards/problem/${probId}`);
-      setRankings(res.data.data.rankings || []);
-    } catch (err: any) {
-      console.warn('[LeaderboardPage] Failed to fetch problem rankings:', err.message);
-      setRankings([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRankBadge = (rank: number) => {
     if (rank === 1) return <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 font-bold flex items-center justify-center text-xs">🥇</span>;
