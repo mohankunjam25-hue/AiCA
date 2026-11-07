@@ -43,7 +43,8 @@ interface AdminProblemItem {
 }
 
 export function AdminProblemManagementPage() {
-  const { user, isAuthenticated } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 

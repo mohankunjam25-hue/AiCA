@@ -17,7 +17,10 @@ import { SidebarDrawer } from './SidebarDrawer';
 import { AiCALogo } from './AiCALogo';
 
 export function Navbar() {
-  const { user, profile, isAuthenticated, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);

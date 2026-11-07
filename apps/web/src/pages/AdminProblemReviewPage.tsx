@@ -22,7 +22,8 @@ import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 
 export function AdminProblemReviewPage() {
-  const { user, isAuthenticated } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
 
   const [proposals, setProposals] = useState<ProblemProposal[]>([]);

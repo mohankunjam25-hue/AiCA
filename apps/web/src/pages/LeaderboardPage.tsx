@@ -33,7 +33,7 @@ interface ProblemItem {
 }
 
 export function LeaderboardPage() {
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const currentUserId = user?.id;
 
   const [activeTab, setActiveTab] = useState<'global' | 'problem'>('global');

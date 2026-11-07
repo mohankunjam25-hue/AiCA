@@ -40,7 +40,8 @@ interface HomeFeedCacheData {
 }
 
 export function DeveloperHomePage() {
-  const { user, profile } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const navigate = useNavigate();
 
   const cacheKey = `home_feed_${user?.id || 'anon'}`;

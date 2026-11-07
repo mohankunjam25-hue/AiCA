@@ -29,8 +29,12 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const { user, profile, isAuthenticated, logout } = useAuthStore();
-  const { theme, setTheme } = useThemeStore();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const logout = useAuthStore((s) => s.logout);
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
   const navigate = useNavigate();
   const location = useLocation();
 
