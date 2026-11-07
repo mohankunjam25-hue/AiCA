@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Workflow, Clock3, Layers3, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
+import { useDataCacheStore } from '../store/useDataCacheStore';
 
 export type Algorithm = {
   _id?: string;
@@ -16,8 +17,9 @@ export type Algorithm = {
 };
 
 export function AlgorithmsPage() {
-  const [algorithms, setAlgorithms] = useState<Algorithm[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAlgorithms = useDataCacheStore.getState().get<Algorithm[]>('algorithms_catalog');
+  const [algorithms, setAlgorithms] = useState<Algorithm[]>(cachedAlgorithms || []);
+  const [loading, setLoading] = useState(!cachedAlgorithms);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
@@ -27,8 +29,21 @@ export function AlgorithmsPage() {
 
   useEffect(() => {
     let active = true;
+    const cached = useDataCacheStore.getState().get<Algorithm[]>('algorithms_catalog');
+    if (cached && cached.length > 0) {
+      setAlgorithms(cached);
+      setLoading(false);
+      return;
+    }
+
     api.get('/algorithms')
-      .then(({ data }) => { if (active) setAlgorithms(data.data ?? []); })
+      .then(({ data }) => {
+        if (active) {
+          const list = data.data ?? [];
+          setAlgorithms(list);
+          useDataCacheStore.getState().set('algorithms_catalog', list);
+        }
+      })
       .catch((err) => { if (active) setError(err.response?.data?.message || 'Could not load algorithms. Check your connection and try again.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };

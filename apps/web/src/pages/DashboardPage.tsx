@@ -19,6 +19,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDataCacheStore } from '../store/useDataCacheStore';
 import { api } from '../services/api';
 
 interface SubmissionItem {
@@ -43,22 +44,48 @@ interface CatalogProblem {
   acceptanceRate?: number;
 }
 
+interface DashboardCacheData {
+  submissions: SubmissionItem[];
+  catalogProblems: CatalogProblem[];
+  activityMap: Record<string, number>;
+  stats: {
+    solved: number;
+    total: number;
+    streak: number;
+    longestStreak: number;
+  };
+}
+
 export function DashboardPage() {
   const { user, profile } = useAuthStore();
-  const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
-  const [catalogProblems, setCatalogProblems] = useState<CatalogProblem[]>([]);
-  const [activityMap, setActivityMap] = useState<Record<string, number>>({});
-  const [stats, setStats] = useState({
-    solved: profile?.problemsSolved || 0,
-    total: profile?.totalSubmissions || 0,
-    streak: profile?.currentStreak || 0,
-    longestStreak: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `dashboard_data_${user?.id || 'anon'}`;
+  const initialCache = useDataCacheStore.getState().get<DashboardCacheData>(cacheKey);
+
+  const [submissions, setSubmissions] = useState<SubmissionItem[]>(initialCache?.submissions || []);
+  const [catalogProblems, setCatalogProblems] = useState<CatalogProblem[]>(initialCache?.catalogProblems || []);
+  const [activityMap, setActivityMap] = useState<Record<string, number>>(initialCache?.activityMap || {});
+  const [stats, setStats] = useState(
+    initialCache?.stats || {
+      solved: profile?.problemsSolved || 0,
+      total: profile?.totalSubmissions || 0,
+      streak: profile?.currentStreak || 0,
+      longestStreak: 0
+    }
+  );
+  // Instant render without loader if cache exists
+  const [loading, setLoading] = useState(!initialCache);
 
   useEffect(() => {
     let isMounted = true;
+
     const fetchDashboardData = async () => {
+      // If we already have fresh cached data, avoid redundant network requests
+      const freshCache = useDataCacheStore.getState().get<DashboardCacheData>(cacheKey, 60 * 1000);
+      if (freshCache && submissions.length > 0) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const [subRes, heatRes, probRes] = await Promise.allSettled([
           api.get('/submissions/my?limit=8'),
@@ -67,24 +94,41 @@ export function DashboardPage() {
         ]);
 
         if (isMounted) {
+          let updatedSubs = submissions;
+          let updatedProblems = catalogProblems;
+          let updatedMap = activityMap;
+          let updatedStats = stats;
+
           if (subRes.status === 'fulfilled' && subRes.value.data?.data?.submissions) {
-            setSubmissions(subRes.value.data.data.submissions);
+            updatedSubs = subRes.value.data.data.submissions;
+            setSubmissions(updatedSubs);
           }
           if (heatRes.status === 'fulfilled' && heatRes.value.data?.data) {
             const h = heatRes.value.data.data;
-            setStats({
+            updatedStats = {
               solved: h.problemsSolved ?? profile?.problemsSolved ?? 0,
               total: h.totalSubmissions ?? profile?.totalSubmissions ?? 0,
               streak: h.currentStreak ?? profile?.currentStreak ?? 0,
               longestStreak: h.longestStreak ?? 0
-            });
+            };
+            setStats(updatedStats);
             if (h.activityByDate) {
-              setActivityMap(h.activityByDate);
+              updatedMap = h.activityByDate;
+              setActivityMap(updatedMap);
             }
           }
           if (probRes.status === 'fulfilled' && probRes.value.data?.data?.problems) {
-            setCatalogProblems(probRes.value.data.data.problems);
+            updatedProblems = probRes.value.data.data.problems;
+            setCatalogProblems(updatedProblems);
           }
+
+          // Save fresh snapshot to in-memory cache
+          useDataCacheStore.getState().set<DashboardCacheData>(cacheKey, {
+            submissions: updatedSubs,
+            catalogProblems: updatedProblems,
+            activityMap: updatedMap,
+            stats: updatedStats
+          });
         }
       } catch (err) {
         console.warn('[Dashboard] Could not load live metrics:', err);
@@ -97,7 +141,7 @@ export function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [profile]);
+  }, [cacheKey, profile]);
 
   // Generate 15-week (105 days) GitHub style contribution punchcard
   const { contributionDays, totalPeriodActivity } = useMemo(() => {

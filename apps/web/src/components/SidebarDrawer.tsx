@@ -17,6 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDataCacheStore } from '../store/useDataCacheStore';
 import { api } from '../services/api';
 import { ThemeToggle } from './ThemeToggle';
 import { AiCALogo } from './AiCALogo';
@@ -39,7 +40,8 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [problems, setProblems] = useState<QuickProblem[]>([]);
+  const cachedQuickProblems = useDataCacheStore.getState().get<QuickProblem[]>('sidebar_quick_problems');
+  const [problems, setProblems] = useState<QuickProblem[]>(cachedQuickProblems || []);
   const [loadingProblems, setLoadingProblems] = useState(false);
   const [filterSearch, setFilterSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -66,19 +68,27 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
     };
   }, [isOpen, onClose]);
 
-  // Fetch top catalog problems on first open
+  // Fetch top catalog problems on first open if not already cached
   useEffect(() => {
     if (!isOpen) return;
 
     let isMounted = true;
     const fetchCatalogProblems = async () => {
+      const cached = useDataCacheStore.getState().get<QuickProblem[]>('sidebar_quick_problems');
+      if (cached && cached.length > 0) {
+        setProblems(cached);
+        return;
+      }
+
       setLoadingProblems(true);
       try {
         const res = await api.get('/problems', {
           params: { page: 1, limit: 12, sortBy: 'latest' }
         });
         if (isMounted && res.data?.data?.problems) {
-          setProblems(res.data.data.problems);
+          const list = res.data.data.problems;
+          setProblems(list);
+          useDataCacheStore.getState().set('sidebar_quick_problems', list);
         }
       } catch (err: any) {
         console.warn('[SidebarDrawer] Failed to fetch quick problems:', err.message);

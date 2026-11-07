@@ -31,6 +31,7 @@ import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDataCacheStore } from '../store/useDataCacheStore';
 
 const FALLBACK_CATALOG_PROBLEMS: Record<string, Problem> = {
   'container-with-most-water': {
@@ -290,9 +291,18 @@ export function WorkspacePage() {
     setLoading(false);
   };
 
-  const fetchProblemSubmissions = async () => {
+  const fetchProblemSubmissions = async (force: boolean = false) => {
     if (!problem?.id) return;
-    setLoadingPastSubmissions(true);
+    const cacheKey = `submissions_problem_${problem.id}`;
+    const cached = useDataCacheStore.getState().get<any[]>(cacheKey);
+
+    if (cached && !force) {
+      setPastSubmissions(cached);
+      setLoadingPastSubmissions(false);
+      return;
+    }
+
+    if (!cached) setLoadingPastSubmissions(true);
     try {
       const token = useAuthStore.getState().accessToken;
       const requests: Promise<any>[] = [
@@ -326,6 +336,7 @@ export function WorkspacePage() {
       }
 
       setPastSubmissions(combined);
+      useDataCacheStore.getState().set(cacheKey, combined);
     } catch (err: any) {
       console.warn('[WorkspacePage] Submissions fetch failed:', err.message);
     } finally {
@@ -338,7 +349,10 @@ export function WorkspacePage() {
       const res = await api.get(`/submissions/${submissionId}/report`);
       setReport(res.data.data);
       setActiveLeftTab('report');
-      fetchProblemSubmissions();
+      // Invalidate submissions & dashboard cache so fresh stats appear
+      useDataCacheStore.getState().invalidate('submissions_problem_');
+      useDataCacheStore.getState().invalidate('dashboard_data_');
+      fetchProblemSubmissions(true);
     } catch (err: any) {
       console.warn('[WorkspacePage] Evaluation report deferred or not found:', err.message);
     }
@@ -779,7 +793,7 @@ export function WorkspacePage() {
                     </button>
                   )}
                   <button
-                    onClick={fetchProblemSubmissions}
+                    onClick={() => fetchProblemSubmissions(true)}
                     className="text-xs font-semibold text-[#57606a] dark:text-[#8b949e] hover:text-[#1f2328] dark:hover:text-[#e6edf3] cursor-pointer px-2 py-1 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#21262d]"
                   >
                     Refresh
