@@ -64,7 +64,21 @@ export class DataStructureClassifier {
       }
     }
 
-    // 2. Check for 2D Matrix (e.g. DP Table, Grid)
+    // 2. Check for 1D Array or List of Intervals (e.g. lists of numbers, strings, or interval pairs [start, end])
+    for (const step of sampleSteps) {
+      for (const [name, val] of Object.entries(step.locals)) {
+        if (
+          Array.isArray(val) &&
+          val.length >= 1 &&
+          (val.every((item) => typeof item === 'number' || typeof item === 'string') ||
+            val.every((item) => Array.isArray(item) && item.length === 2 && typeof item[0] === 'number'))
+        ) {
+          return { structureType: 'ARRAY', primaryVarName: name };
+        }
+      }
+    }
+
+    // 3. Check for 2D Matrix (e.g. DP Table, Grid with >= 3 columns)
     for (const step of sampleSteps) {
       for (const [name, val] of Object.entries(step.locals)) {
         if (
@@ -73,19 +87,6 @@ export class DataStructureClassifier {
           val.every((row) => Array.isArray(row) && row.length >= 2)
         ) {
           return { structureType: 'MATRIX', primaryVarName: name };
-        }
-      }
-    }
-
-    // 3. Check for 1D Array (Lists with numbers)
-    for (const step of sampleSteps) {
-      for (const [name, val] of Object.entries(step.locals)) {
-        if (
-          Array.isArray(val) &&
-          val.length >= 2 &&
-          val.every((item) => typeof item === 'number' || typeof item === 'string')
-        ) {
-          return { structureType: 'ARRAY', primaryVarName: name };
         }
       }
     }
@@ -214,7 +215,7 @@ export class DataStructureClassifier {
         title = activeCell ? `Updating Cell [${activeCell[0]}, ${activeCell[1]}]` : `Matrix State`;
         explanation = `Matrix dimension: ${grid.length}x${(grid[0] || []).length}.`;
       } else if (structureType === 'ARRAY' && primaryVarName && locals[primaryVarName]) {
-        const data = locals[primaryVarName] as number[];
+        const data = locals[primaryVarName] as any[];
         const pointers: Record<string, { index: number; label: string; color: string }> = {};
 
         // Find pointer variables
@@ -230,21 +231,37 @@ export class DataStructureClassifier {
           }
         });
 
+        // Check for secondary output list (e.g. merged in Merge Intervals, or res/result)
+        let secondaryData: any[] | undefined = undefined;
+        let secondaryLabel: string | undefined = undefined;
+        if (Array.isArray(locals.merged) && primaryVarName !== 'merged') {
+          secondaryData = locals.merged;
+          secondaryLabel = 'Merged Output';
+        } else if (Array.isArray(locals.result) && primaryVarName !== 'result') {
+          secondaryData = locals.result;
+          secondaryLabel = 'Result';
+        }
+
         visualPayload = {
           kind: 'ARRAY',
           data,
+          secondaryData,
+          secondaryLabel,
           pointers,
-          activeIndices: Object.values(pointers).map((p) => p.index)
+          activeIndices: Object.values(pointers).map((p) => p.index),
+          variables: locals
         };
         actionType = 'POINTER_MOVE';
         title = `Array State: ${primaryVarName}`;
         explanation = `Inspecting array of ${data.length} elements with ${Object.keys(pointers).length} active pointers.`;
       } else {
-        // Fallback simple array visualization of primitives
+        // Fallback simple array visualization of primitives or live variables
+        const numericData = Object.values(locals).filter((v) => typeof v === 'number') as number[];
         visualPayload = {
           kind: 'ARRAY',
-          data: Object.values(locals).filter((v) => typeof v === 'number') as number[],
-          pointers: {}
+          data: numericData,
+          pointers: {},
+          variables: locals
         };
       }
 
