@@ -111,24 +111,24 @@ export function AdminDashboardPage() {
   });
 
   return (
-    <div className="flex-1 bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] pb-16 transition-colors duration-200">
+    <div className="flex-1 w-full max-w-full overflow-x-hidden min-w-0 bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] pb-16 transition-colors duration-200">
       {/* ================================================================== */}
       {/* 1. TOP MISSION CONTROL HEADER & ACTIONS                            */}
       {/* ================================================================== */}
       <div className="bg-white dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] py-5 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                <div className="p-2 rounded-xl bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1f2328] dark:text-[#f0f6fc]">
                       Admin Mission Control
                     </h1>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 shrink-0">
                       ENTERPRISE OPS
                     </span>
                   </div>
@@ -140,7 +140,7 @@ export function AdminDashboardPage() {
             </div>
 
             {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <button
                 type="button"
                 onClick={() => fetchDashboardData(true)}
@@ -171,23 +171,23 @@ export function AdminDashboardPage() {
           </div>
 
           {/* Quick Hardware Telemetry Ribbon */}
-          <div className="mt-4 pt-3 border-t border-[#d0d7de]/60 dark:border-[#30363d] flex items-center gap-3 overflow-x-auto scrollbar-none text-xs">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40 font-mono">
+          <div className="mt-4 pt-3 border-t border-[#d0d7de]/60 dark:border-[#30363d] flex items-center gap-2 sm:gap-3 overflow-x-auto py-1 scrollbar-none w-full max-w-full text-xs">
+            <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40 font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Cgroup Kernel Sandbox: ONLINE</span>
             </span>
 
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40 font-mono">
+            <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40 font-mono">
               <Cpu className="w-3.5 h-3.5" />
               <span>BullMQ Backlog: {telemetry?.queueBacklog ?? 0} jobs</span>
             </span>
 
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/40 font-mono">
+            <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/40 font-mono">
               <Zap className="w-3.5 h-3.5" />
               <span>Avg Latency: {telemetry?.avgKernelExecutionMs ?? 18.2}ms</span>
             </span>
 
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d] font-mono">
+            <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d] font-mono">
               <Database className="w-3.5 h-3.5" />
               <span>Redis Ping: {telemetry?.redisPingMs ? `${telemetry.redisPingMs}ms` : '1.2ms'}</span>
             </span>
@@ -195,47 +195,47 @@ export function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6 w-full min-w-0">
         {/* ================================================================== */}
         {/* 2. CORE KPI TILES (4 Ribbon Cards)                                 */}
         {/* ================================================================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4">
           {/* Card 1: Total Students */}
-          <div className="p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider">
+          <div className="p-4 sm:p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between min-w-0">
+            <div className="flex items-start justify-between gap-2.5 min-w-0">
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider block truncate" title="Total Registered Students">
                   Total Registered Students
                 </span>
-                <h3 className="text-2xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono">
+                <h3 className="text-2xl sm:text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono truncate">
                   {overview?.totalStudents?.toLocaleString() ?? '1,248'}
                 </h3>
               </div>
-              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 shrink-0">
                 <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold truncate">
               <span>↑ 14% growth this month</span>
             </div>
           </div>
 
           {/* Card 2: 24h Submissions */}
-          <div className="p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider">
+          <div className="p-4 sm:p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between min-w-0">
+            <div className="flex items-start justify-between gap-2.5 min-w-0">
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider block truncate" title="Platform Submissions (24h)">
                   Platform Submissions (24h)
                 </span>
-                <h3 className="text-2xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono">
+                <h3 className="text-2xl sm:text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono truncate">
                   {overview?.submissions24h?.toLocaleString() ?? '3,492'}
                 </h3>
               </div>
-              <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60 shrink-0">
                 <Activity className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-[#656d76] dark:text-[#848d97]">
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-[#656d76] dark:text-[#848d97] truncate">
               <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                 {overview?.acceptanceRate24h ?? 58.4}%
               </span>
@@ -244,47 +244,47 @@ export function AdminDashboardPage() {
           </div>
 
           {/* Card 3: Kernel Sandbox Latency */}
-          <div className="p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider">
+          <div className="p-4 sm:p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between min-w-0">
+            <div className="flex items-start justify-between gap-2.5 min-w-0">
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider block truncate" title="Cgroup Kernel Latency">
                   Cgroup Kernel Latency
                 </span>
-                <h3 className="text-2xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono">
-                  {telemetry?.avgKernelExecutionMs ?? 18.2} <span className="text-sm font-normal text-[#656d76]">ms</span>
+                <h3 className="text-2xl sm:text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono truncate">
+                  {telemetry?.avgKernelExecutionMs ?? 18.2} <span className="text-xs sm:text-sm font-normal text-[#656d76] dark:text-[#848d97]">ms</span>
                 </h3>
               </div>
-              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shrink-0">
                 <Cpu className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-[#656d76] dark:text-[#848d97]">
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-[#656d76] dark:text-[#848d97] truncate">
               <span>Hardware budget: 512 MB memory</span>
             </div>
           </div>
 
           {/* Card 4: Pending Proposals */}
-          <div className="p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider">
+          <div className="p-4 sm:p-4.5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs flex flex-col justify-between min-w-0">
+            <div className="flex items-start justify-between gap-2.5 min-w-0">
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-bold text-[#656d76] dark:text-[#848d97] uppercase tracking-wider block truncate" title="Pending Proposals">
                   Pending Proposals
                 </span>
-                <h3 className="text-2xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono">
+                <h3 className="text-2xl sm:text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] mt-1 font-mono truncate">
                   {overview?.pendingProposals ?? pendingProposals.length}
                 </h3>
               </div>
-              <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 shrink-0">
                 <Bot className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 truncate">
               <Link
                 to="/admin/proposals"
-                className="text-xs text-[#0969da] dark:text-[#58a6ff] hover:underline font-semibold flex items-center gap-1"
+                className="text-xs text-[#0969da] dark:text-[#58a6ff] hover:underline font-semibold inline-flex items-center gap-1"
               >
                 <span>Review Proposals Queue</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3 h-3 shrink-0" />
               </Link>
             </div>
           </div>
@@ -293,9 +293,9 @@ export function AdminDashboardPage() {
         {/* ================================================================== */}
         {/* 3. TWO-COLUMN OPERATIONAL SPLIT                                    */}
         {/* ================================================================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
           {/* LEFT: Curriculum & Proposals */}
-          <div className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] p-5 shadow-2xs flex flex-col justify-between space-y-4">
+          <div className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] p-4 sm:p-5 shadow-2xs flex flex-col justify-between space-y-4 min-w-0 overflow-hidden">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-[#d0d7de]/60 dark:border-[#30363d]">
                 <div className="flex items-center gap-2">
@@ -386,16 +386,16 @@ export function AdminDashboardPage() {
           </div>
 
           {/* RIGHT: Sandbox Hardware & Ops */}
-          <div className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] p-5 shadow-2xs flex flex-col justify-between space-y-4">
+          <div className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] p-4 sm:p-5 shadow-2xs flex flex-col justify-between space-y-4 min-w-0 overflow-hidden">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-[#d0d7de]/60 dark:border-[#30363d]">
                 <div className="flex items-center gap-2">
-                  <Server className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                  <Server className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] truncate">
                     Sandbox Hardware & Telemetry
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>ONLINE</span>
                 </span>
@@ -403,25 +403,25 @@ export function AdminDashboardPage() {
 
               {/* Hardware Metrics Table */}
               <div className="mt-3 space-y-2 text-xs font-mono">
-                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between">
-                  <span className="text-[#656d76] dark:text-[#848d97]">Kernel Isolation Engine:</span>
-                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">Linux Cgroup v2</span>
+                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between gap-2">
+                  <span className="text-[#656d76] dark:text-[#848d97] truncate">Kernel Isolation Engine:</span>
+                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc] shrink-0">Linux Cgroup v2</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between">
-                  <span className="text-[#656d76] dark:text-[#848d97]">Execution Memory Ceiling:</span>
-                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">512 MB per container</span>
+                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between gap-2">
+                  <span className="text-[#656d76] dark:text-[#848d97] truncate">Execution Memory Ceiling:</span>
+                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc] shrink-0">512 MB per container</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between">
-                  <span className="text-[#656d76] dark:text-[#848d97]">Worker Node Pool:</span>
-                  <span className="font-bold text-blue-600 dark:text-blue-400">2 Active Daemons</span>
+                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between gap-2">
+                  <span className="text-[#656d76] dark:text-[#848d97] truncate">Worker Node Pool:</span>
+                  <span className="font-bold text-blue-600 dark:text-blue-400 shrink-0">2 Active Daemons</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between">
-                  <span className="text-[#656d76] dark:text-[#848d97]">Gateway RSS Memory:</span>
-                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">{telemetry?.memoryUsageMb ?? 128} MB</span>
+                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between gap-2">
+                  <span className="text-[#656d76] dark:text-[#848d97] truncate">Gateway RSS Memory:</span>
+                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc] shrink-0">{telemetry?.memoryUsageMb ?? 128} MB</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between">
-                  <span className="text-[#656d76] dark:text-[#848d97]">System Uptime:</span>
-                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                <div className="p-2.5 rounded-xl bg-[#f6f8fa] dark:bg-[#21262d] flex items-center justify-between gap-2">
+                  <span className="text-[#656d76] dark:text-[#848d97] truncate">System Uptime:</span>
+                  <span className="font-bold text-[#1f2328] dark:text-[#f0f6fc] shrink-0">
                     {Math.floor((telemetry?.systemUptimeSeconds ?? 3600) / 3600)}h {Math.floor(((telemetry?.systemUptimeSeconds ?? 3600) % 3600) / 60)}m
                   </span>
                 </div>
@@ -462,12 +462,12 @@ export function AdminDashboardPage() {
         {/* ================================================================== */}
         {/* 4. LIVE PLATFORM SUBMISSION STREAM                                 */}
         {/* ================================================================== */}
-        <div className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] shadow-2xs overflow-hidden">
+        <div className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] shadow-2xs overflow-hidden min-w-0">
           <div className="p-4 sm:p-5 border-b border-[#d0d7de] dark:border-[#30363d] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <h3 className="text-sm sm:text-base font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-[#1f2328] dark:text-[#f0f6fc] truncate">
                   Live Platform Execution Stream & Audit Log
                 </h3>
               </div>
@@ -477,15 +477,15 @@ export function AdminDashboardPage() {
             </div>
 
             {/* Filter and Search */}
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#656d76] dark:text-[#848d97]" />
                 <input
                   type="text"
                   placeholder="Search user / problem..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 rounded-lg text-xs bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] focus:outline-none focus:border-[#0969da]"
+                  className="w-full sm:w-auto pl-8 pr-3 py-1.5 rounded-lg text-xs bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] focus:outline-none focus:border-[#0969da]"
                 />
               </div>
 
@@ -504,8 +504,8 @@ export function AdminDashboardPage() {
           </div>
 
           {/* Submissions Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="bg-[#f6f8fa] dark:bg-[#161b22] text-[#656d76] dark:text-[#848d97] uppercase tracking-wider font-semibold border-b border-[#d0d7de] dark:border-[#30363d]">
                 <tr>
                   <th className="py-2.5 px-4">Time</th>
