@@ -94,15 +94,19 @@ export function FlowchartBottomConsole({
   }, [output]);
 
   return (
-    <div className="w-full bg-slate-900/95 dark:bg-[#161b22]/98 border-t border-slate-800/90 shadow-2xl backdrop-blur-md flex flex-col z-20 transition-all duration-200">
+    <div
+      className={`bg-slate-900/90 dark:bg-[#161b22]/95 border border-slate-800 shadow-2xl backdrop-blur-xl rounded-2xl flex flex-col z-20 transition-all duration-200 overflow-hidden ${
+        isExpanded ? 'w-[95vw] sm:w-[680px] md:w-[780px]' : 'w-auto'
+      }`}
+    >
       {/* Dock Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 border-b border-slate-800/70 select-none">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 select-none">
         {/* Left: VCR Playback Engine Controls */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <button
             onClick={onReset}
             disabled={totalSteps === 0}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer active:scale-90"
             title="Reset execution (Home)"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -111,7 +115,7 @@ export function FlowchartBottomConsole({
           <button
             onClick={onStepBackward}
             disabled={currentStep <= 0}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer active:scale-90"
             title="Step Backward (F9)"
           >
             <SkipBack className="w-3.5 h-3.5" />
@@ -119,7 +123,7 @@ export function FlowchartBottomConsole({
 
           <button
             onClick={isPlaying ? onPause : onPlay}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer shadow-md ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold text-xs transition cursor-pointer shadow-md active:scale-95 ${
               isPlaying
                 ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
                 : isFinished
@@ -149,14 +153,14 @@ export function FlowchartBottomConsole({
           <button
             onClick={onStepForward}
             disabled={totalSteps > 0 && currentStep >= totalSteps}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer active:scale-90"
             title="Step Forward (F10)"
           >
             <SkipForward className="w-3.5 h-3.5" />
           </button>
 
           {/* Scrubber slider */}
-          <div className="hidden sm:flex items-center gap-2 px-2">
+          <div className="hidden sm:flex items-center gap-1.5 px-1.5">
             <input
               type="range"
               min={0}
@@ -164,9 +168,9 @@ export function FlowchartBottomConsole({
               value={currentStep}
               onChange={(e) => onSeek(Number(e.target.value))}
               disabled={totalSteps === 0}
-              className="w-20 md:w-32 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-40"
+              className="w-16 md:w-24 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-40"
             />
-            <span className="font-mono text-[11px] text-slate-400 whitespace-nowrap">
+            <span className="font-mono text-[10px] text-slate-400 whitespace-nowrap">
               {currentStep}/{totalSteps}
             </span>
           </div>
@@ -190,7 +194,7 @@ export function FlowchartBottomConsole({
         </div>
 
         {/* Center / Right: Tabs & Drawer Toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Terminal Tab Button */}
           <button
             onClick={() => {
@@ -199,14 +203,14 @@ export function FlowchartBottomConsole({
             }}
             title="Open Live Output Terminal"
             aria-label="Open Live Output Terminal"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer active:scale-95 ${
               activeTab === 'terminal' && isExpanded
                 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Terminal</span>
+            <span className="hidden sm:inline">Terminal</span>
             {outputLines.length > 0 && (
               <span className="text-[10px] font-mono px-1 rounded-full bg-emerald-900/80 text-emerald-300">
                 {outputLines.length}
@@ -222,14 +226,14 @@ export function FlowchartBottomConsole({
             }}
             title="Open Test Cases & Custom Input"
             aria-label="Open Test Cases & Custom Input"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer active:scale-95 ${
               activeTab === 'testcases' && isExpanded
                 ? 'bg-blue-950/80 text-blue-300 border border-blue-700/80 shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <FlaskConical className="w-3.5 h-3.5 text-blue-400" />
-            <span>Test Cases</span>
+            <span className="hidden sm:inline">Test Cases</span>
             {testCaseResults && (
               <span
                 className={`text-[10px] font-mono px-1 rounded-full ${
@@ -246,13 +250,13 @@ export function FlowchartBottomConsole({
           {/* Expand / Minimize Toggle */}
           <button
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer active:scale-90"
             title={isExpanded ? 'Collapse Console' : 'Expand Console'}
           >
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-3.5 h-3.5" />
             ) : (
-              <ChevronUp className="w-4 h-4" />
+              <ChevronUp className="w-3.5 h-3.5" />
             )}
           </button>
         </div>

@@ -190,7 +190,7 @@ export function FlowchartCanvas({
   // Canvas ReactFlow instance & Layout
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance | null>(null);
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   const playTimerRef = useRef<any>(null);
 
@@ -698,50 +698,48 @@ export function FlowchartCanvas({
     : 0;
 
   return (
-    <div className="relative w-full h-full bg-slate-950 flex flex-col overflow-hidden select-none">
-      {/* 1. TOP TOOLBAR RIBBON: Blocks, Auto-Align, Validate, Save, Inspector Toggle */}
-      <div className="h-11 sm:h-12 border-b border-slate-800/90 bg-slate-900/95 dark:bg-[#161b22]/98 px-2 sm:px-4 flex items-center justify-between shrink-0 z-20 backdrop-blur-md">
-        <div className="flex-1 flex items-center justify-start sm:justify-center overflow-x-auto scrollbar-none py-1">
-          <FlowchartBlockPalette
-            onAddNode={handleAddNode}
-            onAutoAlign={handleAutoAlign}
-            onValidate={handleValidate}
-            onSave={problemId ? handleSave : undefined}
-            isSaving={isSaving}
-          />
-        </div>
+    <div className="relative w-full h-full bg-slate-950 overflow-hidden select-none">
+      {/* 1. FLOATING TOP TOOLBAR ISLAND: Centered Micro Dock (Figma / Excalidraw style) */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
+        <FlowchartBlockPalette
+          onAddNode={handleAddNode}
+          onAutoAlign={handleAutoAlign}
+          onValidate={handleValidate}
+          onSave={problemId ? handleSave : undefined}
+          isSaving={isSaving}
+        />
+      </div>
 
-        {/* Right Dock Controls: Inspector Toggle (Icon-Only with Tooltip) */}
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          <div className="relative group flex items-center justify-center">
-            <button
-              onClick={() => setIsInspectorOpen((prev) => !prev)}
-              className={`relative p-2 sm:p-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer active:scale-95 flex items-center justify-center ${
-                isInspectorOpen
-                  ? 'bg-cyan-950/70 border-cyan-700/80 text-cyan-300'
-                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-              aria-label={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
-              title={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
-            >
-              <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
-              {varCount > 0 && (
-                <span className="absolute -top-1 -right-1 text-[9px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold border border-slate-900">
-                  {varCount}
-                </span>
-              )}
-            </button>
-            <div className="absolute -bottom-9 right-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform group-hover:translate-y-0 translate-y-1 bg-slate-900 border border-slate-700 text-[11px] font-medium text-slate-200 px-2.5 py-1 rounded-md shadow-2xl whitespace-nowrap z-50 select-none">
-              {isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
-              <div className="absolute -top-1 right-3 w-2 h-2 bg-slate-900 border-t border-l border-slate-700 rotate-45" />
-            </div>
+      {/* 2. FLOATING TOP-RIGHT INSPECTOR TOGGLE PILL */}
+      <div className="absolute top-3 right-3 z-20">
+        <div className="relative group flex items-center justify-center">
+          <button
+            onClick={() => setIsInspectorOpen((prev) => !prev)}
+            className={`relative w-8 h-8 flex items-center justify-center rounded-xl border text-xs font-semibold shadow-2xl backdrop-blur-xl transition-all duration-150 cursor-pointer active:scale-90 ${
+              isInspectorOpen
+                ? 'bg-cyan-950/80 border-cyan-700/80 text-cyan-300'
+                : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+            aria-label={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
+            title={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
+          >
+            <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
+            {varCount > 0 && (
+              <span className="absolute -top-1 -right-1 text-[9px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold border border-slate-900">
+                {varCount}
+              </span>
+            )}
+          </button>
+          <div className="absolute -bottom-8 right-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform group-hover:translate-y-0 translate-y-1 bg-slate-900 border border-slate-700/80 text-[10px] font-semibold text-slate-200 px-2 py-0.5 rounded-md shadow-2xl whitespace-nowrap z-50">
+            {isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
+            <div className="absolute -top-1 right-2.5 w-1.5 h-1.5 bg-slate-900 border-t border-l border-slate-700/80 rotate-45" />
           </div>
         </div>
       </div>
 
       {/* Validation Warning / Error Banner */}
       {validationResult && !validationResult.isValid && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-md w-[90vw] p-2.5 rounded-xl bg-rose-950/90 border border-rose-700/80 text-rose-300 text-xs shadow-xl backdrop-blur-md flex items-center justify-between">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-md w-[90vw] p-2.5 rounded-xl bg-rose-950/90 border border-rose-700/80 text-rose-300 text-xs shadow-2xl backdrop-blur-md flex items-center justify-between">
           <span className="font-semibold truncate">
             {validationResult.errors[0]?.message}
           </span>
@@ -754,99 +752,98 @@ export function FlowchartCanvas({
         </div>
       )}
 
-      {/* 2. MIDDLE ROW: Unobstructed Canvas + Docked Right Inspector */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Main ReactFlow Canvas */}
-        <div className="flex-1 h-full relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onReconnect={onReconnect}
-            edgesReconnectable={true}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onInit={(instance) => setReactFlowInstance(instance)}
-            fitView
-            fitViewOptions={{ padding: 0.25 }}
-            connectionLineType={ConnectionLineType.SmoothStep}
-            connectionLineStyle={{
-              stroke: '#38bdf8',
-              strokeWidth: 2.5,
-              strokeDasharray: '6 4',
+      {/* 3. CANVAS: 100% FULL-SCREEN EDGE-TO-EDGE */}
+      <div className="w-full h-full absolute inset-0">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onReconnect={onReconnect}
+          edgesReconnectable={true}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onInit={(instance) => setReactFlowInstance(instance)}
+          fitView
+          fitViewOptions={{ padding: 0.25 }}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          connectionLineStyle={{
+            stroke: '#38bdf8',
+            strokeWidth: 2.5,
+            strokeDasharray: '6 4',
+          }}
+          defaultEdgeOptions={{
+            type: 'flowchart',
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 18,
+              height: 18,
+              color: '#64748b',
+            },
+          }}
+        >
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={24}
+            size={1.5}
+            color="#334155"
+            className="bg-slate-950 dark:bg-[#0d1117]"
+          />
+          <Controls className="bg-slate-900/90! border-slate-800! text-slate-300! fill-slate-300! top-3! left-3! rounded-xl! shadow-2xl!" />
+          <MiniMap
+            nodeColor={(n) => {
+              if (n.type === 'start') return '#10b981';
+              if (n.type === 'end') return '#f43f5e';
+              if (n.type === 'input') return '#06b6d4';
+              if (n.type === 'output') return '#6366f1';
+              if (n.type === 'decision') return '#a855f7';
+              return '#f59e0b';
             }}
-            defaultEdgeOptions={{
-              type: 'flowchart',
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 18,
-                height: 18,
-                color: '#64748b',
-              },
-            }}
-          >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={24}
-              size={1.5}
-              color="#334155"
-              className="bg-slate-950 dark:bg-[#0d1117]"
-            />
-            <Controls className="bg-slate-900! border-slate-700! text-slate-300! fill-slate-300! top-3! left-3!" />
-            <MiniMap
-              nodeColor={(n) => {
-                if (n.type === 'start') return '#10b981';
-                if (n.type === 'end') return '#f43f5e';
-                if (n.type === 'input') return '#06b6d4';
-                if (n.type === 'output') return '#6366f1';
-                if (n.type === 'decision') return '#a855f7';
-                return '#f59e0b';
-              }}
-              maskColor="rgba(15, 23, 42, 0.7)"
-              className="bg-slate-900/90! border-slate-800! rounded-xl! hidden lg:block bottom-3! right-3!"
-            />
-          </ReactFlow>
-        </div>
-
-        {/* Docked Right Inspector (Collapsible) */}
-        <FlowchartInspector
-          step={activeStep}
-          error={executionResult?.error?.message}
-          isOpen={isInspectorOpen}
-          onClose={() => setIsInspectorOpen(false)}
-          currentStepIndex={currentStepIndex}
-          totalSteps={executionResult?.steps.length || 0}
-        />
+            maskColor="rgba(15, 23, 42, 0.7)"
+            className="bg-slate-900/90! border-slate-800! rounded-xl! hidden lg:block bottom-14! right-4!"
+          />
+        </ReactFlow>
       </div>
 
-      {/* 3. BOTTOM ROW: Consolidated Docked Console (Playback, Terminal & Tests) */}
-      <FlowchartBottomConsole
-        currentStep={currentStepIndex}
+      {/* 4. SLIDE-OVER RIGHT INSPECTOR (Never resizes the canvas) */}
+      <FlowchartInspector
+        step={activeStep}
+        error={executionResult?.error?.message}
+        isOpen={isInspectorOpen}
+        onClose={() => setIsInspectorOpen(false)}
+        currentStepIndex={currentStepIndex}
         totalSteps={executionResult?.steps.length || 0}
-        isPlaying={isPlaying}
-        speed={speed}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onStepForward={handleStepForward}
-        onStepBackward={handleStepBackward}
-        onReset={handleReset}
-        onSeek={(step) => setCurrentStepIndex(step)}
-        onSpeedChange={(s) => setSpeed(s)}
-        output={currentOutput}
-        customInput={customInput}
-        onCustomInputChange={(val) => {
-          setCustomInput(val);
-          invalidateExecution();
-        }}
-        onRunCustom={() => handleRunCustom(true)}
-        onRunTestCases={handleRunTestCases}
-        isRunningTests={isEvaluatingTests}
-        testCaseResults={testCaseResults}
-        allPassed={testCaseResults?.every((r) => r.passed)}
-        problemId={problemId}
       />
+
+      {/* 5. FLOATING BOTTOM CONSOLE */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 max-w-[95vw]">
+        <FlowchartBottomConsole
+          currentStep={currentStepIndex}
+          totalSteps={executionResult?.steps.length || 0}
+          isPlaying={isPlaying}
+          speed={speed}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStepForward={handleStepForward}
+          onStepBackward={handleStepBackward}
+          onReset={handleReset}
+          onSeek={(step) => setCurrentStepIndex(step)}
+          onSpeedChange={(s) => setSpeed(s)}
+          output={currentOutput}
+          customInput={customInput}
+          onCustomInputChange={(val) => {
+            setCustomInput(val);
+            invalidateExecution();
+          }}
+          onRunCustom={() => handleRunCustom(true)}
+          onRunTestCases={handleRunTestCases}
+          isRunningTests={isEvaluatingTests}
+          testCaseResults={testCaseResults}
+          allPassed={testCaseResults?.every((r) => r.passed)}
+          problemId={problemId}
+        />
+      </div>
     </div>
   );
 }

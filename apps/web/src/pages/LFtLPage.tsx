@@ -10,6 +10,7 @@ import {
   RotateCcw,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from 'lucide-react';
 import { Problem } from '@aica/shared';
 import { FlowchartCanvas } from '../components/flowchart/FlowchartCanvas';
@@ -22,7 +23,7 @@ export function LFtLPage() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [problemList, setProblemList] = useState<Array<{ id: string; slug: string; title: string; difficulty: string }>>([]);
   const [isProblemPickerOpen, setIsProblemPickerOpen] = useState(false);
-  const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [savedGraph, setSavedGraph] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -169,11 +170,27 @@ export function LFtLPage() {
         </div>
       </header>
 
-      {/* Main Layout Area */}
+      {/* Main Layout Area: Edge-to-Edge Canvas with Slide-Over Details Sheet */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Collapsible Problem Description Panel */}
-        {problem && isDescriptionOpen && (
-          <aside className="w-80 md:w-96 border-r border-slate-800 bg-slate-900/90 overflow-y-auto p-4 flex flex-col gap-4 text-xs z-10">
+        {/* Left Slide-Over Problem Description Panel */}
+        {problem && (
+          <aside
+            className={`absolute top-0 left-0 bottom-0 z-40 w-80 md:w-96 border-r border-slate-800/90 bg-slate-900/95 dark:bg-[#161b22]/98 backdrop-blur-xl shadow-2xl overflow-y-auto p-4 flex flex-col gap-4 text-xs transition-transform duration-200 ease-in-out ${
+              isDescriptionOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            {/* Header with Title & Close button */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="font-semibold text-xs text-slate-300">Problem Details</span>
+              <button
+                onClick={() => setIsDescriptionOpen(false)}
+                className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                title="Close Details"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span
@@ -244,8 +261,16 @@ export function LFtLPage() {
           </aside>
         )}
 
-        {/* Canvas Workspace */}
-        <main className="flex-1 relative overflow-hidden bg-slate-950">
+        {/* Backdrop for mobile / drawer focus */}
+        {problem && isDescriptionOpen && (
+          <div
+            onClick={() => setIsDescriptionOpen(false)}
+            className="absolute inset-0 z-30 bg-black/40 backdrop-blur-xs md:hidden"
+          />
+        )}
+
+        {/* Canvas Workspace: 100% UNCONSTRAINED FULL-SCREEN */}
+        <main className="flex-1 w-full h-full relative overflow-hidden bg-slate-950">
           <FlowchartCanvas
             key={slug || 'scratch'}
             problemId={slug}
