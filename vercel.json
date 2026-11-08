@@ -17,7 +17,7 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "https://aicabackend.onrender.com/api/v1/:path*"
+      "destination": "https://aica-6asg.onrender.com/api/v1/:path*"
     },
     {
       "source": "/(.*)",

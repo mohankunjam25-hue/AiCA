@@ -120,6 +120,24 @@ app.head('/health', healthHandler);
 app.get('/api/v1/health', healthHandler);
 app.head('/api/v1/health', healthHandler);
 
+// Root Welcome Endpoint
+app.get('/', (_req: express.Request, res: express.Response) => {
+  res.status(200).json(
+    createSuccessResponse({
+      message: '🚀 AiCA API Gateway & Execution Engine is running live!',
+      service: 'aica-backend',
+      version: '2.0.0',
+      status: 'HEALTHY',
+      endpoints: {
+        health: '/health',
+        problems: '/api/v1/problems',
+        auth: '/api/v1/auth',
+        submissions: '/api/v1/submissions'
+      }
+    })
+  );
+});
+
 // Mount Domain API Routes (v1)
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/problems/practice', practiceProblemRoutes);
