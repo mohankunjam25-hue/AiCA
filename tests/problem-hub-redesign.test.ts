@@ -356,4 +356,94 @@ describe('Dynamic Problem Hub: Segregation & Status Metrics', () => {
     expect(capturedFilter._id.$in).toEqual([]);
     expect(res.data.data.problems).toEqual([]);
   });
+
+  it('supports full tracks catalog lookup (limit: 50, statusFilter: ALL) with user status annotations', async () => {
+    const probId1 = new mongoose.Types.ObjectId();
+    const probId2 = new mongoose.Types.ObjectId();
+
+    const mockCatalog = [
+      {
+        _id: probId1,
+        title: 'Valid Palindrome',
+        slug: 'valid-palindrome',
+        difficulty: 'EASY',
+        tags: ['Strings', 'Two-Pointers'],
+        totalSubmissions: 10,
+        acceptedSubmissions: 8
+      },
+      {
+        _id: probId2,
+        title: 'Container With Most Water',
+        slug: 'container-with-most-water',
+        difficulty: 'MEDIUM',
+        tags: ['Arrays', 'Two-Pointers'],
+        totalSubmissions: 25,
+        acceptedSubmissions: 15
+      }
+    ];
+
+    vi.spyOn(SubmissionModel, 'find').mockImplementation((query: any) => {
+      return {
+        select: () => ({
+          sort: () => ({
+            lean: () =>
+              Promise.resolve([
+                {
+                  problemId: probId1.toString(),
+                  verdict: 'ACCEPTED',
+                  executionTimeMs: 12,
+                  memoryUsedKb: 13000,
+                  code: 'def isPalindrome(s): return True',
+                  createdAt: new Date()
+                },
+                {
+                  problemId: probId2.toString(),
+                  verdict: 'TIME_LIMIT_EXCEEDED',
+                  executionTimeMs: 2000,
+                  memoryUsedKb: 14000,
+                  code: 'def maxArea(h): pass',
+                  createdAt: new Date()
+                }
+              ])
+          })
+        })
+      } as any;
+    });
+
+    vi.spyOn(ProblemModel, 'find').mockImplementation(() => {
+      return {
+        select: () => ({
+          skip: () => ({
+            limit: () => ({
+              sort: () => ({
+                lean: () => Promise.resolve(mockCatalog)
+              })
+            })
+          })
+        })
+      } as any;
+    });
+
+    vi.spyOn(ProblemModel, 'countDocuments').mockResolvedValue(2 as any);
+
+    const { req, res } = mockReqRes({
+      query: { statusFilter: 'ALL', limit: '50' },
+      user: { id: 'student_456', role: 'STUDENT' }
+    });
+
+    await getProblems(req, res);
+
+    expect(res.statusCode).toBe(200);
+    const problems: ProblemListItem[] = res.data.data.problems;
+    expect(problems).toHaveLength(2);
+
+    const palindrome = problems.find((p) => p.slug === 'valid-palindrome');
+    const container = problems.find((p) => p.slug === 'container-with-most-water');
+
+    expect(palindrome?.userStatus).toBe('SOLVED');
+    expect(palindrome?.bestRuntimeMs).toBe(12);
+
+    expect(container?.userStatus).toBe('ATTEMPTED');
+    expect(container?.lastVerdict).toBe('TIME_LIMIT_EXCEEDED');
+  });
 });
