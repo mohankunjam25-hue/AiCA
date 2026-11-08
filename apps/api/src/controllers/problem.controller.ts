@@ -119,6 +119,12 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
             .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
             .map((id: string) => new mongoose.Types.ObjectId(id));
           filter._id = { $nin: validObjectIds };
+        } else if (statusFilter === 'UNSOLVED') {
+          // Strictly exclude solved problems; include both unattempted and in-progress problems
+          const validObjectIds = solvedIds
+            .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
+            .map((id: string) => new mongoose.Types.ObjectId(id));
+          filter._id = { $nin: validObjectIds };
         }
       } catch (aggErr: any) {
         console.warn('[ProblemController] Failed to query user status for filter:', aggErr.message);
