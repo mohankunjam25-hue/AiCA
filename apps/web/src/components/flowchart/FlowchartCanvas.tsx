@@ -1,9 +1,15 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+  useImperativeHandle,
+} from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -17,7 +23,6 @@ import {
   ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { SlidersHorizontal } from 'lucide-react';
 
 import {
   FlowchartNodeType,
@@ -32,7 +37,6 @@ import { IONode } from './nodes/IONode';
 import { ProcessNode } from './nodes/ProcessNode';
 import { DecisionNode } from './nodes/DecisionNode';
 import { FlowchartEdge } from './edges/FlowchartEdge';
-import { FlowchartBlockPalette } from './FlowchartBlockPalette';
 import { FlowchartBottomConsole } from './FlowchartBottomConsole';
 import { FlowchartInspector } from './FlowchartInspector';
 import { computeAutoLayout } from './utils/flowchart-auto-layout';
@@ -55,17 +59,32 @@ const edgeTypes = {
   flowchart: FlowchartEdge,
 };
 
-interface FlowchartCanvasProps {
+export interface FlowchartCanvasHandle {
+  addNode: (type: FlowchartNodeType) => void;
+  autoAlign: () => void;
+  validate: () => FlowchartValidationResult | null;
+  save: () => Promise<void>;
+  toggleInspector: () => void;
+}
+
+export interface FlowchartCanvasProps {
   problemId?: string;
   initialGraph?: FlowchartGraph | null;
   onSave?: (graph: FlowchartGraph) => void;
+  onStateChange?: (state: {
+    isSaving: boolean;
+    isInspectorOpen: boolean;
+    varCount: number;
+  }) => void;
 }
 
-export function FlowchartCanvas({
-  problemId,
-  initialGraph,
-  onSave,
-}: FlowchartCanvasProps) {
+export const FlowchartCanvas = React.forwardRef<
+  FlowchartCanvasHandle,
+  FlowchartCanvasProps
+>(function FlowchartCanvas(
+  { problemId, initialGraph, onSave, onStateChange },
+  ref
+) {
   // Initial demo template if graph is empty
   const defaultInitialNodes: Node[] = useMemo(() => {
     if (initialGraph && initialGraph.nodes && initialGraph.nodes.length > 0) {
@@ -697,49 +716,31 @@ export function FlowchartCanvas({
     ? Object.keys(activeStep.variables).length
     : 0;
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      addNode: handleAddNode,
+      autoAlign: handleAutoAlign,
+      validate: handleValidate,
+      save: handleSave,
+      toggleInspector: () => setIsInspectorOpen((prev) => !prev),
+    }),
+    [handleAddNode, handleAutoAlign, handleValidate, handleSave]
+  );
+
+  useEffect(() => {
+    onStateChange?.({
+      isSaving,
+      isInspectorOpen,
+      varCount,
+    });
+  }, [isSaving, isInspectorOpen, varCount, onStateChange]);
+
   return (
     <div className="relative w-full h-full bg-slate-950 overflow-hidden select-none">
-      {/* 1. FLOATING TOP TOOLBAR ISLAND: Centered Micro Dock (Figma / Excalidraw style) */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
-        <FlowchartBlockPalette
-          onAddNode={handleAddNode}
-          onAutoAlign={handleAutoAlign}
-          onValidate={handleValidate}
-          onSave={problemId ? handleSave : undefined}
-          isSaving={isSaving}
-        />
-      </div>
-
-      {/* 2. FLOATING TOP-RIGHT INSPECTOR TOGGLE PILL */}
-      <div className="absolute top-3 right-3 z-20">
-        <div className="relative group flex items-center justify-center">
-          <button
-            onClick={() => setIsInspectorOpen((prev) => !prev)}
-            className={`relative w-8 h-8 flex items-center justify-center rounded-xl border text-xs font-semibold shadow-2xl backdrop-blur-xl transition-all duration-150 cursor-pointer active:scale-90 ${
-              isInspectorOpen
-                ? 'bg-cyan-950/80 border-cyan-700/80 text-cyan-300'
-                : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
-            }`}
-            aria-label={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
-            title={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
-          >
-            <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
-            {varCount > 0 && (
-              <span className="absolute -top-1 -right-1 text-[9px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold border border-slate-900">
-                {varCount}
-              </span>
-            )}
-          </button>
-          <div className="absolute -bottom-8 right-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform group-hover:translate-y-0 translate-y-1 bg-slate-900 border border-slate-700/80 text-[10px] font-semibold text-slate-200 px-2 py-0.5 rounded-md shadow-2xl whitespace-nowrap z-50">
-            {isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
-            <div className="absolute -top-1 right-2.5 w-1.5 h-1.5 bg-slate-900 border-t border-l border-slate-700/80 rotate-45" />
-          </div>
-        </div>
-      </div>
-
       {/* Validation Warning / Error Banner */}
       {validationResult && !validationResult.isValid && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-md w-[90vw] p-2.5 rounded-xl bg-rose-950/90 border border-rose-700/80 text-rose-300 text-xs shadow-2xl backdrop-blur-md flex items-center justify-between">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 max-w-md w-[90vw] p-2.5 rounded-xl bg-rose-950/90 border border-rose-700/80 text-rose-300 text-xs shadow-2xl backdrop-blur-md flex items-center justify-between">
           <span className="font-semibold truncate">
             {validationResult.errors[0]?.message}
           </span>
@@ -752,7 +753,7 @@ export function FlowchartCanvas({
         </div>
       )}
 
-      {/* 3. CANVAS: 100% FULL-SCREEN EDGE-TO-EDGE */}
+      {/* CANVAS: 100% FULL-SCREEN EDGE-TO-EDGE */}
       <div className="w-full h-full absolute inset-0">
         <ReactFlow
           nodes={nodes}
@@ -790,23 +791,16 @@ export function FlowchartCanvas({
             color="#334155"
             className="bg-slate-950 dark:bg-[#0d1117]"
           />
-          <Controls className="bg-slate-900/90! border-slate-800! text-slate-300! fill-slate-300! top-3! left-3! rounded-xl! shadow-2xl!" />
-          <MiniMap
-            nodeColor={(n) => {
-              if (n.type === 'start') return '#10b981';
-              if (n.type === 'end') return '#f43f5e';
-              if (n.type === 'input') return '#06b6d4';
-              if (n.type === 'output') return '#6366f1';
-              if (n.type === 'decision') return '#a855f7';
-              return '#f59e0b';
-            }}
-            maskColor="rgba(15, 23, 42, 0.7)"
-            className="bg-slate-900/90! border-slate-800! rounded-xl! hidden lg:block bottom-14! right-4!"
+          {/* Controls: Clean, Dark Theme High-Contrast in Bottom-Left */}
+          <Controls
+            position="bottom-left"
+            showInteractive={false}
+            className="!bottom-4 !left-4 !rounded-xl !shadow-2xl !z-20"
           />
         </ReactFlow>
       </div>
 
-      {/* 4. SLIDE-OVER RIGHT INSPECTOR (Never resizes the canvas) */}
+      {/* SLIDE-OVER RIGHT INSPECTOR (Never resizes or cramps canvas) */}
       <FlowchartInspector
         step={activeStep}
         error={executionResult?.error?.message}
@@ -816,7 +810,7 @@ export function FlowchartCanvas({
         totalSteps={executionResult?.steps.length || 0}
       />
 
-      {/* 5. FLOATING BOTTOM CONSOLE */}
+      {/* FLOATING BOTTOM CONSOLE */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 max-w-[95vw]">
         <FlowchartBottomConsole
           currentStep={currentStepIndex}
@@ -846,4 +840,4 @@ export function FlowchartCanvas({
       </div>
     </div>
   );
-}
+});

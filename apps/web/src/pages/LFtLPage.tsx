@@ -1,19 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  GitFork,
   BookOpen,
   ChevronDown,
   ArrowLeft,
-  Sparkles,
   FileText,
-  RotateCcw,
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  Maximize,
+  Minimize,
+  SlidersHorizontal,
+  Code2,
 } from 'lucide-react';
 import { Problem } from '@aica/shared';
-import { FlowchartCanvas } from '../components/flowchart/FlowchartCanvas';
+import {
+  FlowchartCanvas,
+  FlowchartCanvasHandle,
+} from '../components/flowchart/FlowchartCanvas';
+import { FlowchartBlockPalette } from '../components/flowchart/FlowchartBlockPalette';
 import { api } from '../services/api';
 
 export function LFtLPage() {
@@ -21,11 +26,55 @@ export function LFtLPage() {
   const navigate = useNavigate();
 
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [problemList, setProblemList] = useState<Array<{ id: string; slug: string; title: string; difficulty: string }>>([]);
+  const [problemList, setProblemList] = useState<
+    Array<{ id: string; slug: string; title: string; difficulty: string }>
+  >([]);
   const [isProblemPickerOpen, setIsProblemPickerOpen] = useState(false);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [savedGraph, setSavedGraph] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Canvas Bridge State & Ref
+  const canvasRef = useRef<FlowchartCanvasHandle>(null);
+  const [canvasState, setCanvasState] = useState({
+    isSaving: false,
+    isInspectorOpen: false,
+    varCount: 0,
+  });
+
+  // Track native fullscreen changes (via Esc or button)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (containerRef.current?.requestFullscreen) {
+        containerRef.current.requestFullscreen().catch((err) => {
+          console.warn('Native fullscreen request failed:', err);
+        });
+      } else {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.warn('Fullscreen request failed:', err);
+        });
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch((err) => {
+          console.warn('Exit fullscreen failed:', err);
+        });
+      }
+    }
+  };
 
   // Fetch catalog problem list for the dropdown
   useEffect(() => {
@@ -80,10 +129,16 @@ export function LFtLPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] w-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* Sleek Sub-Toolbar */}
-      <header className="h-11 border-b border-slate-800/90 bg-slate-900/95 px-3 flex items-center justify-between shrink-0 z-30 backdrop-blur-md">
-        <div className="flex items-center gap-2.5 min-w-0">
+    <div
+      ref={containerRef}
+      className={`flex flex-col w-full bg-slate-950 text-slate-100 overflow-hidden font-sans ${
+        isFullscreen ? 'h-screen' : 'h-[calc(100vh-3.5rem)]'
+      }`}
+    >
+      {/* Sleek Sub-Toolbar with Unified Header: Navigation, Block Palette, Actions */}
+      <header className="h-11 border-b border-slate-800/90 bg-slate-900/95 px-2.5 sm:px-3 flex items-center justify-between gap-2 shrink-0 z-30 backdrop-blur-md select-none">
+        {/* Left: Navigation & Problem Picker */}
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
           <Link
             to="/problems"
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0"
@@ -92,19 +147,17 @@ export function LFtLPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="font-bold text-xs tracking-wider text-purple-400 font-mono bg-purple-950/70 border border-purple-800/80 px-2 py-0.5 rounded-md">
-              LFtL
-            </span>
-          </div>
+          <span className="font-bold text-xs tracking-wider text-purple-400 font-mono bg-purple-950/70 border border-purple-800/80 px-2 py-0.5 rounded-md">
+            LFtL
+          </span>
 
-          <div className="h-4 w-[1px] bg-slate-800 shrink-0" />
+          <div className="h-4 w-[1px] bg-slate-800 shrink-0 hidden sm:block" />
 
           {/* Problem Selector Dropdown */}
           <div className="relative shrink-0">
             <button
               onClick={() => setIsProblemPickerOpen(!isProblemPickerOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-xs font-medium text-slate-200 transition cursor-pointer max-w-[220px] sm:max-w-xs truncate"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-xs font-medium text-slate-200 transition cursor-pointer max-w-[150px] sm:max-w-[200px] md:max-w-xs truncate"
             >
               <BookOpen className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <span className="truncate">{problem ? problem.title : 'Select Problem'}</span>
@@ -141,22 +194,55 @@ export function LFtLPage() {
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Center: Block Palette & Actions (Unified into Header) */}
+        <div className="flex-1 flex items-center justify-center min-w-0 overflow-x-auto scrollbar-none py-0.5">
+          <FlowchartBlockPalette
+            onAddNode={(type) => canvasRef.current?.addNode(type)}
+            onAutoAlign={() => canvasRef.current?.autoAlign()}
+            onValidate={() => canvasRef.current?.validate()}
+            onSave={problem ? () => canvasRef.current?.save() : undefined}
+            isSaving={canvasState.isSaving}
+          />
+        </div>
+
+        {/* Right: Problem Details Drawer, Inspector, Code Editor, Fullscreen Toggle */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {problem && (
             <button
               onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 hover:text-white transition cursor-pointer"
-              title={isDescriptionOpen ? 'Collapse problem details' : 'Show problem details'}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                isDescriptionOpen
+                  ? 'bg-blue-950/80 border-blue-700/80 text-blue-300'
+                  : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+              }`}
+              title="Problem Details"
             >
               {isDescriptionOpen ? (
-                <PanelLeftClose className="w-3.5 h-3.5" />
+                <PanelLeftClose className="w-3.5 h-3.5 text-blue-400" />
               ) : (
-                <PanelLeftOpen className="w-3.5 h-3.5" />
+                <PanelLeftOpen className="w-3.5 h-3.5 text-blue-400" />
               )}
-              <span className="hidden sm:inline">Details</span>
+              <span className="hidden md:inline">Details</span>
             </button>
           )}
+
+          <button
+            onClick={() => canvasRef.current?.toggleInspector()}
+            className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+              canvasState.isInspectorOpen
+                ? 'bg-cyan-950/80 border-cyan-700/80 text-cyan-300'
+                : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+            }`}
+            title="Execution Inspector"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden md:inline">Inspector</span>
+            {canvasState.varCount > 0 && (
+              <span className="text-[10px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold">
+                {canvasState.varCount}
+              </span>
+            )}
+          </button>
 
           {problem && (
             <Link
@@ -164,9 +250,27 @@ export function LFtLPage() {
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
               title="Open problem in Monaco Code Editor"
             >
-              <span>Code Editor</span>
+              <Code2 className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden lg:inline">Code Editor</span>
             </Link>
           )}
+
+          {/* Fullscreen Button (YouTube-style edge-to-edge expand) */}
+          <button
+            onClick={toggleFullscreen}
+            className={`p-1.5 rounded-lg border transition cursor-pointer active:scale-95 ${
+              isFullscreen
+                ? 'bg-amber-950/80 border-amber-700 text-amber-300'
+                : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+            }`}
+            title={isFullscreen ? 'Exit Full Screen (Esc)' : 'Enter Full Screen'}
+          >
+            {isFullscreen ? (
+              <Minimize className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
       </header>
 
@@ -272,9 +376,11 @@ export function LFtLPage() {
         {/* Canvas Workspace: 100% UNCONSTRAINED FULL-SCREEN */}
         <main className="flex-1 w-full h-full relative overflow-hidden bg-slate-950">
           <FlowchartCanvas
+            ref={canvasRef}
             key={slug || 'scratch'}
             problemId={slug}
             initialGraph={savedGraph}
+            onStateChange={setCanvasState}
           />
         </main>
       </div>
