@@ -18,7 +18,9 @@ import {
   TrendingUp,
   Check,
   AlertTriangle,
-  Award
+  Award,
+  Maximize2,
+  Columns2
 } from 'lucide-react';
 import {
   EvaluationReport,
@@ -34,13 +36,17 @@ interface EvaluationReportViewProps {
   submission?: Submission;
   onCompareRequest?: () => void;
   onReportUpdate?: (updatedReport: EvaluationReport) => void;
+  isMaximized?: boolean;
+  onToggleMaximize?: () => void;
 }
 
 export function EvaluationReportView({
   report: initialReport,
   submission,
   onCompareRequest,
-  onReportUpdate
+  onReportUpdate,
+  isMaximized,
+  onToggleMaximize
 }: EvaluationReportViewProps) {
   const [report, setReport] = useState<EvaluationReport>(initialReport);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -196,15 +202,38 @@ export function EvaluationReportView({
           </div>
         </div>
 
-        {onCompareRequest && isAccepted && (
-          <button
-            onClick={onCompareRequest}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
-          >
-            Compare Solution
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onToggleMaximize && (
+            <button
+              type="button"
+              onClick={onToggleMaximize}
+              title={isMaximized ? 'Split View with Code Editor (Alt+M)' : 'Full-Width Evaluation Report (Alt+M)'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white hover:bg-[#f6f8fa] dark:bg-[#21262d] dark:hover:bg-[#30363d] text-[#24292f] dark:text-[#f0f6fc] text-xs font-semibold transition cursor-pointer shadow-xs"
+            >
+              {isMaximized ? (
+                <>
+                  <Columns2 className="w-3.5 h-3.5 text-[#0969da] dark:text-[#58a6ff]" />
+                  <span>Split View</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5 text-[#0969da] dark:text-[#58a6ff]" />
+                  <span>Full-Width</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {onCompareRequest && isAccepted && (
+            <button
+              onClick={onCompareRequest}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+            >
+              Compare Solution
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 2. LeetCode-Style Visual Percentile Distribution Bars (GitHub Primer Card) */}

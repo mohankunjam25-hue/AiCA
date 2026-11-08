@@ -22,6 +22,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Columns,
+  Columns2,
   Copy,
   Check,
   GitFork,
@@ -253,6 +254,29 @@ export function WorkspacePage() {
   const [isLeftCollapsed, setIsLeftCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('aica_workspace_left_collapsed') === 'true';
   });
+  const [isEditorCollapsed, setIsEditorCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('aica_workspace_editor_collapsed') === 'true';
+  });
+
+  const toggleEditorCollapse = () => {
+    setIsEditorCollapsed((prev) => {
+      const next = !prev;
+      if (next) {
+        // Full-Width Left Panel: restore left panel and exit Zen mode
+        setIsLeftCollapsed(false);
+        setIsZenMode(false);
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch {}
+      }
+      try {
+        localStorage.setItem('aica_workspace_editor_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const toggleLeftCollapse = () => {
     if (isZenMode) {
@@ -270,6 +294,15 @@ export function WorkspacePage() {
       return;
     }
 
+    if (isEditorCollapsed) {
+      // If editor was collapsed (full-width left view), toggling left panel restores split view
+      setIsEditorCollapsed(false);
+      try {
+        localStorage.setItem('aica_workspace_editor_collapsed', 'false');
+      } catch {}
+      return;
+    }
+
     setIsLeftCollapsed((prev) => {
       const next = !prev;
       try {
@@ -283,6 +316,10 @@ export function WorkspacePage() {
     setIsZenMode((prev) => {
       const next = !prev;
       if (next) {
+        setIsEditorCollapsed(false);
+        try {
+          localStorage.setItem('aica_workspace_editor_collapsed', 'false');
+        } catch {}
         try {
           if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(() => {});
@@ -327,11 +364,21 @@ export function WorkspacePage() {
       action: toggleZenMode
     },
     {
+      key: 'm',
+      alt: true,
+      description: 'Toggle Full-Width Report / Problem',
+      action: toggleEditorCollapse
+    },
+    {
       key: 'Escape',
-      description: 'Close Modal / Exit Zen Focus Mode',
+      description: 'Close Modal / Exit Full-Width or Zen Focus Mode',
       action: () => {
         if (inspectedCode) {
           setInspectedCode(null);
+          return;
+        }
+        if (isEditorCollapsed) {
+          toggleEditorCollapse();
           return;
         }
         if (isZenMode) {
@@ -521,6 +568,11 @@ export function WorkspacePage() {
       const res = await api.get(`/submissions/${submissionId}/report`);
       setReport(res.data.data);
       setActiveLeftTab('report');
+      // If user had left panel collapsed or was in zen mode, restore left panel so report is immediately visible
+      if (isLeftCollapsed || isZenMode) {
+        setIsLeftCollapsed(false);
+        setIsZenMode(false);
+      }
       // Invalidate submissions & dashboard cache so fresh stats appear
       useDataCacheStore.getState().invalidate('submissions_problem_');
       useDataCacheStore.getState().invalidate('dashboard_data_');
@@ -748,6 +800,37 @@ export function WorkspacePage() {
             </button>
           </nav>
 
+          {/* Full-Width Report / Problem Panel Toggle */}
+          <button
+            type="button"
+            onClick={toggleEditorCollapse}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+              isEditorCollapsed
+                ? 'bg-[#0969da] text-white border-[#0969da] shadow-xs ring-2 ring-blue-400/40'
+                : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
+            }`}
+            title={
+              isEditorCollapsed
+                ? 'Restore Split View with Code Editor (Alt+M)'
+                : activeLeftTab === 'report'
+                ? 'Full-Width Evaluation Report (Alt+M)'
+                : 'Full-Width View (Alt+M)'
+            }
+          >
+            {isEditorCollapsed ? (
+              <Columns2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden md:inline">
+              {isEditorCollapsed
+                ? 'Split View'
+                : activeLeftTab === 'report'
+                ? 'Full-Width Report'
+                : 'Full-Width'}
+            </span>
+          </button>
+
           {/* Quick Problem Panel Collapse Toggle (LeetCode Style: Give Editor 100% Width) */}
           <button
             type="button"
@@ -796,12 +879,12 @@ export function WorkspacePage() {
         className="flex-1 min-h-0 h-full flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
       >
         {/* Left Pane (Description / Report / Comparison) */}
-        {!isZenMode && !isLeftCollapsed && (
+        {!isZenMode && (!isLeftCollapsed || isEditorCollapsed) && (
           <div
-            style={{ width: `${leftWidth}%` }}
+            style={{ width: isEditorCollapsed ? '100%' : `${leftWidth}%` }}
             className={`${
-              mobileWorkspaceTab === 'problem' ? 'flex' : 'hidden'
-            } lg:flex flex-col h-full min-h-0 overflow-hidden w-full lg:w-auto shrink-0 transition-[width] duration-150`}
+              mobileWorkspaceTab === 'problem' || isEditorCollapsed ? 'flex' : 'hidden'
+            } lg:flex flex-col h-full min-h-0 overflow-hidden w-full lg:w-auto shrink-0 transition-[width] duration-200`}
           >
             <div className="flex-1 h-full overflow-y-auto pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
@@ -898,6 +981,8 @@ export function WorkspacePage() {
                   report={report}
                   onCompareRequest={handleCompareClick}
                   onReportUpdate={setReport}
+                  isMaximized={isEditorCollapsed}
+                  onToggleMaximize={toggleEditorCollapse}
                 />
               ) : (
                 <div className="p-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
@@ -1235,8 +1320,8 @@ export function WorkspacePage() {
       </div>
     )}
 
-        {/* Vertical Draggable Splitter Handle (Desktop only, hidden in Zen Mode or when Left Panel is Collapsed) */}
-        {!isZenMode && !isLeftCollapsed && (
+        {/* Vertical Draggable Splitter Handle (Desktop only, hidden in Zen Mode, Left Panel Collapsed, or Editor Collapsed) */}
+        {!isZenMode && !isLeftCollapsed && !isEditorCollapsed && (
           <div
             {...splitterProps}
             className="hidden lg:flex items-center justify-center w-2.5 hover:w-3 cursor-col-resize group shrink-0 transition-all z-10 select-none"
@@ -1246,22 +1331,41 @@ export function WorkspacePage() {
         )}
 
         {/* Right Pane (Monaco Editor Workspace) */}
-        <div
-          style={{ width: isZenMode || isLeftCollapsed ? '100%' : `${100 - leftWidth}%` }}
-          className={`${
-            mobileWorkspaceTab === 'editor' ? 'flex' : 'hidden'
-          } lg:flex flex-col h-full min-h-0 w-full lg:w-auto flex-1 min-w-0 transition-[width] duration-150`}
-        >
-          <MonacoWorkspace
-            problem={problem}
-            onEvaluationComplete={handleEvaluationComplete}
-            loadedCode={loadedCode}
-            isZenMode={isZenMode}
-            onToggleZenMode={toggleZenMode}
-            isPanelCollapsed={isLeftCollapsed || isZenMode}
-            onTogglePanelCollapse={toggleLeftCollapse}
-          />
-        </div>
+        {!isEditorCollapsed && (
+          <div
+            style={{ width: isZenMode || isLeftCollapsed ? '100%' : `${100 - leftWidth}%` }}
+            className={`${
+              mobileWorkspaceTab === 'editor' ? 'flex' : 'hidden'
+            } lg:flex flex-col h-full min-h-0 w-full lg:w-auto flex-1 min-w-0 transition-[width] duration-150`}
+          >
+            <MonacoWorkspace
+              problem={problem}
+              onEvaluationComplete={handleEvaluationComplete}
+              loadedCode={loadedCode}
+              isZenMode={isZenMode}
+              onToggleZenMode={toggleZenMode}
+              isPanelCollapsed={isLeftCollapsed || isZenMode}
+              onTogglePanelCollapse={toggleLeftCollapse}
+            />
+          </div>
+        )}
+
+        {/* Floating Quick Restore Split View Pill when Editor is Collapsed */}
+        {isEditorCollapsed && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={toggleEditorCollapse}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1f2328] dark:bg-[#21262d] text-white text-xs font-semibold shadow-xl border border-[#d0d7de]/30 dark:border-[#30363d] hover:bg-black dark:hover:bg-[#30363d] transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Columns2 className="w-4 h-4 text-[#58a6ff]" />
+              <span>Split View with Code Editor</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-mono text-white/90">
+                Alt+M
+              </kbd>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Code Snapshot Modal */}
