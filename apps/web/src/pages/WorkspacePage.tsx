@@ -23,7 +23,8 @@ import {
   PanelLeftOpen,
   Columns,
   Copy,
-  Check
+  Check,
+  GitFork
 } from 'lucide-react';
 import {
   Problem,
@@ -222,8 +223,10 @@ function CopyableCodeBlock({ text, className = '' }: { text: string; className?:
 export function WorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [forking, setForking] = useState(false);
   const [activeLeftTab, setActiveLeftTab] = useState<'desc' | 'report' | 'compare' | 'submissions'>('desc');
   const [report, setReport] = useState<EvaluationReport | null>(null);
   const [comparison, setComparison] = useState<SolutionComparison | null>(null);
@@ -370,6 +373,33 @@ export function WorkspacePage() {
     setLoading(false);
   };
 
+  const handleForkToPractice = async () => {
+    if (!problem?.id) return;
+    if (!user) {
+      toast.info('Please sign in to fork this problem to your personal practice lab');
+      navigate('/login');
+      return;
+    }
+    setForking(true);
+    try {
+      const res = await api.post(`/problems/practice/${problem.id}/fork`, {
+        customTitle: `${problem.title} (Practice)`,
+        includeHiddenTests: true
+      });
+      const forkedProblem = res.data?.data?.problem;
+      toast.success('Forked to your personal Practice Lab!');
+      if (forkedProblem?.slug) {
+        navigate(`/workspace/${forkedProblem.slug}`);
+      } else if (forkedProblem?.id) {
+        navigate(`/workspace/${forkedProblem.id}`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Failed to fork problem to practice lab');
+    } finally {
+      setForking(false);
+    }
+  };
+
   const fetchProblemSubmissions = async (force: boolean = false) => {
     if (!problem?.id) return;
     const cacheKey = `submissions_problem_${problem.id}`;
@@ -509,6 +539,27 @@ export function WorkspacePage() {
           >
             {problem.difficulty}
           </span>
+
+          {problem.isCustomPractice ? (
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shrink-0">
+              🧪 Practice Lab
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleForkToPractice}
+              disabled={forking}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#30363d] hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer disabled:opacity-50 shadow-2xs"
+              title="Fork this problem into your personal Practice Lab with editable test cases"
+            >
+              {forking ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <GitFork className="w-3.5 h-3.5" />
+              )}
+              <span>{forking ? 'Forking...' : 'Fork to Practice'}</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Adaptive Segmented Switcher & Controls */}
@@ -661,6 +712,25 @@ export function WorkspacePage() {
             <div className="flex-1 h-full overflow-y-auto pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
             <div className="min-h-full p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-2xl space-y-5 shadow-xs">
+              {problem.isCustomPractice && (
+                <div className="p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/40 text-purple-900 dark:text-purple-200 text-xs flex items-start gap-2.5">
+                  <span className="text-base">🧪</span>
+                  <div className="space-y-0.5">
+                    <div className="font-bold flex items-center gap-2">
+                      <span>Personal Practice Lab Challenge</span>
+                      {problem.authorMetadata?.username && (
+                        <span className="text-[10px] font-normal text-purple-600 dark:text-purple-400">
+                          by {problem.authorMetadata.username}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-purple-700 dark:text-purple-300 text-[11px] leading-relaxed">
+                      This is an isolated personal practice challenge. You can run solutions, execute benchmarks, and test custom corner cases directly in the Linux sandbox without impacting public catalog metrics.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h2 className="text-xl font-bold text-[#1f2328] dark:text-[#e6edf3]">{problem.title}</h2>
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">

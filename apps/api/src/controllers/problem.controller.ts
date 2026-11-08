@@ -57,8 +57,9 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
     }
 
     const filter: Record<string, any> = {
-      // Only serve PUBLISHED problems to general catalog (or legacy unmigrated problems)
-      status: { $in: ['PUBLISHED', null] }
+      // Only serve PUBLISHED curriculum problems to general catalog
+      status: { $in: ['PUBLISHED', null] },
+      isCustomPractice: { $ne: true }
     };
 
     if (difficulty) {
@@ -285,40 +286,35 @@ export async function getProblemById(req: Request, res: Response): Promise<void>
     const isStaff = req.user?.role === 'ADMIN' || req.user?.role === 'INSTRUCTOR';
     const cacheKey = `cache:problems:item:${id}`;
 
-    if (!isStaff) {
-      const cached = await CacheService.get<any>(cacheKey);
-      if (cached) {
-        res.setHeader('X-Cache', 'HIT');
-        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-        res.status(200).json(createSuccessResponse(cached));
-        return;
-      }
-    }
-
     // Support dual lookup: by MongoDB ObjectId OR URL-friendly slug
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { slug: id };
     const problem: any = await ProblemModel.findOne(query).lean();
 
-    if (!problem || (problem.status && problem.status !== 'PUBLISHED' && !isStaff)) {
+    const isOwner = Boolean(req.user?.id && problem?.createdBy === req.user.id);
+    const isShareable = problem?.practiceVisibility === 'UNLISTED_SHAREABLE';
+
+    if (!problem || (problem.status && problem.status !== 'PUBLISHED' && !isStaff && !isOwner && !isShareable)) {
       res.status(404).json(createErrorResponse('NOT_FOUND', 'Problem not found or unpublished'));
       return;
     }
 
-    // Sanitize test cases: strictly return only public test cases to students
-    const publicTestCases = (problem.testCases || [])
-      .filter((tc: any) => tc.isPublic === true)
+    // Sanitize test cases: return all test cases if user is staff or owner, otherwise strictly public cases
+    const showAllCases = isStaff || isOwner;
+    const sanitizedTestCases = (problem.testCases || [])
+      .filter((tc: any) => showAllCases || tc.isPublic === true)
       .map((tc: any) => ({
         id: tc.id,
         input: tc.input,
         expectedOutput: tc.expectedOutput,
         explanation: tc.explanation,
-        isPublic: true
+        isPublic: tc.isPublic,
+        isEdgeCase: tc.isEdgeCase
       }));
 
     const sanitizedProblem: any = {
       ...problem,
       id: problem._id.toString(),
-      testCases: publicTestCases,
+      testCases: sanitizedTestCases,
 
       acceptanceRate:
         problem.totalSubmissions > 0
