@@ -54,7 +54,15 @@ export function IONode({ data, id }: NodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        className={`w-3 h-3 ${isInput ? 'bg-cyan-400' : 'bg-indigo-400'} border-2 border-slate-900 rounded-full`}
+        className={`w-3 h-3 ${isInput ? 'bg-cyan-400' : 'bg-indigo-400'} border-2 border-slate-900 rounded-full hover:scale-125 transition-transform`}
+      />
+
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target-left"
+        className={`w-2.5 h-2.5 ${isInput ? 'bg-cyan-500/70' : 'bg-indigo-500/70'} border border-slate-900 rounded-full hover:scale-125 transition-transform`}
+        title="Side entry port"
       />
 
       <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2 mb-2">

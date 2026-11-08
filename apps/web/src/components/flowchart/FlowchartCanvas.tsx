@@ -12,6 +12,7 @@ import {
   Node,
   BackgroundVariant,
   MarkerType,
+  ConnectionLineType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -246,13 +247,16 @@ export function FlowchartCanvas({
       let label: string | undefined = undefined;
       let branch: string | undefined = undefined;
 
+      let markerColor = '#64748b';
       if (sourceNode?.type === 'decision') {
         if (connection.sourceHandle === 'true') {
           label = 'TRUE';
           branch = 'TRUE';
+          markerColor = '#10b981';
         } else if (connection.sourceHandle === 'false') {
           label = 'FALSE';
           branch = 'FALSE';
+          markerColor = '#f43f5e';
         }
       }
 
@@ -261,7 +265,12 @@ export function FlowchartCanvas({
         id: `e-${Date.now()}`,
         type: 'flowchart',
         label,
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b' },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: markerColor,
+          width: 18,
+          height: 18,
+        },
         data: {
           branch,
           sourceHandle: connection.sourceHandle,
@@ -597,7 +606,21 @@ export function FlowchartCanvas({
           edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.3 }}
-          defaultEdgeOptions={{ type: 'flowchart' }}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          connectionLineStyle={{
+            stroke: '#38bdf8',
+            strokeWidth: 2.5,
+            strokeDasharray: '6 4',
+          }}
+          defaultEdgeOptions={{
+            type: 'flowchart',
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 18,
+              height: 18,
+              color: '#64748b',
+            },
+          }}
         >
           <Background
             variant={BackgroundVariant.Dots}
