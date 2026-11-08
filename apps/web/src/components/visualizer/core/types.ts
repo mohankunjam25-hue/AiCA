@@ -113,6 +113,15 @@ export type VisualPayload =
   | MatrixVisualPayload
   | SystemVisualPayload;
 
+export interface TelemetryData {
+  comparisonsCount?: number;
+  swapsCount?: number;
+  operationsCount?: number;
+  spaceEliminatedPct?: number;
+  theoreticalBound?: string;
+  notes?: string;
+}
+
 export interface TraceFrame {
   id: string;
   stepIndex: number;
@@ -121,11 +130,18 @@ export interface TraceFrame {
   actionType: VisualActionType;
   visualPayload: VisualPayload;
   variables: Record<string, any>;
+  telemetry?: TelemetryData;
   narration: {
     title: string;
     explanation: string;
     complexityImpact?: string;
   };
+}
+
+export interface AlgorithmPresets<TInput = any> {
+  bestCase?: { label: string; input: TInput };
+  worstCase?: { label: string; input: TInput };
+  generateRandom?: () => TInput;
 }
 
 export interface AlgorithmDefinition<TInput = any> {
@@ -137,6 +153,7 @@ export interface AlgorithmDefinition<TInput = any> {
   spaceComplexity: string;
   description: string;
   defaultInput: TInput;
+  presets?: AlgorithmPresets<TInput>;
   codeMap: Record<SupportedLanguage, string>;
   generateSteps: (input: TInput) => TraceFrame[];
   validateCustomInput?: (inputStr: string) => { valid: boolean; parsed?: TInput; error?: string };
