@@ -26,7 +26,9 @@ export function LoginPage() {
       const res = await api.post('/auth/login', { email, password });
       const { user, accessToken, profile } = res.data.data;
       setAuth(user, accessToken, profile);
-      navigate(redirectUrl || '/dashboard');
+      const isAdminOrInstructor = user.role === 'ADMIN' || user.role === 'INSTRUCTOR';
+      const targetUrl = redirectUrl || (isAdminOrInstructor ? '/admin/dashboard' : '/dashboard');
+      navigate(targetUrl);
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Invalid email or password');
     } finally {

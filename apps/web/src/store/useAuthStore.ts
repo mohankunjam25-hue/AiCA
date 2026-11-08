@@ -6,8 +6,10 @@ interface AuthState {
   profile: UserProfile | null;
   accessToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string, profile?: UserProfile) => void;
+  isStudentPreviewMode: boolean;
+  setAuth: (user, token, profile) => void;
   setAccessToken: (token: string) => void;
+  setStudentPreviewMode: (enabled: boolean) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>) => void;
   logout: () => void;
 }
@@ -16,12 +18,19 @@ export const useAuthStore = create<AuthState>((set) => {
   const savedToken = localStorage.getItem('aica_token');
   const savedUser = localStorage.getItem('aica_user');
   const savedProfile = localStorage.getItem('aica_profile');
+  const savedPreview = localStorage.getItem('aica_student_preview') === 'true';
 
   return {
     user: savedUser ? JSON.parse(savedUser) : null,
     profile: savedProfile ? JSON.parse(savedProfile) : null,
     accessToken: savedToken,
     isAuthenticated: Boolean(savedToken),
+    isStudentPreviewMode: savedPreview,
+
+    setStudentPreviewMode: (enabled: boolean) => {
+      localStorage.setItem('aica_student_preview', String(enabled));
+      set({ isStudentPreviewMode: enabled });
+    },
 
     setAuth: (user, token, profile) => {
       localStorage.setItem('aica_token', token);
@@ -56,11 +65,13 @@ export const useAuthStore = create<AuthState>((set) => {
       localStorage.removeItem('aica_token');
       localStorage.removeItem('aica_user');
       localStorage.removeItem('aica_profile');
+      localStorage.removeItem('aica_student_preview');
       set({
         user: null,
         profile: null,
         accessToken: null,
-        isAuthenticated: false
+        isAuthenticated: false,
+        isStudentPreviewMode: false
       });
     }
   };

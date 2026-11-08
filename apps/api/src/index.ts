@@ -17,6 +17,7 @@ import comparisonRoutes from './routes/comparison.routes.js';
 import problemProposalRoutes from './routes/problem-proposal.routes.js';
 import practiceProblemRoutes from './routes/practice-problem.routes.js';
 import developerRoutes from './routes/developer.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import { createSuccessResponse, createErrorResponse } from '@aica/shared';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,6 +128,7 @@ app.use('/api/v1/leaderboards', leaderboardRoutes);
 app.use('/api/v1/comparisons', comparisonRoutes);
 app.use('/api/v1/algorithms', algorithmRoutes);
 app.use('/api/v1/developers', developerRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // 404 Handler
 app.use((req, res) => {

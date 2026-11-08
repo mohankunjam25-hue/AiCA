@@ -11,6 +11,7 @@ export * from './types/evaluation.js';
 export * from './types/comparison.js';
 export * from './types/leaderboard.js';
 export * from './types/developer.js';
+export * from './types/admin.js';
 
 // Schemas & DTOs
 export * from './schemas/auth.schema.js';
