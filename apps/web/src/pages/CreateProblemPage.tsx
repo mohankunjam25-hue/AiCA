@@ -26,10 +26,11 @@ import { useAuthStore } from '../store/useAuthStore';
 import { ProblemAuthoringStudio } from '../components/ProblemAuthoringStudio';
 
 const QUICK_PROMPTS = [
-  'Find the first non-repeating character in a string of lowercase English letters.',
-  'Given an array of integers representing daily stock prices, find the maximum profit possible with at most two transactions.',
-  'Given an array of numbers, move all zeros to the end while maintaining the relative order of non-zero elements in O(n) time and O(1) space.',
-  'Validate if a string containing parentheses (), brackets [], and braces {} is properly balanced.'
+  '🏢 FAANG: Given an integer array nums and an integer k, return the total number of continuous subarrays whose sum equals to k in O(n) time.',
+  '🏢 Google L5: Given a grid with obstacles, find the shortest path from top-left to bottom-right eliminating at most k obstacles.',
+  '🏢 Amazon: Given an array of strings words and an integer k, return the k most frequent strings sorted by frequency and lexicographical order.',
+  '🏢 Meta: Serialize and deserialize an N-ary tree with compact bracket notation, ensuring linear time and space.',
+  '🏢 Apple: Design a Time-Based Key-Value Store with TTL expiration and binary-search timestamp lookups.'
 ];
 
 const STAGES: { key: string; label: string; description: string }[] = [
@@ -51,6 +52,8 @@ export function CreateProblemPage() {
 
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingInstantPractice, setIsGeneratingInstantPractice] = useState(false);
+  const [instantSuccessProblem, setInstantSuccessProblem] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [activeProposal, setActiveProposal] = useState<ProblemProposal | null>(null);
@@ -130,6 +133,32 @@ export function CreateProblemPage() {
       }
     };
   }, [activeProposal?.id, (activeProposal as any)?.proposalId, activeProposal?.status]);
+
+  const handleInstantAIPractice = async () => {
+    if (!prompt.trim() || prompt.length < 10) {
+      setError('Please provide a detailed question idea of at least 10 characters.');
+      return;
+    }
+
+    setError(null);
+    setIsGeneratingInstantPractice(true);
+
+    try {
+      const res = await api.post('/problems/practice/ai-generate', { prompt: prompt.trim() });
+      const created = res.data.data;
+      setInstantSuccessProblem(created);
+      setTimeout(() => {
+        navigate(`/workspace/${created.slug || created.id}`);
+      }, 1000);
+    } catch (err: any) {
+      setError(
+        err.response?.data?.error?.message ||
+          'Failed to generate instant practice problem. You can also craft it directly using the Manual Authoring Studio.'
+      );
+    } finally {
+      setIsGeneratingInstantPractice(false);
+    }
+  };
 
   const handleSubmitPrompt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,6 +356,24 @@ export function CreateProblemPage() {
                 </div>
               </div>
 
+              {instantSuccessProblem && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs">Practice Challenge Ready!</p>
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Opening workspace in sandbox...</p>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/workspace/${instantSuccessProblem.slug || instantSuccessProblem.id}`}
+                    className="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition"
+                  >
+                    Open Now →
+                  </Link>
+                </div>
+              )}
+
               {error && (
                 <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
@@ -334,23 +381,50 @@ export function CreateProblemPage() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting || (activeProposal !== null && activeProposal.status !== 'VALIDATION_FAILED')}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm hover:shadow transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
-                    Submitting to Pipeline...
-                  </>
-                ) : (
-                  <>
-                    <Bot className="w-4 h-4 text-emerald-400" />
-                    Formulate &amp; Validate with AI
-                  </>
-                )}
-              </button>
+              <div className="flex flex-col gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={handleInstantAIPractice}
+                  disabled={isGeneratingInstantPractice || isSubmitting}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isGeneratingInstantPractice ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-purple-200" />
+                      <span>Synthesizing Sandbox Challenge (10s)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>⚡ Instant Practice: Generate &amp; Solve Now</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                  <span className="flex-shrink mx-3 text-[10px] uppercase font-mono text-slate-400">or submit to curriculum</span>
+                  <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isGeneratingInstantPractice || (activeProposal !== null && activeProposal.status !== 'VALIDATION_FAILED')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                      Submitting to Differential Review Pipeline...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      Submit for Dual-Oracle Official Review
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </div>
 

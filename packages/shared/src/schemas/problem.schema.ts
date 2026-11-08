@@ -118,3 +118,69 @@ export const AdminProposalRejectSchema = z.object({
 });
 
 export type AdminProposalRejectDto = z.infer<typeof AdminProposalRejectSchema>;
+
+export const PracticeProblemCreateSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters').max(100, 'Title cannot exceed 100 characters'),
+  slug: z.string().min(3).max(100).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must consist of lowercase alphanumeric characters separated by hyphens').optional(),
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),
+  tags: z.array(z.string().min(1)).default(['Practice']),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
+  constraints: z.array(z.string()).default([]),
+  examples: z.array(
+    z.object({
+      input: z.string(),
+      output: z.string(),
+      explanation: z.string().optional()
+    })
+  ).default([]),
+  timeLimitMs: z.number().int().min(100).max(10000).default(2000),
+  memoryLimitKb: z.number().int().min(16384).max(524288).default(262144),
+  functionSignature: FunctionSignatureSchema.optional(),
+  starterCode: z.object({
+    python: z.string().optional().default(''),
+    javascript: z.string().optional().default(''),
+    cpp: z.string().optional().default(''),
+    java: z.string().optional().default('')
+  }).optional().default({}),
+  testCases: z.array(TestCaseSchema).min(1, 'At least one test case is required'),
+  isAIAssisted: z.boolean().default(false),
+  practiceVisibility: z.enum(['PRIVATE', 'UNLISTED_SHAREABLE', 'CATALOG_PROPOSED', 'CATALOG_APPROVED']).default('PRIVATE')
+});
+
+export type PracticeProblemCreateDto = z.infer<typeof PracticeProblemCreateSchema>;
+
+export const PracticeProblemUpdateSchema = z.object({
+  title: z.string().min(3).max(100).optional(),
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).optional(),
+  tags: z.array(z.string().min(1)).optional(),
+  description: z.string().min(10).optional(),
+  constraints: z.array(z.string()).optional(),
+  examples: z.array(
+    z.object({
+      input: z.string(),
+      output: z.string(),
+      explanation: z.string().optional()
+    })
+  ).optional(),
+  timeLimitMs: z.number().int().min(100).max(10000).optional(),
+  memoryLimitKb: z.number().int().min(16384).max(524288).optional(),
+  starterCode: z.object({
+    python: z.string().optional(),
+    javascript: z.string().optional(),
+    cpp: z.string().optional(),
+    java: z.string().optional()
+  }).optional(),
+  testCases: z.array(TestCaseSchema).min(1).optional(),
+  practiceVisibility: z.enum(['PRIVATE', 'UNLISTED_SHAREABLE', 'CATALOG_PROPOSED', 'CATALOG_APPROVED']).optional()
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided for update'
+});
+
+export type PracticeProblemUpdateDto = z.infer<typeof PracticeProblemUpdateSchema>;
+
+export const PracticeProblemForkSchema = z.object({
+  customTitle: z.string().min(3).max(100).optional(),
+  includeHiddenTests: z.boolean().optional().default(true)
+});
+
+export type PracticeProblemForkDto = z.infer<typeof PracticeProblemForkSchema>;

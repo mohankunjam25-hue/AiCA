@@ -18,10 +18,23 @@ const ProblemSchema = new Schema<ProblemDocument>({
   slug: { type: String, required: true, unique: true, index: true },
   status: {
     type: String,
-    enum: ['UNPUBLISHED', 'PUBLISHED', 'DEPRECATED', 'ARCHIVED'],
+    enum: ['UNPUBLISHED', 'PUBLISHED', 'DEPRECATED', 'ARCHIVED', 'PRACTICE'],
     default: 'UNPUBLISHED', // Safe default: new problems are never exposed publicly before approval
     required: true,
     index: true
+  },
+  isCustomPractice: { type: Boolean, default: false, index: true },
+  practiceVisibility: {
+    type: String,
+    enum: ['PRIVATE', 'UNLISTED_SHAREABLE', 'CATALOG_PROPOSED', 'CATALOG_APPROVED'],
+    default: 'PRIVATE',
+    index: true
+  },
+  forkedFromProblemId: { type: String, sparse: true, index: true },
+  authorMetadata: {
+    username: { type: String },
+    role: { type: String, enum: ['STUDENT', 'INSTRUCTOR', 'ADMIN'], default: 'STUDENT' },
+    isAIAssisted: { type: Boolean, default: false }
   },
   version: { type: Number, default: 1, required: true },
   sourceProposalId: { type: String, unique: true, sparse: true, index: true },
@@ -92,5 +105,7 @@ const ProblemSchema = new Schema<ProblemDocument>({
 // Compound indexes
 ProblemSchema.index({ difficulty: 1, tags: 1 });
 ProblemSchema.index({ status: 1, difficulty: 1, createdAt: -1 });
+ProblemSchema.index({ createdBy: 1, isCustomPractice: 1, createdAt: -1 });
+ProblemSchema.index({ practiceVisibility: 1, slug: 1 });
 
 export const ProblemModel = mongoose.model<ProblemDocument>('Problem', ProblemSchema);

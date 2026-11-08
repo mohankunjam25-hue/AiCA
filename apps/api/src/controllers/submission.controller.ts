@@ -59,7 +59,10 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
       problem = await ProblemModel.findOne({ slug: problemId });
     }
     const isStaff = req.user?.role === 'ADMIN' || req.user?.role === 'INSTRUCTOR';
-    if (!problem || (problem.status && problem.status !== 'PUBLISHED' && !isStaff)) {
+    const isOwner = Boolean(req.user?.id && problem.createdBy === req.user.id);
+    const isShareable = (problem as any).practiceVisibility === 'UNLISTED_SHAREABLE';
+
+    if (!problem || (problem.status && problem.status !== 'PUBLISHED' && !isStaff && !isOwner && !isShareable)) {
       res.status(404).json(createErrorResponse('NOT_FOUND', 'Target problem not found or unpublished'));
       return;
     }

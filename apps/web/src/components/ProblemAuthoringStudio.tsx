@@ -34,6 +34,7 @@ import {
   TestCase
 } from '@aica/shared';
 import { api } from '../services/api';
+import { useAuthStore } from '../store/useAuthStore';
 
 export interface ProblemFormData {
   title: string;
@@ -244,6 +245,9 @@ export function ProblemAuthoringStudio({
   onCancel,
   isStandalone = false
 }: ProblemAuthoringStudioProps) {
+  const user = useAuthStore((s) => s.user);
+  const isStudent = user?.role === 'STUDENT';
+
   const [formData, setFormData] = useState<ProblemFormData>(initialData || DEFAULT_FORM_DATA);
   const [activeTab, setActiveTab] = useState<StudioTab>('metadata');
   const [activeLangTab, setActiveLangTab] = useState<'python' | 'cpp' | 'java' | 'javascript'>('python');
@@ -469,7 +473,7 @@ export function ProblemAuthoringStudio({
     setError(null);
     setSuccess(null);
 
-    const effectiveStatus = targetStatus || formData.status;
+    const effectiveStatus = isStudent ? 'PRACTICE' : (targetStatus || formData.status);
 
     // Run validations
     if (!formData.title.trim() || formData.title.length < 3) {
@@ -493,7 +497,7 @@ export function ProblemAuthoringStudio({
       return;
     }
 
-    if (effectiveStatus === 'PUBLISHED') {
+    if (effectiveStatus === 'PUBLISHED' && !isStudent) {
       const hasPub = formData.testCases.some((tc) => tc.isPublic);
       const hasHid = formData.testCases.some((tc) => !tc.isPublic);
       if (!hasPub || !hasHid) {
@@ -503,6 +507,12 @@ export function ProblemAuthoringStudio({
       }
     }
 
+    if (isStudent && formData.testCases.length === 0) {
+      setError('Please add at least one test case to practice against.');
+      setActiveTab('testcases');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const payload = {
@@ -510,7 +520,9 @@ export function ProblemAuthoringStudio({
       slug: formData.slug.trim(),
       difficulty: formData.difficulty,
       status: effectiveStatus,
-      tags: formData.tags,
+      isCustomPractice: isStudent,
+      practiceVisibility: isStudent ? 'PRIVATE' : undefined,
+      tags: formData.tags.length > 0 ? formData.tags : ['Practice'],
       description: formData.description.trim(),
       constraints: formData.constraints,
       examples: formData.examples.filter((ex) => ex.input.trim() && ex.output.trim()),
@@ -528,13 +540,19 @@ export function ProblemAuthoringStudio({
     try {
       let savedProblem: Problem;
       if (editingProblemId) {
-        const res = await api.put(`/problems/${editingProblemId}`, payload);
+        const endpoint = isStudent ? `/problems/practice/${editingProblemId}` : `/problems/${editingProblemId}`;
+        const res = await api.put(endpoint, payload);
         savedProblem = res.data.data;
         setSuccess(`Problem "${payload.title}" updated successfully!`);
       } else {
-        const res = await api.post('/problems', payload);
+        const endpoint = isStudent ? '/problems/practice' : '/problems';
+        const res = await api.post(endpoint, payload);
         savedProblem = res.data.data;
-        setSuccess(`Problem "${payload.title}" created successfully and saved to catalog!`);
+        setSuccess(
+          `Problem "${payload.title}" created successfully and saved to ${
+            isStudent ? 'your personal practice lab' : 'catalog'
+          }!`
+        );
       }
 
       if (onSuccess) {

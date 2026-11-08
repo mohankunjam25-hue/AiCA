@@ -2,7 +2,8 @@ import { SupportedLanguage } from '../constants/languages.js';
 import { SolutionApproach, ApproachComparisonRow } from './evaluation.js';
 
 export type ProblemDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
-export type ProblemLifecycleStatus = 'UNPUBLISHED' | 'PUBLISHED' | 'DEPRECATED' | 'ARCHIVED';
+export type ProblemLifecycleStatus = 'UNPUBLISHED' | 'PUBLISHED' | 'DEPRECATED' | 'ARCHIVED' | 'PRACTICE';
+export type PracticeVisibility = 'PRIVATE' | 'UNLISTED_SHAREABLE' | 'CATALOG_PROPOSED' | 'CATALOG_APPROVED';
 export type ProblemSortOption = 'latest' | 'difficulty_asc' | 'difficulty_desc' | 'title_asc';
 
 export type ProposalStatus =
@@ -96,6 +97,14 @@ export interface Problem {
   totalSubmissions: number;
   acceptedSubmissions: number;
   acceptanceRate?: number;
+  isCustomPractice?: boolean;
+  practiceVisibility?: PracticeVisibility;
+  forkedFromProblemId?: string;
+  authorMetadata?: {
+    username?: string;
+    role?: string;
+    isAIAssisted?: boolean;
+  };
   createdBy: string; // PostgreSQL UUID
   createdAt: string;
   updatedAt: string;
@@ -114,6 +123,14 @@ export interface ProblemListItem {
   bestMemoryKb?: number;
   lastVerdict?: string;
   solutionCode?: string;
+  isCustomPractice?: boolean;
+  practiceVisibility?: PracticeVisibility;
+  authorMetadata?: {
+    username?: string;
+    role?: string;
+    isAIAssisted?: boolean;
+  };
+  totalTestCases?: number;
 }
 
 export interface ProblemProposalClarification {

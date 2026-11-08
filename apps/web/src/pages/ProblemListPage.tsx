@@ -34,7 +34,10 @@ import {
   Award,
   ShieldCheck,
   CheckCheck,
-  Play
+  Play,
+  Share2,
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 import { ProblemListItem, ProblemDifficulty, ProblemSortOption } from '@aica/shared';
 import { api } from '../services/api';
@@ -42,7 +45,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useDebounce } from '../hooks';
 
-export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks';
+export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks' | 'practice';
 export type ViewMode = 'table' | 'grid';
 
 export interface CuratedTrackProblem {
@@ -342,6 +345,28 @@ export function ProblemListPage() {
     setLoading(true);
     setError(null);
     try {
+      if (activeTab === 'practice') {
+        const practiceParams: Record<string, any> = {
+          page: fetchPage,
+          limit: fetchLimit
+        };
+        if (difficulty !== 'ALL') practiceParams.difficulty = difficulty;
+        if (selectedTag !== 'All Topics') practiceParams.tag = selectedTag;
+        if (debouncedSearch.trim()) practiceParams.search = debouncedSearch.trim();
+
+        const res = await api.get('/problems/practice/my-practice', { params: practiceParams });
+        const data = res.data.data;
+        const fetchedProblems = data.problems || [];
+        const fetchedPagination = data.pagination || null;
+
+        setProblems(fetchedProblems);
+        if (fetchedPagination) {
+          setPagination(fetchedPagination);
+        }
+        setLoading(false);
+        return;
+      }
+
       const params: Record<string, any> = {
         page: fetchPage,
         limit: fetchLimit,
@@ -398,6 +423,29 @@ export function ProblemListPage() {
     setSelectedTag(track.primaryTag);
     setActiveTab('unsolved');
     setPage(1);
+  };
+
+  const [copiedProblemSlug, setCopiedProblemSlug] = useState<string | null>(null);
+
+  const handleSharePractice = (e: React.MouseEvent, slug: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/workspace/${slug}?practiceShare=true`;
+    navigator.clipboard.writeText(url);
+    setCopiedProblemSlug(slug);
+    setTimeout(() => setCopiedProblemSlug(null), 2000);
+  };
+
+  const handleDeletePractice = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this custom practice problem?')) return;
+    try {
+      await api.delete(`/problems/practice/${id}`);
+      setProblems((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to delete practice problem');
+    }
   };
 
   const copyCodeToClipboard = (code: string) => {
@@ -483,6 +531,15 @@ export function ProblemListPage() {
                 </div>
               )}
 
+              {/* Practice Challenge Quick Creation */}
+              <Link
+                to="/create-problem"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8250df] hover:bg-[#6e40c9] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Practice Challenge</span>
+              </Link>
+
               {/* View Mode Toggle */}
               <div className="inline-flex rounded-lg p-0.5 bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d]">
                 <button
@@ -512,7 +569,7 @@ export function ProblemListPage() {
           </div>
 
           {/* ============================================================== */}
-          {/* 5 SMART SEGMENTED TABS (Option B)                              */}
+          {/* SMART SEGMENTED TABS                                            */}
           {/* ============================================================== */}
           <div className="flex items-center gap-2 mt-5 overflow-x-auto pb-1 border-b border-[#d0d7de]/70 dark:border-[#30363d]">
             {[
@@ -520,7 +577,8 @@ export function ProblemListPage() {
               { id: 'solved', label: 'Solved Questions', icon: CheckCircle2, badgeColor: 'text-[#1a7f37] dark:text-[#3fb950]' },
               { id: 'pending', label: 'In-Progress / Pending', icon: Clock, badgeColor: 'text-[#9a6700] dark:text-[#d29922]' },
               { id: 'all', label: 'Full Catalog', icon: BookOpen, count: pagination.total || totalCatalog },
-              { id: 'tracks', label: 'Algorithm Tracks', icon: Award, badgeColor: 'text-[#8250df] dark:text-[#a371f7]' }
+              { id: 'tracks', label: 'Algorithm Tracks', icon: Award, badgeColor: 'text-[#8250df] dark:text-[#a371f7]' },
+              { id: 'practice', label: 'My Practice Lab', icon: Code2, badgeColor: 'text-purple-600 dark:text-purple-400' }
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -874,6 +932,28 @@ export function ProblemListPage() {
               </div>
             ) : (
               <>
+                {/* Practice Lab Dedicated Context Banner */}
+                {activeTab === 'practice' && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent border border-purple-200 dark:border-purple-900/60 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-base font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        My Personal Practice Lab &amp; Custom Challenges
+                      </h2>
+                      <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1 leading-relaxed max-w-2xl">
+                        Self-authored algorithmic problems evaluated under isolated Linux kernel cgroup sandbox. Practice challenging edge cases or share challenge links with peers.
+                      </p>
+                    </div>
+                    <Link
+                      to="/create-problem"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Create Practice Challenge</span>
+                    </Link>
+                  </div>
+                )}
+
                 {/* Unified Filter & Search Bar */}
                 <div className="p-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
@@ -999,7 +1079,9 @@ export function ProblemListPage() {
                   <div className="p-16 text-center space-y-3 bg-white dark:bg-[#161b22] rounded-xl border border-[#d0d7de] dark:border-[#30363d]">
                     <BookOpen className="w-8 h-8 text-[#8c959f] dark:text-[#6e7681] mx-auto" />
                     <p className="text-[#1f2328] dark:text-[#f0f6fc] font-bold text-sm">
-                      {activeTab === 'unsolved'
+                      {activeTab === 'practice'
+                        ? 'Your Practice Lab is Empty'
+                        : activeTab === 'unsolved'
                         ? 'Great job! No unsolved challenges remaining'
                         : activeTab === 'solved'
                         ? 'No solved challenges yet'
@@ -1008,13 +1090,23 @@ export function ProblemListPage() {
                         : 'No matching problems found'}
                     </p>
                     <p className="text-[#656d76] dark:text-[#848d97] text-xs max-w-sm mx-auto">
-                      {activeTab === 'unsolved'
+                      {activeTab === 'practice'
+                        ? 'Create your first practice problem or use the 10-second AI generator from an interview question idea!'
+                        : activeTab === 'unsolved'
                         ? 'You have solved all available challenges! Review your solutions in "Solved Questions" or explore the Full Catalog.'
                         : activeTab === 'solved'
                         ? 'Start solving problems from "New & Unsolved" to build your verified solution dossier!'
                         : 'Try adjusting your keyword search, difficulty, or topic filter.'}
                     </p>
-                    {isFiltered && (
+                    {activeTab === 'practice' ? (
+                      <Link
+                        to="/create-problem"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Create Practice Problem</span>
+                      </Link>
+                    ) : isFiltered ? (
                       <button
                         onClick={handleClearFilters}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] hover:bg-[#eaeef2] transition cursor-pointer"
@@ -1022,7 +1114,7 @@ export function ProblemListPage() {
                         <RotateCcw className="w-3.5 h-3.5" />
                         Clear Filters
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 ) : viewMode === 'grid' ? (
                   /* ========================================================== */
@@ -1037,19 +1129,27 @@ export function ProblemListPage() {
                         <div>
                           {/* Top Status & Difficulty Row */}
                           <div className="flex items-center justify-between gap-2 mb-2.5">
-                            {prob.userStatus === 'SOLVED' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d]">
-                                <CheckCircle2 className="w-3 h-3" /> Solved
-                              </span>
-                            ) : prob.userStatus === 'ATTEMPTED' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] border border-[#d4a72c66] dark:border-[#bb80094d]">
-                                <Clock className="w-3 h-3" /> In-Progress
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d]">
-                                <Sparkles className="w-3 h-3 text-indigo-500" /> New
-                              </span>
-                            )}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {prob.userStatus === 'SOLVED' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d]">
+                                  <CheckCircle2 className="w-3 h-3" /> Solved
+                                </span>
+                              ) : prob.userStatus === 'ATTEMPTED' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] border border-[#d4a72c66] dark:border-[#bb80094d]">
+                                  <Clock className="w-3 h-3" /> In-Progress
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border border-[#d0d7de] dark:border-[#30363d]">
+                                  <Sparkles className="w-3 h-3 text-indigo-500" /> New
+                                </span>
+                              )}
+
+                              {prob.isCustomPractice && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                                  🧪 Practice Lab
+                                </span>
+                              )}
+                            </div>
 
                             {getDifficultyBadge(prob.difficulty)}
                           </div>
@@ -1107,6 +1207,31 @@ export function ProblemListPage() {
                           </span>
 
                           <div className="flex items-center gap-1.5">
+                            {prob.isCustomPractice && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleSharePractice(e, prob.slug || prob.id)}
+                                  className="p-1.5 rounded-md hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer"
+                                  title="Share Practice Link"
+                                >
+                                  {copiedProblemSlug === (prob.slug || prob.id) ? (
+                                    <Check className="w-3.5 h-3.5 text-green-500" />
+                                  ) : (
+                                    <Share2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeletePractice(e, prob.id)}
+                                  className="p-1.5 rounded-md hover:bg-[#ffebe9] dark:hover:bg-[#f8514926] text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#f85149] transition cursor-pointer"
+                                  title="Delete Practice Problem"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+
                             {prob.solutionCode && (
                               <button
                                 onClick={() =>
@@ -1194,15 +1319,22 @@ export function ProblemListPage() {
 
                           {/* Column 2: Title & Topics */}
                           <div className="col-span-5 sm:col-span-5 md:col-span-6 min-w-0 pr-2">
-                            <Link
-                              to={`/workspace/${prob.slug || prob.id}`}
-                              className="font-semibold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] truncate block transition"
-                            >
-                              <span className="font-mono text-[#656d76] dark:text-[#848d97] text-[11px] mr-1.5">
-                                {(page - 1) * pagination.limit + idx + 1}.
-                              </span>
-                              {prob.title}
-                            </Link>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Link
+                                to={`/workspace/${prob.slug || prob.id}`}
+                                className="font-semibold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] truncate block transition"
+                              >
+                                <span className="font-mono text-[#656d76] dark:text-[#848d97] text-[11px] mr-1.5">
+                                  {(page - 1) * pagination.limit + idx + 1}.
+                                </span>
+                                {prob.title}
+                              </Link>
+                              {prob.isCustomPractice && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shrink-0">
+                                  🧪 Practice
+                                </span>
+                              )}
+                            </div>
 
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
                               {prob.tags.slice(0, 3).map((t) => (
@@ -1253,6 +1385,31 @@ export function ProblemListPage() {
 
                           {/* Column 5: Action Link & Code Preview Button */}
                           <div className="col-span-2 sm:col-span-2 md:col-span-1 flex items-center justify-end gap-1">
+                            {prob.isCustomPractice && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleSharePractice(e, prob.slug || prob.id)}
+                                  className="p-1 rounded hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer"
+                                  title="Share Practice Link"
+                                >
+                                  {copiedProblemSlug === (prob.slug || prob.id) ? (
+                                    <Check className="w-3.5 h-3.5 text-green-500" />
+                                  ) : (
+                                    <Share2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeletePractice(e, prob.id)}
+                                  className="p-1 rounded hover:bg-[#ffebe9] dark:hover:bg-[#f8514926] text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#f85149] transition cursor-pointer"
+                                  title="Delete Practice Problem"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+
                             {prob.solutionCode && (
                               <button
                                 onClick={() =>
