@@ -10,12 +10,22 @@ interface FlowchartMemoryHUDProps {
 
 export function FlowchartMemoryHUD({ step, output, error }: FlowchartMemoryHUDProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const outputContainerRef = React.useRef<HTMLDivElement>(null);
+
   const variables = step?.variables || {};
   const prevVariables = step?.previousVariables || {};
   const varEntries = Object.entries(variables);
 
+  // Auto-scroll output terminal to the latest line as loop executes
+  React.useEffect(() => {
+    if (outputContainerRef.current) {
+      outputContainerRef.current.scrollTop = outputContainerRef.current.scrollHeight;
+    }
+  }, [output]);
+
   // If collapsed, show compact glassmorphic pill
   if (!isExpanded) {
+    const outputLinesCount = output ? output.split('\n').filter(Boolean).length : 0;
     return (
       <button
         onClick={() => setIsExpanded(true)}
@@ -31,6 +41,11 @@ export function FlowchartMemoryHUD({ step, output, error }: FlowchartMemoryHUDPr
         {varEntries.length > 0 && (
           <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
             {varEntries.length} vars
+          </span>
+        )}
+        {outputLinesCount > 0 && (
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+            {outputLinesCount} out
           </span>
         )}
         {step && (
@@ -139,7 +154,10 @@ export function FlowchartMemoryHUD({ step, output, error }: FlowchartMemoryHUDPr
           <Terminal className="w-3 h-3 text-emerald-400" />
           <span>Output Stream</span>
         </div>
-        <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-400 min-h-[36px] max-h-20 overflow-y-auto whitespace-pre-wrap">
+        <div
+          ref={outputContainerRef}
+          className="p-2 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-400 min-h-[44px] max-h-24 overflow-y-auto whitespace-pre-wrap select-text scroll-smooth"
+        >
           {output ? output : <span className="text-slate-600 italic">No output produced yet</span>}
         </div>
       </div>
