@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Algorithm } from './AlgorithmsPage';
-import { AlgorithmVisualizerCanvas, SupportedAlgoKey } from '../components/algorithms/AlgorithmVisualizerCanvas';
+import { VisualizerCanvasHost } from '../components/visualizer/VisualizerCanvasHost';
 import { parseComplexityBreakdown } from '../components/algorithms/ComplexityBadgeWithPopover';
 import { AlgorithmCodeViewer, SupportedCodeLanguage } from '../components/algorithms/AlgorithmCodeViewer';
 
@@ -126,13 +126,14 @@ export function AlgorithmDetailPage() {
   }, [slug]);
 
   // Determine which visualizer key to map to
-  const visualizerKey: SupportedAlgoKey | null = useMemo(() => {
-    if (!slug) return null;
+  const visualizerKey = useMemo<string>(() => {
+    if (!slug) return 'binary-search';
     if (slug.includes('binary-search')) return 'binary-search';
     if (slug.includes('two-sum') || slug.includes('pointer')) return 'two-pointers';
-    if (slug.includes('sort')) return 'bubble-sort';
-    if (slug.includes('kadane')) return 'kadanes-algorithm';
-    return null;
+    if (slug.includes('breadth') || slug.includes('bfs') || slug.includes('graph')) return 'breadth-first-search';
+    if (slug.includes('knapsack') || slug.includes('dynamic') || slug.includes('dp')) return 'knapsack-01';
+    if (slug.includes('lru') || slug.includes('cache')) return 'lru-cache';
+    return 'binary-search';
   }, [slug]);
 
   const breakdown = useMemo(() => {
@@ -279,9 +280,10 @@ export function AlgorithmDetailPage() {
                 Interactive Telemetry Simulator
               </h2>
             </div>
-            <AlgorithmVisualizerCanvas
+            <VisualizerCanvasHost
               initialAlgorithm={visualizerKey}
-              showSelector={false}
+              showSelector={true}
+              showCodeViewer={true}
             />
           </section>
         )}
