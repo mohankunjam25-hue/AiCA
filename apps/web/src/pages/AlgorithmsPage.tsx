@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
-import { AlgorithmVisualizerCanvas } from '../components/algorithms/AlgorithmVisualizerCanvas';
+import { VisualizerCanvasHost } from '../components/visualizer/VisualizerCanvasHost';
 import { ComplexityBadgeWithPopover, SpaceComplexityBadgeWithPopover } from '../components/algorithms/ComplexityBadgeWithPopover';
 
 export type Algorithm = {
@@ -191,9 +191,10 @@ export function AlgorithmsPage() {
         {/* 2. INTERACTIVE VISUALIZER HERO CARD                                */}
         {/* ================================================================== */}
         <section>
-          <AlgorithmVisualizerCanvas
+          <VisualizerCanvasHost
             initialAlgorithm="binary-search"
             showSelector={true}
+            showCodeViewer={true}
           />
         </section>
 
