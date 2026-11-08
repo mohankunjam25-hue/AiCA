@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Play, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import {
+  CheckCircle2,
+  XCircle,
+  Play,
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  Terminal,
+  Layers,
+} from 'lucide-react';
 
 interface TestCaseResult {
   index: number;
@@ -33,11 +42,37 @@ export function FlowchartTestcaseDrawer({
   testCaseResults,
   allPassed,
 }: FlowchartTestcaseDrawerProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'custom' | 'testcases'>('custom');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(1);
 
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 px-3.5 py-2 bg-slate-900/90 dark:bg-[#161b22]/95 border border-slate-700/80 rounded-full shadow-2xl backdrop-blur-md text-xs text-slate-200 hover:text-white hover:border-slate-500 transition cursor-pointer"
+        title="Open Test Cases & Custom Input Drawer"
+      >
+        <Terminal className="w-3.5 h-3.5 text-blue-400" />
+        <span className="font-semibold text-xs">Test Cases & Input</span>
+        {testCaseResults && (
+          <span
+            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              allPassed
+                ? 'bg-emerald-950 text-emerald-400 border border-emerald-700'
+                : 'bg-rose-950 text-rose-400 border border-rose-700'
+            }`}
+          >
+            {testCaseResults.filter((t) => t.passed).length}/{testCaseResults.length}
+          </span>
+        )}
+        <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+      </button>
+    );
+  }
+
   return (
-    <div className="flex flex-col bg-slate-900/95 dark:bg-[#161b22]/95 border border-slate-700/80 dark:border-[#30363d] rounded-xl shadow-2xl backdrop-blur-md overflow-hidden text-xs">
+    <div className="flex flex-col bg-slate-900/95 dark:bg-[#161b22]/95 border border-slate-700/80 dark:border-[#30363d] rounded-2xl shadow-2xl backdrop-blur-md overflow-hidden text-xs w-80 sm:w-96 max-h-[380px] animate-in fade-in slide-in-from-bottom-2 duration-150">
       {/* Header Tabs */}
       <div className="flex items-center justify-between border-b border-slate-800 px-3 bg-slate-950/60">
         <div className="flex items-center gap-1">
@@ -59,7 +94,7 @@ export function FlowchartTestcaseDrawer({
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span>Problem Test Cases</span>
+            <span>Test Cases</span>
             {testCaseResults && (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -68,44 +103,52 @@ export function FlowchartTestcaseDrawer({
                     : 'bg-rose-950 text-rose-400 border border-rose-700'
                 }`}
               >
-                {testCaseResults.filter((t) => t.passed).length} /{' '}
+                {testCaseResults.filter((t) => t.passed).length}/
                 {testCaseResults.length}
               </span>
             )}
           </button>
         </div>
 
-        <div>
+        <div className="flex items-center gap-1.5">
           {activeTab === 'custom' ? (
             <button
               onClick={onRunCustom}
               disabled={isRunning}
-              className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer text-[11px]"
             >
               <Play className="w-3 h-3 fill-white" />
-              <span>Run Custom</span>
+              <span>Run</span>
             </button>
           ) : (
             <button
               onClick={onRunTestCases}
               disabled={isRunning}
-              className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer text-[11px]"
             >
               <Play className="w-3 h-3 fill-white" />
-              <span>Evaluate All Test Cases</span>
+              <span>Run All</span>
             </button>
           )}
+
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            title="Minimize Test Cases"
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
       {/* Body */}
-      <div className="p-3">
+      <div className="p-3 overflow-y-auto max-h-[300px]">
         {activeTab === 'custom' ? (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
               <span>Standard Input (stdin)</span>
               <span className="text-[10px] text-slate-500">
-                Space or newline separated values
+                Space/newline separated
               </span>
             </div>
             <textarea
@@ -117,10 +160,10 @@ export function FlowchartTestcaseDrawer({
             />
           </div>
         ) : (
-          <div className="space-y-2 max-h-56 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {!testCaseResults ? (
               <div className="text-center py-6 text-slate-500 italic">
-                Click "Evaluate All Test Cases" to test your flowchart against the problem test suite.
+                Click "Run All" to evaluate flowchart against problem test cases.
               </div>
             ) : (
               testCaseResults.map((tc) => {
@@ -143,12 +186,12 @@ export function FlowchartTestcaseDrawer({
                           <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
                         )}
                         <span className="font-semibold text-slate-300">
-                          Test Case #{tc.index}
+                          Test #{tc.index}
                         </span>
                         {!tc.isPublic && (
                           <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800">
                             <Lock className="w-2.5 h-2.5" />
-                            Hidden Test
+                            Hidden
                           </span>
                         )}
                       </div>
@@ -215,11 +258,11 @@ export function FlowchartTestcaseDrawer({
                           </>
                         ) : (
                           <div className="text-slate-400 italic py-1">
-                            Hidden test case data is locked to protect problem evaluation integrity.
+                            Hidden test case data is locked.
                             {tc.passed ? (
-                              <span className="text-emerald-400 ml-1">Your logic passed this hidden check!</span>
+                              <span className="text-emerald-400 ml-1">Passed!</span>
                             ) : (
-                              <span className="text-rose-400 ml-1">Flowchart failed this hidden check. Check edge cases or constraints.</span>
+                              <span className="text-rose-400 ml-1">Failed. Check edge cases.</span>
                             )}
                           </div>
                         )}
