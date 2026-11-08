@@ -29,6 +29,7 @@ const AdminProblemManagementPage = React.lazy(() => import('./pages/AdminProblem
 const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const DeveloperProfilePage = React.lazy(() => import('./pages/DeveloperProfilePage').then(m => ({ default: m.DeveloperProfilePage })));
 const DeveloperDirectoryPage = React.lazy(() => import('./pages/DeveloperDirectoryPage').then(m => ({ default: m.DeveloperDirectoryPage })));
+const LFtLPage = React.lazy(() => import('./pages/LFtLPage').then(m => ({ default: m.LFtLPage })));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 const GOOGLE_CLIENT_ID =
@@ -123,6 +124,22 @@ function AppLayout() {
                 element={
                   <ProtectedRoute requireAuth>
                     <WorkspacePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lftl"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <LFtLPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lftl/:slug"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <LFtLPage />
                   </ProtectedRoute>
                 }
               />

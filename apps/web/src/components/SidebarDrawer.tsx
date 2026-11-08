@@ -15,7 +15,8 @@ import {
   Code2,
   Sparkles,
   ExternalLink,
-  Users
+  Users,
+  GitFork
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
@@ -246,6 +247,24 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             >
               <Workflow className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
               Algorithms
+            </Link>
+
+            <Link
+              to="/lftl"
+              onClick={onClose}
+              className={`flex items-center justify-between px-3 py-2 rounded-md transition ${
+                location.pathname.startsWith('/lftl')
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#8250df] dark:border-[#a371f7]'
+                  : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <GitFork className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                <span>LFtL</span>
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                Flowchart
+              </span>
             </Link>
 
             <Link

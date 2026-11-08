@@ -12,6 +12,7 @@ export * from './types/comparison.js';
 export * from './types/leaderboard.js';
 export * from './types/developer.js';
 export * from './types/admin.js';
+export * from './types/flowchart.js';
 
 // Schemas & DTOs
 export * from './schemas/auth.schema.js';
@@ -24,3 +25,5 @@ export * from './schemas/api.schema.js';
 export * from './utils/sanitizers.js';
 export * from './utils/universal-driver.js';
 export * from './utils/data-structure-classifier.js';
+export * from './utils/flowchart-expression-parser.js';
+export * from './utils/flowchart-engine.js';
