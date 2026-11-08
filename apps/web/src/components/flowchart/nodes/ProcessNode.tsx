@@ -54,10 +54,20 @@ export function ProcessNode({ data, id }: NodeProps) {
     <div
       className={`relative rounded-xl border-2 p-3 min-w-[220px] max-w-[320px] backdrop-blur-md shadow-md transition-all duration-200 ${statusRing}`}
     >
+      {/* Primary Inflow */}
       <Handle
         type="target"
         position={Position.Top}
-        className="w-3 h-3 bg-amber-400 border-2 border-slate-900 rounded-full"
+        className="w-3 h-3 bg-amber-400 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
+      />
+
+      {/* Auxiliary Side Inflow (for loopbacks from below) */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="target-left"
+        className="w-2.5 h-2.5 bg-amber-500/70 border border-slate-900 rounded-full hover:scale-125 transition-transform"
+        title="Side entry port"
       />
 
       <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2 mb-2">
@@ -140,10 +150,20 @@ export function ProcessNode({ data, id }: NodeProps) {
         )}
       </div>
 
+      {/* Auxiliary Side Outflow */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source-right"
+        className="w-2.5 h-2.5 bg-amber-500/70 border border-slate-900 rounded-full hover:scale-125 transition-transform"
+        title="Side exit port"
+      />
+
+      {/* Primary Outflow */}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-3 h-3 bg-amber-400 border-2 border-slate-900 rounded-full"
+        className="w-3 h-3 bg-amber-400 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
       />
     </div>
   );

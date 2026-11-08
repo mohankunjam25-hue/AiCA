@@ -93,37 +93,45 @@ export function DecisionNode({ data, id }: NodeProps) {
         )}
       </div>
 
-      {/* Two explicit outgoing handles with badges */}
-      <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-800/50 text-[10px] font-mono font-bold">
+      {/* Left Handle: FALSE branch */}
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="false"
+        className="w-3.5 h-3.5 bg-rose-500 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
+        title="FALSE branch port"
+      />
+
+      {/* Right Handle: TRUE branch */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="true"
+        className="w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
+        title="TRUE branch port"
+      />
+
+      {/* Bottom Auxiliary Outflow Handle */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="default"
+        className="w-3 h-3 bg-purple-500 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
+      />
+
+      {/* Two explicit branch indicator badges */}
+      <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-800/50 text-[10px] font-mono font-bold select-none">
         <div className="flex items-center gap-1 text-rose-400">
-          <span className="bg-rose-950/60 px-1 rounded border border-rose-800/60">
-            FALSE
+          <span className="bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/80 shadow-xs">
+            ◀ FALSE
           </span>
         </div>
         <div className="flex items-center gap-1 text-emerald-400">
-          <span className="bg-emerald-950/60 px-1 rounded border border-emerald-800/60">
-            TRUE
+          <span className="bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/80 shadow-xs">
+            TRUE ▶
           </span>
         </div>
       </div>
-
-      {/* FALSE handle on bottom-left */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="false"
-        style={{ left: '25%' }}
-        className="w-3.5 h-3.5 bg-rose-500 border-2 border-slate-900 rounded-full"
-      />
-
-      {/* TRUE handle on bottom-right */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="true"
-        style={{ left: '75%' }}
-        className="w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full"
-      />
     </div>
   );
 }
