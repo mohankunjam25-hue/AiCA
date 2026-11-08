@@ -9,12 +9,14 @@ import {
   CheckCircle,
   Save,
   RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { FlowchartNodeType } from '@aica/shared';
 
 interface FlowchartBlockPaletteProps {
   onAddNode: (type: FlowchartNodeType) => void;
   onValidate: () => void;
+  onAutoAlign?: () => void;
   onSave?: () => void;
   onResetLayout?: () => void;
   isValidating?: boolean;
@@ -24,6 +26,7 @@ interface FlowchartBlockPaletteProps {
 export function FlowchartBlockPalette({
   onAddNode,
   onValidate,
+  onAutoAlign,
   onSave,
   onResetLayout,
   isValidating = false,
@@ -99,6 +102,18 @@ export function FlowchartBlockPalette({
       ))}
 
       <div className="h-5 w-[1px] bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
+
+      {/* Auto Align / Beautify Layout */}
+      {onAutoAlign && (
+        <button
+          onClick={onAutoAlign}
+          className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-purple-500/60 bg-purple-950/60 hover:bg-purple-900/80 text-xs font-semibold text-purple-300 transition cursor-pointer shrink-0 shadow-sm"
+          title="Auto Align & Beautify Flowchart (Beautify DAG)"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          <span className="hidden sm:inline">Auto-Align</span>
+        </button>
+      )}
 
       {/* Validate Graph */}
       <button
