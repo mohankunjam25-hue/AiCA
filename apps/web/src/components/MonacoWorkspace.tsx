@@ -20,19 +20,24 @@ import {
   Minus,
   Plus,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Eye
 } from 'lucide-react';
 import {
   Problem,
   SupportedLanguage,
   LANGUAGE_CONFIGS,
   SubmissionStatusStreamEvent,
-  CustomRunResult
+  CustomRunResult,
+  DataStructureClassifier,
+  NormalizedTraceFrame
 } from '@aica/shared';
 import { api } from '../services/api';
 import { useSubmissionSSE, useLocalStorage, useKeyboardShortcuts, isMacOS, useOnlineStatus } from '../hooks';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
+import { toast } from '../store/useToastStore';
+import { CodeExecutionVisualizerModal } from './visualizer/CodeExecutionVisualizerModal';
 
 interface MonacoWorkspaceProps {
   problem: Problem;
@@ -67,6 +72,11 @@ export function MonacoWorkspace({
   const [customRunResult, setCustomRunResult] = useState<CustomRunResult | null>(null);
   const [activeTestIndex, setActiveTestIndex] = useState(0);
   const [customStdin, setCustomStdin] = useState<string>('');
+
+  // Visualizer Execution Modal State (100% Deterministic Tracer, Zero AI)
+  const [isVisualizing, setIsVisualizing] = useState<boolean>(false);
+  const [visualizerFrames, setVisualizerFrames] = useState<NormalizedTraceFrame[] | null>(null);
+  const [isVisualizerModalOpen, setIsVisualizerModalOpen] = useState<boolean>(false);
 
   // Collapsible & Resizable Bottom Console State (Default: Collapsed for maximum vertical coding space)
   const [isConsoleCollapsed, setIsConsoleCollapsed] = useState<boolean>(true);
@@ -254,6 +264,41 @@ export function MonacoWorkspace({
     } catch (err: any) {
       setIsSubmitting(false);
       setConsoleOutput(`Submission error: ${err.response?.data?.error?.message || err.message}`);
+    }
+  };
+
+  // Step-by-Step Execution Visualizer (100% Deterministic Tracer, Zero AI)
+  const handleVisualizeCode = async () => {
+    if (isVisualizing) return;
+    setIsVisualizing(true);
+    try {
+      const sampleInput =
+        customStdin.trim() ||
+        problem.testCases?.[0]?.input ||
+        (problem as any).examples?.[0]?.input ||
+        '';
+
+      const res = await api.post('/tracer/trace', {
+        code,
+        language,
+        stdin: sampleInput
+      });
+
+      const steps = res.data?.data?.steps || [];
+      if (!steps || steps.length === 0) {
+        toast.error('Tracer could not detect execution steps. Verify your code syntax.');
+        return;
+      }
+
+      const normalized = DataStructureClassifier.normalizeTrace(steps, language);
+      setVisualizerFrames(normalized);
+      setIsVisualizerModalOpen(true);
+    } catch (err: any) {
+      console.error('[MonacoWorkspace] Visualization failed:', err);
+      const msg = err.response?.data?.message || 'Visualization tracer failed. Ensure code has valid syntax.';
+      toast.error(msg);
+    } finally {
+      setIsVisualizing(false);
     }
   };
 
@@ -488,6 +533,21 @@ export function MonacoWorkspace({
 
         {/* Execution Actions */}
         <div className="flex items-center gap-2">
+          {/* Visualize Code Execution (Zero AI, Pure Debugger) */}
+          <button
+            onClick={handleVisualizeCode}
+            disabled={isSubmitting || isRunningCustom || isVisualizing || !isOnline}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8250df1a] hover:bg-[#8250df26] dark:bg-[#8250df26] dark:hover:bg-[#8250df33] text-[#8250df] dark:text-[#a371f7] border border-[#8250df40] text-xs font-semibold shadow-2xs disabled:opacity-50 transition cursor-pointer"
+            title={!isOnline ? "Network is offline (visualizer disabled)" : "Visualize step-by-step code execution (Zero AI, Pure Debugger)"}
+          >
+            {isVisualizing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8250df] dark:text-[#a371f7]" />
+            ) : (
+              <Eye className="w-3.5 h-3.5 text-[#8250df] dark:text-[#a371f7]" />
+            )}
+            <span>{isVisualizing ? 'Tracing...' : 'Visualize'}</span>
+          </button>
+
           {/* Run Code */}
           <button
             onClick={handleRunCustom}
@@ -751,6 +811,18 @@ export function MonacoWorkspace({
           </div>
         )}
       </div>
+
+      {/* 100% Deterministic Code Execution Visualizer Modal (Zero AI) */}
+      {visualizerFrames && visualizerFrames.length > 0 && (
+        <CodeExecutionVisualizerModal
+          isOpen={isVisualizerModalOpen}
+          onClose={() => setIsVisualizerModalOpen(false)}
+          frames={visualizerFrames}
+          code={code}
+          language={language as any}
+          problemTitle={problem.title}
+        />
+      )}
     </div>
   );
 }
