@@ -13,7 +13,8 @@ import {
   LogOut,
   Sparkles,
   ShieldCheck,
-  Bot
+  Bot,
+  Eye
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -32,6 +33,8 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
+  const setStudentPreviewMode = useAuthStore((s) => s.setStudentPreviewMode);
   const logout = useAuthStore((s) => s.logout);
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
@@ -90,6 +93,7 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
     if (path.startsWith('/developers')) return 'Developer Community';
     if (path.startsWith('/dashboard')) return 'Developer Dashboard';
     if (path.startsWith('/profile')) return 'Developer Profile';
+    if (path.startsWith('/admin/dashboard') || path === '/admin') return 'Admin Mission Control';
     if (path.startsWith('/admin/problems')) {
       return location.search.includes('create=true') ? 'Problem Authoring Studio' : 'Problem Management';
     }
@@ -141,6 +145,35 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
         {/* Right Section: ONLY Avatar when authenticated (GitHub Style) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {!isAuthenticated && <ThemeToggle />}
+
+          {isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && (
+            <button
+              type="button"
+              onClick={() => {
+                if (location.pathname.startsWith('/admin')) {
+                  setStudentPreviewMode(true);
+                  navigate('/problems');
+                } else {
+                  setStudentPreviewMode(false);
+                  navigate('/admin/dashboard');
+                }
+              }}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shadow-2xs transition cursor-pointer"
+              title={location.pathname.startsWith('/admin') ? 'Switch to Student View' : 'Go to Admin Mission Control'}
+            >
+              {location.pathname.startsWith('/admin') ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <span>View as Student</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <span>Admin Console</span>
+                </>
+              )}
+            </button>
+          )}
 
           {isAuthenticated ? (
             <div className="relative">
@@ -255,6 +288,14 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
                         Staff Controls
                       </div>
                       <div className="space-y-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleNavigate('/admin/dashboard')}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition cursor-pointer text-left font-semibold"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          <span>Admin Mission Control</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleNavigate('/admin/problems')}

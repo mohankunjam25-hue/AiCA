@@ -1,8 +1,9 @@
 import React, { useState, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { SidebarDrawer } from './components/SidebarDrawer';
 import { TopHeader } from './components/TopHeader';
+import { StudentViewBanner } from './components/StudentViewBanner';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { PageLoadingFallback } from './components/ui/PageLoadingFallback';
@@ -25,6 +26,7 @@ const ProfilePage = React.lazy(() => import('./pages/ProfilePage').then(m => ({ 
 const CreateProblemPage = React.lazy(() => import('./pages/CreateProblemPage').then(m => ({ default: m.CreateProblemPage })));
 const AdminProblemReviewPage = React.lazy(() => import('./pages/AdminProblemReviewPage').then(m => ({ default: m.AdminProblemReviewPage })));
 const AdminProblemManagementPage = React.lazy(() => import('./pages/AdminProblemManagementPage').then(m => ({ default: m.AdminProblemManagementPage })));
+const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const DeveloperProfilePage = React.lazy(() => import('./pages/DeveloperProfilePage').then(m => ({ default: m.DeveloperProfilePage })));
 const DeveloperDirectoryPage = React.lazy(() => import('./pages/DeveloperDirectoryPage').then(m => ({ default: m.DeveloperDirectoryPage })));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
@@ -53,6 +55,9 @@ function AppLayout() {
 
       {/* Global Non-blocking Notification Toasts */}
       <ToastContainer />
+
+      {/* Student View Persistent Preview Banner */}
+      <StudentViewBanner />
 
       {/* Top Utility Header Bar with Profile & Logout dropdown */}
       {!isAuthPage && (
@@ -150,6 +155,22 @@ function AppLayout() {
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
                     <CreateProblemPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+                    <Navigate to="/admin/dashboard" replace />
                   </ProtectedRoute>
                 }
               />

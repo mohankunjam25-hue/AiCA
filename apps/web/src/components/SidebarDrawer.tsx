@@ -301,6 +301,14 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
                   Staff Controls
                 </div>
                 <Link
+                  to="/admin/dashboard"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition"
+                >
+                  <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  Mission Control
+                </Link>
+                <Link
                   to="/admin/problems?create=true"
                   onClick={onClose}
                   className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-semibold text-[#8250df] dark:text-[#bc8cff] hover:bg-[#8250df15] dark:hover:bg-[#bc8cff15] transition"
