@@ -110,6 +110,10 @@ export interface ProblemListItem {
   acceptanceRate: number;
   totalSubmissions: number;
   userStatus?: 'SOLVED' | 'ATTEMPTED' | 'TODO';
+  bestRuntimeMs?: number;
+  bestMemoryKb?: number;
+  lastVerdict?: string;
+  solutionCode?: string;
 }
 
 export interface ProblemProposalClarification {

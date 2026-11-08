@@ -40,13 +40,13 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const { page, limit, difficulty, tag, search, sortBy } = parseQuery.data;
+    const { page, limit, difficulty, tag, search, sortBy, statusFilter } = parseQuery.data;
     const skip = (page - 1) * limit;
 
     // Check Redis Cache if unauthenticated or general view (< 2ms)
     const userId = req.user?.id;
     const cacheKey = `cache:problems:list:${JSON.stringify(parseQuery.data)}`;
-    if (!userId) {
+    if (!userId && (!statusFilter || statusFilter === 'ALL')) {
       const cached = await CacheService.get<any>(cacheKey);
       if (cached) {
         res.setHeader('X-Cache', 'HIT');
@@ -77,6 +77,57 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
       ];
     }
 
+    // Apply status filter (SOLVED, ATTEMPTED, TODO)
+    if (userId && statusFilter && statusFilter !== 'ALL') {
+      try {
+        const userSubsQuery = SubmissionModel.find({
+          userId,
+          isTestRun: false
+        }).select('problemId verdict');
+
+        const userSubsForFilter = await (typeof (userSubsQuery as any).lean === 'function'
+          ? (userSubsQuery as any).lean()
+          : userSubsQuery);
+
+        const solvedSet = new Set<string>();
+        const attemptedSet = new Set<string>();
+
+        for (const sub of ((userSubsForFilter as any[]) || [])) {
+          if (sub.verdict === 'ACCEPTED') {
+            solvedSet.add(sub.problemId);
+          } else {
+            attemptedSet.add(sub.problemId);
+          }
+        }
+
+        const solvedIds = Array.from(solvedSet);
+        const attemptedIds = Array.from(attemptedSet).filter((id) => !solvedSet.has(id));
+        const allTouchedIds = Array.from(new Set([...solvedIds, ...Array.from(attemptedSet)]));
+
+        if (statusFilter === 'SOLVED') {
+          const validObjectIds = solvedIds
+            .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
+            .map((id: string) => new mongoose.Types.ObjectId(id));
+          filter._id = { $in: validObjectIds };
+        } else if (statusFilter === 'ATTEMPTED') {
+          const validObjectIds = attemptedIds
+            .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
+            .map((id: string) => new mongoose.Types.ObjectId(id));
+          filter._id = { $in: validObjectIds };
+        } else if (statusFilter === 'TODO') {
+          const validObjectIds = allTouchedIds
+            .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
+            .map((id: string) => new mongoose.Types.ObjectId(id));
+          filter._id = { $nin: validObjectIds };
+        }
+      } catch (aggErr: any) {
+        console.warn('[ProblemController] Failed to query user status for filter:', aggErr.message);
+      }
+    } else if (!userId && (statusFilter === 'SOLVED' || statusFilter === 'ATTEMPTED')) {
+      // Unauthenticated users have no solved or attempted records
+      filter._id = { $in: [] };
+    }
+
     let sortOption: Record<string, 1 | -1> = { createdAt: -1 };
     if (sortBy === 'difficulty_asc') {
       sortOption = { difficulty: 1, createdAt: -1 };
@@ -101,34 +152,75 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
       ProblemModel.countDocuments(filter)
     ]);
 
-    const userProblemStatusMap = new Map<string, 'SOLVED' | 'ATTEMPTED' | 'TODO'>();
+    // Gather user metrics for the returned page of problems
+    const userProblemMetricsMap = new Map<string, {
+      status: 'SOLVED' | 'ATTEMPTED' | 'TODO';
+      bestRuntimeMs?: number;
+      bestMemoryKb?: number;
+      lastVerdict?: string;
+      solutionCode?: string;
+    }>();
 
     if (userId && problems.length > 0) {
       const problemIds = problems.map((p: any) => p._id.toString());
       try {
-        const userSubs = await SubmissionModel.find({
+        const queryBuilder = SubmissionModel.find({
           userId,
           problemId: { $in: problemIds },
           isTestRun: false
-        })
-          .select('problemId verdict')
-          .lean();
+        }).select('problemId verdict executionTimeMs memoryUsedKb code createdAt');
 
-        for (const sub of userSubs) {
-          const pId = sub.problemId;
-          if (sub.verdict === 'ACCEPTED') {
-            userProblemStatusMap.set(pId, 'SOLVED');
-          } else if (!userProblemStatusMap.has(pId) || userProblemStatusMap.get(pId) !== 'SOLVED') {
-            userProblemStatusMap.set(pId, 'ATTEMPTED');
+        // Gracefully support tests where .sort() isn't chained in the mock
+        const userSubs = await (typeof (queryBuilder as any).sort === 'function'
+          ? (queryBuilder as any).sort({ createdAt: -1 }).lean()
+          : (queryBuilder as any).lean());
+
+        for (const pId of problemIds) {
+          const subs = (userSubs || []).filter((s: any) => s.problemId === pId);
+          if (subs.length === 0) continue;
+
+          const acceptedSubs = subs.filter((s: any) => s.verdict === 'ACCEPTED');
+          if (acceptedSubs.length > 0) {
+            let bestTime = Infinity;
+            let bestMem = Infinity;
+            let bestCode = acceptedSubs[0].code;
+
+            for (const acc of acceptedSubs) {
+              const execTime = acc.executionTimeMs || 0;
+              if (execTime > 0 && execTime < bestTime) {
+                bestTime = execTime;
+                bestMem = acc.memoryUsedKb || 0;
+                bestCode = acc.code;
+              } else if (bestTime === Infinity) {
+                bestTime = execTime;
+                bestMem = acc.memoryUsedKb || 0;
+                bestCode = acc.code;
+              }
+            }
+
+            userProblemMetricsMap.set(pId, {
+              status: 'SOLVED',
+              bestRuntimeMs: bestTime !== Infinity ? bestTime : 0,
+              bestMemoryKb: bestMem !== Infinity ? bestMem : 0,
+              solutionCode: bestCode
+            });
+          } else {
+            // Attempted without an accepted submission yet
+            const latestSub = subs[0];
+            userProblemMetricsMap.set(pId, {
+              status: 'ATTEMPTED',
+              lastVerdict: latestSub.verdict
+            });
           }
         }
       } catch (subErr: any) {
-        console.warn('[ProblemController] Failed to annotate user problem status:', subErr.message);
+        console.warn('[ProblemController] Failed to annotate user problem metrics:', subErr.message);
       }
     }
 
     const formattedList: ProblemListItem[] = problems.map((p: any) => {
       const pId = p._id.toString();
+      const metric = userProblemMetricsMap.get(pId);
       return {
         id: pId,
         title: p.title,
@@ -140,7 +232,11 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
           p.totalSubmissions > 0
             ? Math.round((p.acceptedSubmissions / p.totalSubmissions) * 1000) / 10
             : 0,
-        userStatus: userId ? (userProblemStatusMap.get(pId) || 'TODO') : undefined
+        userStatus: userId ? (metric?.status || 'TODO') : undefined,
+        bestRuntimeMs: metric?.bestRuntimeMs,
+        bestMemoryKb: metric?.bestMemoryKb,
+        lastVerdict: metric?.lastVerdict,
+        solutionCode: metric?.solutionCode
       };
     });
 
@@ -154,7 +250,7 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
       }
     };
 
-    if (!userId) {
+    if (!userId && (!statusFilter || statusFilter === 'ALL')) {
       await CacheService.set(cacheKey, responseData, 60);
     }
 
