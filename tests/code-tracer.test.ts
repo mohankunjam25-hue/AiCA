@@ -72,4 +72,31 @@ while left <= right:
     const stepWithMid = normalized.find((s) => s.visualPayload.pointers?.MID !== undefined);
     expect(stepWithMid).toBeDefined();
   });
+
+  it('should auto-invoke student function when defined without top-level driver call', async () => {
+    const pythonCode = `
+def merge(intervals):
+    intervals.sort(key=lambda x: x[0])
+    merged = [intervals[0]]
+    for i in range(1, len(intervals)):
+        curr = intervals[i]
+        prev = merged[-1]
+        if curr[0] <= prev[1]:
+            prev[1] = max(prev[1], curr[1])
+        else:
+            merged.append(curr)
+    return merged
+`;
+
+    const result = await CodeTracerService.traceExecution(pythonCode, 'python', '[[1, 3], [2, 6], [8, 10], [15, 18]]');
+    expect(result.success).toBe(true);
+    expect(result.steps.length).toBeGreaterThan(10);
+
+    const stepWithMerged = result.steps.find((s) => s.locals.merged !== undefined);
+    expect(stepWithMerged).toBeDefined();
+
+    const normalized = DataStructureClassifier.normalizeTrace(result.steps, 'python');
+    expect(normalized.length).toBe(result.steps.length);
+    expect(normalized[normalized.length - 1].visualPayload.kind).toBe('ARRAY');
+  });
 });

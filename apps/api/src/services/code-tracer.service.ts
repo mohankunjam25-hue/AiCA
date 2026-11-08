@@ -19,74 +19,6 @@ export interface TraceExecutionResult {
   executionTimeMs: number;
 }
 
-const PYTHON_TRACER_TEMPLATE = `
-import sys
-import json
-import inspect
-
-class ExecutionTracer:
-    def __init__(self, max_steps=350):
-        self.steps = []
-        self.max_steps = max_steps
-        self.count = 0
-
-    def serialize(self, val, depth=0):
-        if depth > 4:
-            return repr(val)
-        if isinstance(val, (int, float, str, bool)) or val is None:
-            return val
-        if isinstance(val, (list, tuple, set)):
-            return [self.serialize(x, depth + 1) for x in list(val)[:40]]
-        if isinstance(val, dict):
-            return {str(k): self.serialize(v, depth + 1) for k, v in list(val.items())[:30]}
-        if hasattr(val, "__dict__"):
-            return {str(k): self.serialize(v, depth + 1) for k, v in list(val.__dict__.items())[:20]}
-        return repr(val)
-
-    def trace_lines(self, frame, event, arg):
-        if self.count >= self.max_steps:
-            return None
-
-        # Only trace the user script
-        if frame.f_code.co_filename != "solution.py":
-            return self.trace_lines
-
-        if event in ("line", "return"):
-            self.count += 1
-            line_no = frame.f_lineno
-            locals_snapshot = {}
-
-            for var_name, var_val in frame.f_locals.items():
-                if var_name.startswith("__") or inspect.isfunction(var_val) or inspect.ismodule(var_val):
-                    continue
-                locals_snapshot[var_name] = self.serialize(var_val)
-
-            self.steps.append({
-                "step": self.count,
-                "line": line_no,
-                "event": event,
-                "locals": locals_snapshot,
-                "callStack": [f.function for f in inspect.stack()[:3]]
-            })
-
-        return self.trace_lines
-
-tracer = ExecutionTracer(max_steps=350)
-sys.settrace(tracer.trace_lines)
-
-try:
-    with open("solution.py", "r", encoding="utf-8") as f:
-        code_str = f.read()
-    compiled_code = compile(code_str, "solution.py", "exec")
-    exec(compiled_code, {})
-except Exception as e:
-    pass
-finally:
-    sys.settrace(None)
-    with open("trace_output.json", "w", encoding="utf-8") as f:
-        json.dump(tracer.steps, f)
-`;
-
 const JS_TRACER_TEMPLATE = `
 const fs = require('fs');
 
@@ -156,8 +88,151 @@ export class CodeTracerService {
 
     try {
       if (language === 'python') {
-        fs.writeFileSync(path.join(tempDir, 'solution.py'), code, 'utf-8');
-        fs.writeFileSync(path.join(tempDir, 'run_tracer.py'), PYTHON_TRACER_TEMPLATE, 'utf-8');
+        const lines = code.split('\n');
+        const originalLineCount = lines.length;
+
+        // Check if code defines a function/class without calling it
+        const funcMatch = code.match(/def\s+([a-zA-Z_]\w*)\s*\(/);
+        const hasTopLevelCall = funcMatch
+          ? new RegExp(`\\b${funcMatch[1]}\\s*\\(`).test(
+              lines
+                .filter(
+                  (l) =>
+                    !l.trim().startsWith('def ') &&
+                    !l.trim().startsWith('#') &&
+                    !l.trim().startsWith('"""')
+                )
+                .join('\n')
+            )
+          : false;
+
+        let executableCode = code;
+        if (funcMatch && !hasTopLevelCall) {
+          const fnName = funcMatch[1];
+          const autoDriver = `
+# --- AICA AUTO-INVOCATION DRIVER ---
+if True:
+    import json, sys
+    _raw_in = ""
+    try:
+        _raw_in = sys.stdin.read().strip()
+    except Exception:
+        pass
+
+    _arg = None
+    if _raw_in:
+        try:
+            _arg = json.loads(_raw_in)
+        except Exception:
+            _lines = [l.strip() for l in _raw_in.splitlines() if l.strip()]
+            if len(_lines) > 1 and all(len(l.split()) == 2 for l in _lines[1:]):
+                _arg = [[int(x) for x in l.split()] for l in _lines[1:]]
+            elif len(_lines) >= 2 and _lines[0].isdigit():
+                _tokens = " ".join(_lines[1:]).split()
+                _arg = [int(x) if x.lstrip("-").isdigit() else x for x in _tokens]
+            else:
+                _tokens = _raw_in.split()
+                _arg = [int(x) if x.lstrip("-").isdigit() else x for x in _tokens]
+    
+    if _arg is None:
+        _arg = [[1, 3], [2, 6], [8, 10], [15, 18]]
+
+    try:
+        if "Solution" in globals():
+            _inst = Solution()
+            _func = getattr(_inst, "${fnName}", None)
+            if _func:
+                if isinstance(_arg, list) and "${fnName}" == "twoSum" and len(_arg) >= 3:
+                    _func(_arg[:-1], _arg[-1])
+                else:
+                    _func(_arg)
+        elif "${fnName}" in globals():
+            _func = globals().get("${fnName}")
+            if isinstance(_arg, list) and "${fnName}" == "twoSum" and len(_arg) >= 3:
+                _func(_arg[:-1], _arg[-1])
+            else:
+                _func(_arg)
+    except Exception:
+        pass
+`;
+          executableCode = `${code}\n${autoDriver}`;
+        }
+
+        const tracerScript = `
+import sys
+import json
+import inspect
+
+class ExecutionTracer:
+    def __init__(self, max_steps=350, max_line=${originalLineCount}):
+        self.steps = []
+        self.max_steps = max_steps
+        self.max_line = max_line
+        self.count = 0
+
+    def serialize(self, val, depth=0):
+        if depth > 4:
+            return repr(val)
+        if isinstance(val, (int, float, str, bool)) or val is None:
+            return val
+        if isinstance(val, (list, tuple, set)):
+            return [self.serialize(x, depth + 1) for x in list(val)[:40]]
+        if isinstance(val, dict):
+            return {str(k): self.serialize(v, depth + 1) for k, v in list(val.items())[:30]}
+        if hasattr(val, "__dict__"):
+            return {str(k): self.serialize(v, depth + 1) for k, v in list(val.__dict__.items())[:20]}
+        return repr(val)
+
+    def trace_lines(self, frame, event, arg):
+        if self.count >= self.max_steps:
+            return None
+
+        # Only trace the user script
+        if frame.f_code.co_filename != "solution.py":
+            return self.trace_lines
+
+        # Ignore lines in the synthetic driver
+        if frame.f_lineno > self.max_line:
+            return self.trace_lines
+
+        if event in ("line", "return"):
+            self.count += 1
+            line_no = frame.f_lineno
+            locals_snapshot = {}
+
+            for var_name, var_val in frame.f_locals.items():
+                if var_name.startswith("__") or inspect.isfunction(var_val) or inspect.ismodule(var_val):
+                    continue
+                locals_snapshot[var_name] = self.serialize(var_val)
+
+            self.steps.append({
+                "step": self.count,
+                "line": line_no,
+                "event": event,
+                "locals": locals_snapshot,
+                "callStack": [f.function for f in inspect.stack()[:3]]
+            })
+
+        return self.trace_lines
+
+tracer = ExecutionTracer(max_steps=350, max_line=${originalLineCount})
+sys.settrace(tracer.trace_lines)
+
+try:
+    with open("solution.py", "r", encoding="utf-8") as f:
+        code_str = f.read()
+    compiled_code = compile(code_str, "solution.py", "exec")
+    exec(compiled_code, {})
+except Exception as e:
+    pass
+finally:
+    sys.settrace(None)
+    with open("trace_output.json", "w", encoding="utf-8") as f:
+        json.dump(tracer.steps, f)
+`;
+
+        fs.writeFileSync(path.join(tempDir, 'solution.py'), executableCode, 'utf-8');
+        fs.writeFileSync(path.join(tempDir, 'run_tracer.py'), tracerScript, 'utf-8');
 
         const startTime = Date.now();
         const sandboxRes = await executeInLinuxSandbox(

@@ -821,6 +821,13 @@ export function MonacoWorkspace({
           code={code}
           language={language as any}
           problemTitle={problem.title}
+          problem={problem}
+          sampleInput={
+            customStdin.trim() ||
+            problem.testCases?.[0]?.input ||
+            (problem as any).examples?.[0]?.input ||
+            ''
+          }
         />
       )}
     </div>

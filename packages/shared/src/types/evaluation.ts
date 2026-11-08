@@ -43,6 +43,7 @@ export interface SolutionApproach {
   pros: string[];
   cons: string[];
   pseudoCodeOrGuide?: string;
+  executableCode?: string;
 }
 
 export interface ApproachComparisonRow {

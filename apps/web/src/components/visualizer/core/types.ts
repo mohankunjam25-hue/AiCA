@@ -20,13 +20,16 @@ export type VisualActionType =
 // 1. Linear Array & Window Payload
 export interface ArrayVisualPayload {
   kind: 'ARRAY';
-  data: number[];
+  data: any[];
+  secondaryData?: any[];
+  secondaryLabel?: string;
   pointers?: Record<string, { index: number; label: string; color?: string }>;
   activeIndices?: number[];
   modifiedIndices?: number[];
   matchedIndices?: number[];
   discardedRanges?: [number, number][];
   windowRange?: [number, number];
+  variables?: Record<string, any>;
 }
 
 // 2. Tree Payload (Binary Tree, BST, Heap)
