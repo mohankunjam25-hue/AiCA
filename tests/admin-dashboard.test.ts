@@ -237,6 +237,7 @@ describe('Admin Mission Control & Operations Dashboard Suite', () => {
   // =========================================================================
   describe('5. flushSystemCache Controller', () => {
     it('flushes redis cache keys and returns deleted count', async () => {
+      vi.spyOn(redisClient, 'status', 'get').mockReturnValue('ready');
       vi.spyOn(redisClient, 'keys').mockResolvedValue(['cache:problems:item:1', 'cache:problems:item:2']);
       vi.spyOn(redisClient, 'del').mockResolvedValue(2);
 

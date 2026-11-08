@@ -210,11 +210,13 @@ export async function getAdminPendingProposals(req: Request, res: Response): Pro
 export async function flushSystemCache(req: Request, res: Response): Promise<void> {
   try {
     let deletedCount = 0;
-    if (redisClient.status === 'ready' || redisClient.status === 'connecting') {
+    try {
       const keys = await redisClient.keys('cache:*');
-      if (keys.length > 0) {
+      if (keys && keys.length > 0) {
         deletedCount = await redisClient.del(...keys);
       }
+    } catch {
+      deletedCount = 0;
     }
 
     res.status(200).json(
