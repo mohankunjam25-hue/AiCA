@@ -26,7 +26,7 @@ export function FlowchartInspector({
   const varEntries = Object.entries(variables);
 
   return (
-    <aside className="w-80 md:w-88 border-l border-slate-800/90 bg-slate-900/95 dark:bg-[#161b22]/98 backdrop-blur-md flex flex-col h-full z-10 shrink-0 select-none animate-in slide-in-from-right-4 duration-200">
+    <aside className="absolute top-0 right-0 bottom-0 z-30 w-80 md:w-88 border-l border-slate-800/90 bg-slate-900/95 dark:bg-[#161b22]/98 backdrop-blur-xl shadow-2xl flex flex-col h-full select-none animate-in slide-in-from-right duration-200">
       {/* Inspector Header */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-800 bg-slate-900 dark:bg-[#161b22]">
         <div className="flex items-center gap-2">
