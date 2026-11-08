@@ -41,6 +41,8 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isLFtL = location.pathname.startsWith('/lftl');
+
   // Close dropdown on click outside or Escape key
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -118,32 +120,56 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
             <Menu className="w-4 h-4" />
           </button>
 
-          {/* Logo & Context Title */}
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <AiCALogo className="w-9 h-9 sm:w-10 sm:h-10" />
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm tracking-tight text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
-                AI Code Evolution Lab
-              </span>
-              <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d] font-mono">
-                GV2
-              </span>
-            </div>
-          </Link>
+          {isLFtL ? (
+            <>
+              {/* Compact Logo on LFtL to maximize space for center Chrome tab */}
+              <Link to="/" className="flex items-center gap-2 group shrink-0" title="AI Code Evolution Lab">
+                <AiCALogo className="w-8 h-8 sm:w-9 sm:h-9" />
+                <span className="hidden xl:inline-block font-bold text-sm tracking-tight text-[#1f2328] dark:text-[#f0f6fc]">
+                  AiCA
+                </span>
+              </Link>
+              {/* Portal target for LFtL problem selector & back navigation */}
+              <div id="lftl-header-left" className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative" />
+            </>
+          ) : (
+            <>
+              {/* Logo & Context Title */}
+              <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+                <AiCALogo className="w-9 h-9 sm:w-10 sm:h-10" />
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm tracking-tight text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
+                    AI Code Evolution Lab
+                  </span>
+                  <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d] font-mono">
+                    GV2
+                  </span>
+                </div>
+              </Link>
 
-          {/* Authenticated breadcrumb */}
-          {isAuthenticated && (
-            <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-[#d0d7de] dark:border-[#30363d] text-xs font-mono text-[#57606a] dark:text-[#8b949e]">
-              <span>/</span>
-              <span className="text-[#1f2328] dark:text-[#e6edf3] font-sans font-medium">
-                {getPageTitle()}
-              </span>
-            </div>
+              {/* Authenticated breadcrumb */}
+              {isAuthenticated && (
+                <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-[#d0d7de] dark:border-[#30363d] text-xs font-mono text-[#57606a] dark:text-[#8b949e]">
+                  <span>/</span>
+                  <span className="text-[#1f2328] dark:text-[#e6edf3] font-sans font-medium">
+                    {getPageTitle()}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Right Section: ONLY Avatar when authenticated (GitHub Style) */}
+        {/* Center Section: Google Chrome Tab Cap for LFtL Toolbar */}
+        <div
+          id="lftl-header-center"
+          className="flex-1 flex justify-center items-end h-full relative overflow-visible"
+        />
+
+        {/* Right Section: ONLY Avatar when authenticated (GitHub Style) + LFtL actions */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Portal target for LFtL actions (Details, Inspector, Code Editor, Fullscreen) */}
+          <div id="lftl-header-right" className="flex items-center gap-1.5 shrink-0 relative" />
           {!isAuthenticated && <ThemeToggle />}
 
           {isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && (

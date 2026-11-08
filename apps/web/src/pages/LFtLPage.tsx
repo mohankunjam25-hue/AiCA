@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -45,6 +46,29 @@ export function LFtLPage() {
     isInspectorOpen: false,
     varCount: 0,
   });
+
+  const [mounted, setMounted] = useState(false);
+  const problemPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close problem picker dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        problemPickerRef.current &&
+        !problemPickerRef.current.contains(e.target as Node)
+      ) {
+        setIsProblemPickerOpen(false);
+      }
+    }
+    if (isProblemPickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProblemPickerOpen]);
 
   // Track native fullscreen changes (via Esc or button)
   useEffect(() => {
@@ -128,6 +152,10 @@ export function LFtLPage() {
     navigate(`/lftl/${selectedSlug}`);
   };
 
+  const headerLeftEl = mounted ? document.getElementById('lftl-header-left') : null;
+  const headerCenterEl = mounted ? document.getElementById('lftl-header-center') : null;
+  const headerRightEl = mounted ? document.getElementById('lftl-header-right') : null;
+
   return (
     <div
       ref={containerRef}
@@ -135,82 +163,178 @@ export function LFtLPage() {
         isFullscreen ? 'h-screen' : 'h-[calc(100vh-3.5rem)]'
       }`}
     >
-      {/* Sleek Sub-Toolbar with Unified Header: Navigation, Block Palette, Actions */}
-      <header className="h-11 border-b border-slate-800/90 bg-slate-900/95 px-2.5 sm:px-3 flex items-center justify-between gap-2 shrink-0 z-30 backdrop-blur-md select-none">
-        {/* Left: Navigation & Problem Picker */}
-        <div className="flex items-center gap-2 min-w-0 shrink-0">
-          <Link
-            to="/problems"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0"
-            title="Back to Problems"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
+      {/* 🚀 React Portals: Inject Controls directly into TopHeader when not in fullscreen */}
+      {headerLeftEl &&
+        !isFullscreen &&
+        createPortal(
+          <div ref={problemPickerRef} className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Link
+              to="/problems"
+              className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
+              title="Back to Problems"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
 
+            <span className="font-bold text-xs tracking-wider text-purple-600 dark:text-purple-400 font-mono bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800/80 px-2 py-0.5 rounded-md shrink-0">
+              LFtL
+            </span>
+
+            <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 shrink-0 hidden sm:block" />
+
+            {/* Problem Selector Dropdown in Top Navbar */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setIsProblemPickerOpen(!isProblemPickerOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 transition cursor-pointer max-w-[130px] sm:max-w-[180px] md:max-w-xs truncate shadow-2xs"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />
+                <span className="truncate">{problem ? problem.title : 'Select Problem'}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+              </button>
+
+              {isProblemPickerOpen && (
+                <div className="absolute left-0 mt-1.5 w-72 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-1 z-50 max-h-80 overflow-y-auto">
+                  <div className="p-2 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+                    Select a Problem
+                  </div>
+                  {problemList.map((p) => (
+                    <button
+                      key={p.slug}
+                      onClick={() => handleSelectProblem(p.slug)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-800 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <span className="truncate text-slate-200">{p.title}</span>
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          p.difficulty === 'EASY'
+                            ? 'bg-emerald-950 text-emerald-400'
+                            : p.difficulty === 'MEDIUM'
+                            ? 'bg-amber-950 text-amber-400'
+                            : 'bg-rose-950 text-rose-400'
+                        }`}
+                      >
+                        {p.difficulty}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>,
+          headerLeftEl
+        )}
+
+      {/* 🚀 Center Portal: Google Chrome Tab 'Cap' Shape for Flowchart Block Palette */}
+      {headerCenterEl &&
+        !isFullscreen &&
+        createPortal(
+          <FlowchartBlockPalette
+            variant="chrome-tab"
+            onAddNode={(type) => canvasRef.current?.addNode(type)}
+            onAutoAlign={() => canvasRef.current?.autoAlign()}
+            onValidate={() => canvasRef.current?.validate()}
+            onSave={problem ? () => canvasRef.current?.save() : undefined}
+            isSaving={canvasState.isSaving}
+          />,
+          headerCenterEl
+        )}
+
+      {/* 🚀 Right Portal: Details, Inspector, Code Editor, Fullscreen Toggle */}
+      {headerRightEl &&
+        !isFullscreen &&
+        createPortal(
+          <div className="flex items-center gap-1.5 shrink-0">
+            {problem && (
+              <button
+                onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                  isDescriptionOpen
+                    ? 'bg-blue-50 dark:bg-blue-950/80 border-blue-400 dark:border-blue-700/80 text-blue-700 dark:text-blue-300'
+                    : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Problem Details"
+              >
+                {isDescriptionOpen ? (
+                  <PanelLeftClose className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+                ) : (
+                  <PanelLeftOpen className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+                )}
+                <span className="hidden xl:inline">Details</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => canvasRef.current?.toggleInspector()}
+              className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                canvasState.isInspectorOpen
+                  ? 'bg-cyan-50 dark:bg-cyan-950/80 border-cyan-400 dark:border-cyan-700/80 text-cyan-700 dark:text-cyan-300'
+                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Execution Inspector"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
+              <span className="hidden xl:inline">Inspector</span>
+              {canvasState.varCount > 0 && (
+                <span className="text-[10px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold">
+                  {canvasState.varCount}
+                </span>
+              )}
+            </button>
+
+            {problem && (
+              <Link
+                to={`/workspace/${problem.slug}`}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
+                title="Open problem in Monaco Code Editor"
+              >
+                <Code2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span className="hidden xl:inline">Code Editor</span>
+              </Link>
+            )}
+
+            {/* Fullscreen Button (YouTube-style edge-to-edge expand) */}
+            <button
+              onClick={toggleFullscreen}
+              className={`p-1.5 rounded-lg border transition cursor-pointer active:scale-95 ${
+                isFullscreen
+                  ? 'bg-amber-50 dark:bg-amber-950/80 border-amber-400 dark:border-amber-700 text-amber-700 dark:text-amber-300'
+                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title={isFullscreen ? 'Exit Full Screen (Esc)' : 'Enter Full Screen'}
+            >
+              {isFullscreen ? (
+                <Minimize className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>,
+          headerRightEl
+        )}
+
+      {/* Floating HUD in Fullscreen Mode */}
+      {isFullscreen && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-slate-900/95 border border-slate-700/80 rounded-2xl px-3 py-1.5 shadow-2xl backdrop-blur-xl">
           <span className="font-bold text-xs tracking-wider text-purple-400 font-mono bg-purple-950/70 border border-purple-800/80 px-2 py-0.5 rounded-md">
             LFtL
           </span>
 
-          <div className="h-4 w-[1px] bg-slate-800 shrink-0 hidden sm:block" />
-
-          {/* Problem Selector Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setIsProblemPickerOpen(!isProblemPickerOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-xs font-medium text-slate-200 transition cursor-pointer max-w-[150px] sm:max-w-[200px] md:max-w-xs truncate"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate">{problem ? problem.title : 'Select Problem'}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-            </button>
-
-            {isProblemPickerOpen && (
-              <div className="absolute left-0 mt-1.5 w-72 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-1 z-50 max-h-80 overflow-y-auto">
-                <div className="p-2 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
-                  Select a Problem
-                </div>
-                {problemList.map((p) => (
-                  <button
-                    key={p.slug}
-                    onClick={() => handleSelectProblem(p.slug)}
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-800 flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span className="truncate text-slate-200">{p.title}</span>
-                    <span
-                      className={`text-[9px] font-bold px-1 rounded ${
-                        p.difficulty === 'EASY'
-                          ? 'bg-emerald-950 text-emerald-400'
-                          : p.difficulty === 'MEDIUM'
-                          ? 'bg-amber-950 text-amber-400'
-                          : 'bg-rose-950 text-rose-400'
-                      }`}
-                    >
-                      {p.difficulty}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Center: Block Palette & Actions (Unified into Header) */}
-        <div className="flex-1 flex items-center justify-center min-w-0 overflow-x-auto scrollbar-none py-0.5">
           <FlowchartBlockPalette
+            variant="floating"
             onAddNode={(type) => canvasRef.current?.addNode(type)}
             onAutoAlign={() => canvasRef.current?.autoAlign()}
             onValidate={() => canvasRef.current?.validate()}
             onSave={problem ? () => canvasRef.current?.save() : undefined}
             isSaving={canvasState.isSaving}
           />
-        </div>
 
-        {/* Right: Problem Details Drawer, Inspector, Code Editor, Fullscreen Toggle */}
-        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="h-4 w-[1px] bg-slate-800 mx-0.5 shrink-0" />
+
           {problem && (
             <button
               onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+              className={`p-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                 isDescriptionOpen
                   ? 'bg-blue-950/80 border-blue-700/80 text-blue-300'
                   : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
@@ -222,13 +346,12 @@ export function LFtLPage() {
               ) : (
                 <PanelLeftOpen className="w-3.5 h-3.5 text-blue-400" />
               )}
-              <span className="hidden md:inline">Details</span>
             </button>
           )}
 
           <button
             onClick={() => canvasRef.current?.toggleInspector()}
-            className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+            className={`p-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer relative ${
               canvasState.isInspectorOpen
                 ? 'bg-cyan-950/80 border-cyan-700/80 text-cyan-300'
                 : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
@@ -236,43 +359,22 @@ export function LFtLPage() {
             title="Execution Inspector"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden md:inline">Inspector</span>
             {canvasState.varCount > 0 && (
-              <span className="text-[10px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold">
+              <span className="absolute -top-1 -right-1 text-[9px] font-mono w-3.5 h-3.5 flex items-center justify-center rounded-full bg-cyan-600 text-white font-bold">
                 {canvasState.varCount}
               </span>
             )}
           </button>
 
-          {problem && (
-            <Link
-              to={`/workspace/${problem.slug}`}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
-              title="Open problem in Monaco Code Editor"
-            >
-              <Code2 className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden lg:inline">Code Editor</span>
-            </Link>
-          )}
-
-          {/* Fullscreen Button (YouTube-style edge-to-edge expand) */}
           <button
             onClick={toggleFullscreen}
-            className={`p-1.5 rounded-lg border transition cursor-pointer active:scale-95 ${
-              isFullscreen
-                ? 'bg-amber-950/80 border-amber-700 text-amber-300'
-                : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
-            }`}
-            title={isFullscreen ? 'Exit Full Screen (Esc)' : 'Enter Full Screen'}
+            className="p-1.5 rounded-lg border border-amber-700 bg-amber-950/80 text-amber-300 hover:bg-amber-900 transition cursor-pointer"
+            title="Exit Full Screen (Esc)"
           >
-            {isFullscreen ? (
-              <Minimize className="w-3.5 h-3.5" />
-            ) : (
-              <Maximize className="w-3.5 h-3.5" />
-            )}
+            <Minimize className="w-3.5 h-3.5" />
           </button>
         </div>
-      </header>
+      )}
 
       {/* Main Layout Area: Edge-to-Edge Canvas with Slide-Over Details Sheet */}
       <div className="flex-1 flex overflow-hidden relative">
