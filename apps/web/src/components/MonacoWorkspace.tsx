@@ -454,10 +454,10 @@ export function MonacoWorkspace({
               onClick={onToggleZenMode}
               className={`p-1.5 rounded-lg border transition cursor-pointer ${
                 isZenMode
-                  ? 'bg-[#8250df] text-white border-[#8250df]'
+                  ? 'bg-[#8250df] text-white border-[#8250df] ring-2 ring-purple-400/40 shadow-xs'
                   : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3]'
               }`}
-              title={isZenMode ? 'Exit Zen Mode (Show Problem Description)' : 'Zen Focus Mode (Hide Description & Fullscreen Editor)'}
+              title={isZenMode ? 'Exit Zen Focus Mode (Esc)' : 'Zen Focus Mode (Fullscreen Code Editor)'}
             >
               {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
@@ -473,7 +473,13 @@ export function MonacoWorkspace({
                   ? 'bg-[#0969da] text-white border-[#0969da]'
                   : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3]'
               }`}
-              title={isPanelCollapsed ? 'Show Problem Description' : 'Full Editor Width (Collapse Problem)'}
+              title={
+                isZenMode
+                  ? 'Exit Zen Focus & Show Problem'
+                  : isPanelCollapsed
+                  ? 'Show Problem Description'
+                  : 'Full Editor Width (Collapse Problem)'
+              }
             >
               {isPanelCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
             </button>

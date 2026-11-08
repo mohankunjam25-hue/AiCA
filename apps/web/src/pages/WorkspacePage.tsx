@@ -24,7 +24,8 @@ import {
   Columns,
   Copy,
   Check,
-  GitFork
+  GitFork,
+  Sparkles
 } from 'lucide-react';
 import {
   Problem,
@@ -254,6 +255,21 @@ export function WorkspacePage() {
   });
 
   const toggleLeftCollapse = () => {
+    if (isZenMode) {
+      // Exit Zen Mode and immediately restore Left Problem panel
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {}
+      setIsZenMode(false);
+      setIsLeftCollapsed(false);
+      try {
+        localStorage.setItem('aica_workspace_left_collapsed', 'false');
+      } catch {}
+      return;
+    }
+
     setIsLeftCollapsed((prev) => {
       const next = !prev;
       try {
@@ -262,6 +278,39 @@ export function WorkspacePage() {
       return next;
     });
   };
+
+  const toggleZenMode = () => {
+    setIsZenMode((prev) => {
+      const next = !prev;
+      if (next) {
+        try {
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        } catch {}
+      } else {
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch {}
+      }
+      return next;
+    });
+  };
+
+  // Sync state if user exits native fullscreen via browser controls (e.g. Esc or F11)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isZenMode) {
+        setIsZenMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [isZenMode]);
 
   // Keyboard Shortcuts for Workspace
   useKeyboardShortcuts([
@@ -272,10 +321,22 @@ export function WorkspacePage() {
       action: toggleLeftCollapse
     },
     {
+      key: 'z',
+      ctrlOrMeta: true,
+      description: 'Toggle Zen Focus Mode',
+      action: toggleZenMode
+    },
+    {
       key: 'Escape',
-      description: 'Close Modal',
+      description: 'Close Modal / Exit Zen Focus Mode',
       action: () => {
-        if (inspectedCode) setInspectedCode(null);
+        if (inspectedCode) {
+          setInspectedCode(null);
+          return;
+        }
+        if (isZenMode) {
+          toggleZenMode();
+        }
       }
     }
   ]);
@@ -512,19 +573,35 @@ export function WorkspacePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] min-h-0 overflow-hidden bg-white dark:bg-[#0d1117]">
+    <div
+      className={`flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-[#0d1117] transition-all duration-200 ${
+        isZenMode
+          ? 'fixed inset-0 z-50 h-screen w-screen bg-[#f6f8fa] dark:bg-[#010409]'
+          : 'h-[calc(100vh-3.5rem)]'
+      }`}
+    >
       {/* Workspace Subheader (GitHub Repo Header Style with Responsive Controls) */}
-      <div className="shrink-0 px-3 sm:px-5 py-2 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] flex flex-wrap items-center justify-between gap-2.5 min-h-[48px]">
+      <div
+        className={`shrink-0 px-3 sm:px-5 py-2 border-b transition-colors flex flex-wrap items-center justify-between gap-2.5 min-h-[48px] ${
+          isZenMode
+            ? 'bg-purple-950/20 dark:bg-[#161b22] border-purple-500/30 shadow-xs'
+            : 'bg-[#f6f8fa] dark:bg-[#161b22] border-[#d0d7de] dark:border-[#30363d]'
+        }`}
+      >
         {/* Left: Breadcrumbs & Problem Meta */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap min-w-0">
-          <Link
-            to="/problems"
-            className="flex items-center gap-1 text-xs text-[#0969da] dark:text-[#58a6ff] hover:underline font-medium shrink-0"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            Problems
-          </Link>
-          <span className="text-[#d0d7de] dark:text-[#30363d]">/</span>
+          {!isZenMode && (
+            <>
+              <Link
+                to="/problems"
+                className="flex items-center gap-1 text-xs text-[#0969da] dark:text-[#58a6ff] hover:underline font-medium shrink-0"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Problems
+              </Link>
+              <span className="text-[#d0d7de] dark:text-[#30363d]">/</span>
+            </>
+          )}
           <h1 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3] truncate max-w-[160px] sm:max-w-[260px] md:max-w-md">
             {problem.title}
           </h1>
@@ -540,11 +617,18 @@ export function WorkspacePage() {
             {problem.difficulty}
           </span>
 
-          {problem.isCustomPractice ? (
+          {isZenMode && (
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 shrink-0 animate-pulse">
+              <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+              <span>ZEN FOCUS ACTIVE</span>
+            </span>
+          )}
+
+          {!isZenMode && problem.isCustomPractice ? (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shrink-0">
               🧪 Practice Lab
             </span>
-          ) : (
+          ) : !isZenMode ? (
             <button
               type="button"
               onClick={handleForkToPractice}
@@ -559,7 +643,7 @@ export function WorkspacePage() {
               )}
               <span>{forking ? 'Forking...' : 'Fork to Practice'}</span>
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* Right: Adaptive Segmented Switcher & Controls */}
@@ -597,10 +681,10 @@ export function WorkspacePage() {
             <button
               onClick={() => {
                 setActiveLeftTab('desc');
-                if (isLeftCollapsed) toggleLeftCollapse();
+                if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                activeLeftTab === 'desc' && !isLeftCollapsed
+                activeLeftTab === 'desc' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
@@ -611,10 +695,10 @@ export function WorkspacePage() {
             <button
               onClick={() => {
                 setActiveLeftTab('report');
-                if (isLeftCollapsed) toggleLeftCollapse();
+                if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                activeLeftTab === 'report' && !isLeftCollapsed
+                activeLeftTab === 'report' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
@@ -631,10 +715,10 @@ export function WorkspacePage() {
               onClick={() => {
                 if (!comparison) handleCompareClick();
                 setActiveLeftTab('compare');
-                if (isLeftCollapsed) toggleLeftCollapse();
+                if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                activeLeftTab === 'compare' && !isLeftCollapsed
+                activeLeftTab === 'compare' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
@@ -646,10 +730,10 @@ export function WorkspacePage() {
               onClick={() => {
                 fetchProblemSubmissions();
                 setActiveLeftTab('submissions');
-                if (isLeftCollapsed) toggleLeftCollapse();
+                if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                activeLeftTab === 'submissions' && !isLeftCollapsed
+                activeLeftTab === 'submissions' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
@@ -669,29 +753,39 @@ export function WorkspacePage() {
             type="button"
             onClick={toggleLeftCollapse}
             className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
-              isLeftCollapsed
+              isLeftCollapsed || isZenMode
                 ? 'bg-[#0969da] text-white border-[#0969da] shadow-xs'
                 : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
             }`}
-            title={isLeftCollapsed ? 'Show Problem Description Panel' : 'Collapse Problem Panel (Full Editor Width)'}
+            title={
+              isZenMode
+                ? 'Exit Zen Focus & Show Problem Panel'
+                : isLeftCollapsed
+                ? 'Show Problem Description Panel'
+                : 'Collapse Problem Panel (Full Editor Width)'
+            }
           >
-            {isLeftCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
-            <span>{isLeftCollapsed ? 'Show Problem' : 'Collapse Panel'}</span>
+            {isLeftCollapsed || isZenMode ? (
+              <PanelLeftOpen className="w-3.5 h-3.5" />
+            ) : (
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            )}
+            <span>{isLeftCollapsed || isZenMode ? 'Show Problem' : 'Collapse Panel'}</span>
           </button>
 
           {/* Zen Focus Mode Button */}
           <button
             type="button"
-            onClick={() => setIsZenMode((prev) => !prev)}
+            onClick={toggleZenMode}
             className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
               isZenMode
-                ? 'bg-[#8250df] text-white border-[#8250df] shadow-xs'
+                ? 'bg-[#8250df] text-white border-[#8250df] shadow-xs ring-2 ring-purple-400/40'
                 : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
             }`}
-            title={isZenMode ? 'Exit Zen Focus Mode' : 'Zen Focus Mode (Fullscreen Code Editor)'}
+            title={isZenMode ? 'Exit Zen Focus Mode (Esc)' : 'Zen Focus Mode (Fullscreen Code Editor)'}
           >
             {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="hidden xl:inline">{isZenMode ? 'Exit Zen' : 'Zen Focus'}</span>
+            <span className="hidden xl:inline">{isZenMode ? 'Exit Zen (Esc)' : 'Zen Focus'}</span>
           </button>
         </div>
       </div>
@@ -1163,8 +1257,8 @@ export function WorkspacePage() {
             onEvaluationComplete={handleEvaluationComplete}
             loadedCode={loadedCode}
             isZenMode={isZenMode}
-            onToggleZenMode={() => setIsZenMode((prev) => !prev)}
-            isPanelCollapsed={isLeftCollapsed}
+            onToggleZenMode={toggleZenMode}
+            isPanelCollapsed={isLeftCollapsed || isZenMode}
             onTogglePanelCollapse={toggleLeftCollapse}
           />
         </div>
