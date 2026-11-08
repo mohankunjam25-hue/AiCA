@@ -33,7 +33,8 @@ import {
   Layers,
   Award,
   ShieldCheck,
-  CheckCheck
+  CheckCheck,
+  Play
 } from 'lucide-react';
 import { ProblemListItem, ProblemDifficulty, ProblemSortOption } from '@aica/shared';
 import { api } from '../services/api';
@@ -44,35 +45,56 @@ import { useDebounce } from '../hooks';
 export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks';
 export type ViewMode = 'table' | 'grid';
 
-interface CuratedTrack {
+export interface CuratedTrackProblem {
+  title: string;
+  slug: string;
+  difficulty: ProblemDifficulty;
+}
+
+export interface CuratedTrack {
   id: string;
   title: string;
   description: string;
   primaryTag: string;
   tags: string[];
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  estimatedHours: string;
+  totalProblems: number;
+  difficultyBreakdown: { easy: number; medium: number; hard: number };
   icon: React.ElementType;
   colorScheme: {
-    bg: string;
-    border: string;
-    text: string;
-    badgeBg: string;
+    iconBg: string;
+    iconColor: string;
+    levelBadge: string;
+    progressBar: string;
   };
+  curatedProblems: CuratedTrackProblem[];
 }
 
 const CURATED_TRACKS: CuratedTrack[] = [
   {
     id: 'two-pointers',
     title: 'Two Pointers & Sliding Window',
-    description: 'Master fast-slow pointer scans, palindrome tests, geometric storage, and monotonic subarray windows.',
+    description: 'Master linear pointer convergence, dynamic windows & geometric liquid storage optimization.',
     primaryTag: 'Two-Pointers',
     tags: ['Two-Pointers', 'Sliding-Window', 'Arrays'],
+    level: 'Intermediate',
+    estimatedHours: '2.5 hrs',
+    totalProblems: 8,
+    difficultyBreakdown: { easy: 2, medium: 5, hard: 1 },
     icon: TrendingUp,
     colorScheme: {
-      bg: 'bg-blue-50/50 dark:bg-blue-950/20',
-      border: 'border-blue-200 dark:border-blue-800/60',
-      text: 'text-blue-700 dark:text-blue-400',
-      badgeBg: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300'
-    }
+      iconBg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60',
+      iconColor: 'text-[#0969da] dark:text-[#58a6ff]',
+      levelBadge: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300',
+      progressBar: 'bg-[#0969da] dark:bg-[#58a6ff]'
+    },
+    curatedProblems: [
+      { title: 'Valid Palindrome', slug: 'valid-palindrome', difficulty: 'EASY' },
+      { title: 'Container With Most Water', slug: 'container-with-most-water', difficulty: 'MEDIUM' },
+      { title: 'Longest Substring Without Repeating Characters', slug: 'longest-substring-without-repeating', difficulty: 'MEDIUM' },
+      { title: 'Trapping Rain Water', slug: 'trapping-rain-water', difficulty: 'HARD' }
+    ]
   },
   {
     id: 'binary-search',
@@ -80,13 +102,23 @@ const CURATED_TRACKS: CuratedTrack[] = [
     description: 'Logarithmic search spaces, rotated sorted arrays, peak detection, and discrete monotonic bisection predicates.',
     primaryTag: 'Binary-Search',
     tags: ['Binary-Search', 'Divide-and-Conquer'],
+    level: 'Intermediate',
+    estimatedHours: '2.0 hrs',
+    totalProblems: 6,
+    difficultyBreakdown: { easy: 3, medium: 2, hard: 1 },
     icon: Compass,
     colorScheme: {
-      bg: 'bg-emerald-50/50 dark:bg-emerald-950/20',
-      border: 'border-emerald-200 dark:border-emerald-800/60',
-      text: 'text-emerald-700 dark:text-emerald-400',
-      badgeBg: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300'
-    }
+      iconBg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60',
+      iconColor: 'text-[#1a7f37] dark:text-[#3fb950]',
+      levelBadge: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300',
+      progressBar: 'bg-[#1a7f37] dark:bg-[#3fb950]'
+    },
+    curatedProblems: [
+      { title: 'Binary Search Optimal', slug: 'binary-search-optimal', difficulty: 'EASY' },
+      { title: 'Search in Rotated Sorted Array', slug: 'search-in-rotated-sorted-array', difficulty: 'MEDIUM' },
+      { title: 'Find Peak Element', slug: 'find-peak-element', difficulty: 'MEDIUM' },
+      { title: 'Median of Two Sorted Arrays', slug: 'median-of-two-sorted-arrays', difficulty: 'HARD' }
+    ]
   },
   {
     id: 'trees-graphs',
@@ -94,27 +126,47 @@ const CURATED_TRACKS: CuratedTrack[] = [
     description: 'Binary tree recursion, level-order BFS, depth-first backtracking, lowest common ancestors, and topological ordering.',
     primaryTag: 'Trees',
     tags: ['Trees', 'Breadth-First Search', 'Depth-First Search'],
+    level: 'Intermediate',
+    estimatedHours: '3.0 hrs',
+    totalProblems: 8,
+    difficultyBreakdown: { easy: 1, medium: 5, hard: 2 },
     icon: Layers,
     colorScheme: {
-      bg: 'bg-purple-50/50 dark:bg-purple-950/20',
-      border: 'border-purple-200 dark:border-purple-800/60',
-      text: 'text-purple-700 dark:text-purple-400',
-      badgeBg: 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300'
-    }
+      iconBg: 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800/60',
+      iconColor: 'text-[#8250df] dark:text-[#a371f7]',
+      levelBadge: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300',
+      progressBar: 'bg-[#8250df] dark:bg-[#a371f7]'
+    },
+    curatedProblems: [
+      { title: 'Invert Binary Tree', slug: 'invert-binary-tree', difficulty: 'EASY' },
+      { title: 'Binary Tree Level Order Traversal', slug: 'binary-tree-level-order-traversal', difficulty: 'MEDIUM' },
+      { title: 'Lowest Common Ancestor of BST', slug: 'lowest-common-ancestor-of-bst', difficulty: 'MEDIUM' },
+      { title: 'Course Schedule', slug: 'course-schedule', difficulty: 'MEDIUM' }
+    ]
   },
   {
     id: 'dynamic-programming',
-    title: 'Dynamic Programming & Memoization',
+    title: 'Dynamic Programming & State Transitions',
     description: 'Formulate state transitions, identify optimal substructure, and solve 1D/2D memoization and knapsack variants.',
     primaryTag: 'Dynamic-Programming',
     tags: ['Dynamic-Programming', 'Memoization'],
+    level: 'Advanced',
+    estimatedHours: '3.5 hrs',
+    totalProblems: 8,
+    difficultyBreakdown: { easy: 1, medium: 5, hard: 2 },
     icon: Zap,
     colorScheme: {
-      bg: 'bg-amber-50/50 dark:bg-amber-950/20',
-      border: 'border-amber-200 dark:border-amber-800/60',
-      text: 'text-amber-700 dark:text-amber-400',
-      badgeBg: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300'
-    }
+      iconBg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60',
+      iconColor: 'text-[#9a6700] dark:text-[#d29922]',
+      levelBadge: 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300',
+      progressBar: 'bg-[#9a6700] dark:bg-[#d29922]'
+    },
+    curatedProblems: [
+      { title: 'Climbing Stairs', slug: 'climbing-stairs', difficulty: 'EASY' },
+      { title: 'Coin Change', slug: 'coin-change', difficulty: 'MEDIUM' },
+      { title: 'Longest Increasing Subsequence', slug: 'longest-increasing-subsequence', difficulty: 'MEDIUM' },
+      { title: 'Edit Distance', slug: 'edit-distance', difficulty: 'HARD' }
+    ]
   },
   {
     id: 'hash-strings',
@@ -122,13 +174,23 @@ const CURATED_TRACKS: CuratedTrack[] = [
     description: 'Constant-time frequency lookups, rolling hash patterns, anagram group clustering, and substring searches.',
     primaryTag: 'Hash-Table',
     tags: ['Hash-Table', 'Strings'],
+    level: 'Beginner',
+    estimatedHours: '1.5 hrs',
+    totalProblems: 7,
+    difficultyBreakdown: { easy: 3, medium: 3, hard: 1 },
     icon: Tag,
     colorScheme: {
-      bg: 'bg-rose-50/50 dark:bg-rose-950/20',
-      border: 'border-rose-200 dark:border-rose-800/60',
-      text: 'text-rose-700 dark:text-rose-400',
-      badgeBg: 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300'
-    }
+      iconBg: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60',
+      iconColor: 'text-[#cf222e] dark:text-[#f85149]',
+      levelBadge: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300',
+      progressBar: 'bg-[#cf222e] dark:bg-[#f85149]'
+    },
+    curatedProblems: [
+      { title: 'Two Sum Optimal', slug: 'two-sum-optimal', difficulty: 'EASY' },
+      { title: 'Valid Anagram', slug: 'valid-anagram', difficulty: 'EASY' },
+      { title: 'Group Anagrams', slug: 'group-anagrams', difficulty: 'MEDIUM' },
+      { title: 'Minimum Window Substring', slug: 'minimum-window-substring', difficulty: 'HARD' }
+    ]
   },
   {
     id: 'greedy-sorting',
@@ -136,13 +198,23 @@ const CURATED_TRACKS: CuratedTrack[] = [
     description: 'Local optimal choice heuristics, non-overlapping intervals, interval merging, and sorting optimizations.',
     primaryTag: 'Greedy',
     tags: ['Greedy', 'Sorting'],
+    level: 'Intermediate',
+    estimatedHours: '2.0 hrs',
+    totalProblems: 6,
+    difficultyBreakdown: { easy: 2, medium: 3, hard: 1 },
     icon: Award,
     colorScheme: {
-      bg: 'bg-teal-50/50 dark:bg-teal-950/20',
-      border: 'border-teal-200 dark:border-teal-800/60',
-      text: 'text-teal-700 dark:text-teal-400',
-      badgeBg: 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300'
-    }
+      iconBg: 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800/60',
+      iconColor: 'text-teal-700 dark:text-teal-400',
+      levelBadge: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300',
+      progressBar: 'bg-teal-600 dark:bg-teal-500'
+    },
+    curatedProblems: [
+      { title: 'Maximum Subarray Sum', slug: 'maximum-subarray-sum', difficulty: 'MEDIUM' },
+      { title: 'Merge Intervals', slug: 'merge-intervals', difficulty: 'MEDIUM' },
+      { title: 'Jump Game', slug: 'jump-game', difficulty: 'MEDIUM' },
+      { title: 'Non-overlapping Intervals', slug: 'non-overlapping-intervals', difficulty: 'MEDIUM' }
+    ]
   }
 ];
 
@@ -219,6 +291,16 @@ export function ProblemListPage() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Fast map to resolve user status & benchmarks for curated pathway problems
+  const problemStatusMap = useMemo(() => {
+    const map = new Map<string, ProblemListItem>();
+    for (const p of problems) {
+      if (p.slug) map.set(p.slug, p);
+      map.set(p.id, p);
+    }
+    return map;
+  }, [problems]);
+
   // Reset to page 1 whenever tab or debounced search changes
   useEffect(() => {
     setPage(1);
@@ -241,15 +323,13 @@ export function ProblemListPage() {
 
   // Fetch problems when filters, tab, or pagination change
   useEffect(() => {
-    if (activeTab === 'tracks') {
-      setLoading(false);
-      return;
-    }
     fetchProblems();
   }, [page, difficulty, selectedTag, sortBy, debouncedSearch, activeTab]);
 
   const fetchProblems = async () => {
-    const cacheKey = `hub_${page}_${difficulty}_${selectedTag}_${sortBy}_${debouncedSearch}_${activeTab}_${user?.id || 'guest'}`;
+    const fetchLimit = activeTab === 'tracks' ? 50 : 15;
+    const fetchPage = activeTab === 'tracks' ? 1 : page;
+    const cacheKey = `hub_${fetchPage}_${fetchLimit}_${difficulty}_${selectedTag}_${sortBy}_${debouncedSearch}_${activeTab}_${user?.id || 'guest'}`;
     const cached = useDataCacheStore.getState().get<{ problems: ProblemListItem[]; pagination: any }>(cacheKey);
 
     if (cached) {
@@ -263,14 +343,14 @@ export function ProblemListPage() {
     setError(null);
     try {
       const params: Record<string, any> = {
-        page,
-        limit: 15,
+        page: fetchPage,
+        limit: fetchLimit,
         sortBy
       };
 
       if (difficulty !== 'ALL') params.difficulty = difficulty;
-      if (selectedTag !== 'All Topics') params.tag = selectedTag;
-      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (selectedTag !== 'All Topics' && activeTab !== 'tracks') params.tag = selectedTag;
+      if (debouncedSearch.trim() && activeTab !== 'tracks') params.search = debouncedSearch.trim();
 
       // Map active hub tab to backend statusFilter
       if (activeTab === 'unsolved') {
@@ -279,7 +359,7 @@ export function ProblemListPage() {
         params.statusFilter = 'SOLVED';
       } else if (activeTab === 'pending') {
         params.statusFilter = 'ATTEMPTED';
-      } else if (activeTab === 'all') {
+      } else if (activeTab === 'all' || activeTab === 'tracks') {
         params.statusFilter = 'ALL';
       }
 
@@ -482,62 +562,309 @@ export function ProblemListPage() {
           <main className="lg:col-span-8 xl:col-span-9 space-y-4 min-w-0">
             {/* If Algorithm Tracks Tab is Active, render Tracks Showcase */}
             {activeTab === 'tracks' ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs">
-                  <h2 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
-                    <Award className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
-                    Curated Algorithmic Pathways & Skill Tracks
-                  </h2>
-                  <p className="text-xs text-[#656d76] dark:text-[#8b949e] mt-1 leading-relaxed">
-                    Select a structured curriculum track to practice core coding interview patterns sequentially from fundamentals to advanced edge cases.
-                  </p>
+              <div className="space-y-5">
+                {/* 1. Header context banner */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-base font-bold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-2">
+                      <Award className="w-5 h-5 text-[#8250df] dark:text-[#a371f7]" />
+                      Curated Algorithmic Pathways & Skill Tracks
+                    </h2>
+                    <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1 leading-relaxed max-w-2xl">
+                      Select a structured curriculum track to practice core coding interview patterns sequentially from fundamentals to advanced edge cases with isolated Linux kernel sandbox evaluation.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#ddf4ff] dark:bg-[#033d8b4d] text-[#0969da] dark:text-[#58a6ff] border border-[#54aeff66] dark:border-[#0969da66]">
+                      {CURATED_TRACKS.length} Active Pathways
+                    </span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de] dark:border-[#30363d]">
+                      {CURATED_TRACKS.reduce((acc, t) => acc + t.totalProblems, 0)} Challenges
+                    </span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 2. Bento Grid of Track Cards (2 Columns) */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                   {CURATED_TRACKS.map((track) => {
                     const TrackIcon = track.icon;
+
+                    // Match live problem status from problemStatusMap
+                    const resolvedCurated = track.curatedProblems.map((cp) => {
+                      const live =
+                        problemStatusMap.get(cp.slug) ||
+                        problemStatusMap.get(cp.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+                      return {
+                        ...cp,
+                        liveProblem: live,
+                        status: (live?.userStatus || 'TODO') as 'SOLVED' | 'ATTEMPTED' | 'TODO',
+                        bestRuntimeMs: live?.bestRuntimeMs,
+                        lastVerdict: live?.lastVerdict,
+                        acceptanceRate: live?.acceptanceRate
+                      };
+                    });
+
+                    const solvedCuratedCount = resolvedCurated.filter(
+                      (p) => p.status === 'SOLVED'
+                    ).length;
+                    const progressPercent = Math.min(
+                      100,
+                      Math.round((solvedCuratedCount / track.totalProblems) * 100)
+                    );
+
+                    // Next problem logic
+                    const inProgressProblem = resolvedCurated.find((p) => p.status === 'ATTEMPTED');
+                    const nextUnsolvedProblem = resolvedCurated.find((p) => p.status === 'TODO');
+                    const targetProblem = inProgressProblem || nextUnsolvedProblem || resolvedCurated[0];
+                    const isFullySolved =
+                      solvedCuratedCount === track.totalProblems ||
+                      (resolvedCurated.length > 0 && resolvedCurated.every((p) => p.status === 'SOLVED'));
+
                     return (
                       <div
                         key={track.id}
-                        className={`rounded-xl border p-4.5 transition-all shadow-xs hover:shadow-md flex flex-col justify-between ${track.colorScheme.bg} ${track.colorScheme.border}`}
+                        className="rounded-2xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
                       >
                         <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#161b22] border border-[#d0d7de]/60 dark:border-[#30363d] shadow-xs">
-                              <TrackIcon className={`w-5 h-5 ${track.colorScheme.text}`} />
+                          {/* Top Row: Icon + Level Badge + Total Challenges */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-2xs ${track.colorScheme.iconBg}`}
+                              >
+                                <TrackIcon className={`w-5 h-5 ${track.colorScheme.iconColor}`} />
+                              </div>
+                              <div>
+                                <h3 className="text-sm sm:text-base font-bold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition-colors">
+                                  {track.title}
+                                </h3>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[11px] font-medium text-[#656d76] dark:text-[#8b949e] flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> {track.estimatedHours}
+                                  </span>
+                                  <span className="text-[#d0d7de] dark:text-[#30363d]">•</span>
+                                  <span className="text-[11px] font-mono text-[#656d76] dark:text-[#8b949e]">
+                                    {track.totalProblems} challenges
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${track.colorScheme.badgeBg}`}>
-                              Track
+
+                            <span
+                              className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
+                                track.level === 'Beginner'
+                                  ? 'bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border-[#4ac26b66] dark:border-[#2ea0434d]'
+                                  : track.level === 'Intermediate'
+                                  ? 'bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] border-[#d4a72c66] dark:border-[#bb80094d]'
+                                  : 'bg-[#ffebe9] dark:bg-[#f8514926] text-[#cf222e] dark:text-[#f85149] border-[#ff818266] dark:border-[#f851494d]'
+                              }`}
+                            >
+                              {track.level}
                             </span>
                           </div>
 
-                          <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] mt-3">
-                            {track.title}
-                          </h3>
-                          <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1.5 leading-relaxed">
+                          {/* Description */}
+                          <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-2.5 leading-relaxed">
                             {track.description}
                           </p>
 
-                          {/* Related tags */}
-                          <div className="flex flex-wrap gap-1 mt-3">
-                            {track.tags.map((t) => (
-                              <span
-                                key={t}
-                                className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/80 dark:bg-[#161b22]/80 text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de]/50 dark:border-[#30363d]"
-                              >
-                                {t}
+                          {/* Pathway Progress Bar & Stats */}
+                          <div className="mt-4 pt-3.5 border-t border-[#d0d7de]/60 dark:border-[#30363d]/60">
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc] flex items-center gap-1.5">
+                                <Trophy className="w-3.5 h-3.5 text-[#d29922]" />
+                                <span>Track Progress</span>
                               </span>
-                            ))}
+                              <span className="font-mono text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                                {solvedCuratedCount} / {track.totalProblems} Solved ({progressPercent}%)
+                              </span>
+                            </div>
+
+                            <div className="w-full bg-[#eaeef2] dark:bg-[#21262d] h-2 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${track.colorScheme.progressBar}`}
+                                style={{
+                                  width: `${Math.max(
+                                    progressPercent,
+                                    solvedCuratedCount > 0 ? 8 : 0
+                                  )}%`
+                                }}
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2.5 text-[11px]">
+                              <span className="text-[#656d76] dark:text-[#8b949e] font-medium mr-0.5">
+                                Difficulty:
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#dafbe1]/70 dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] font-medium border border-[#4ac26b40] dark:border-[#2ea04333]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#1a7f37] dark:bg-[#3fb950]" />
+                                {track.difficultyBreakdown.easy} Easy
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#fff8c5]/70 dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] font-medium border border-[#d4a72c40] dark:border-[#bb800933]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#9a6700] dark:bg-[#d29922]" />
+                                {track.difficultyBreakdown.medium} Med
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#ffebe9]/70 dark:bg-[#f8514926] text-[#cf222e] dark:text-[#f85149] font-medium border border-[#ff818240] dark:border-[#f8514933]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#cf222e] dark:bg-[#f85149]" />
+                                {track.difficultyBreakdown.hard} Hard
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Curated Challenges Quick-List */}
+                          <div className="mt-4 rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117]/60 overflow-hidden shadow-2xs">
+                            <div className="px-3 py-1.5 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de]/80 dark:border-[#30363d] text-[10px] font-mono uppercase tracking-wider text-[#656d76] dark:text-[#8b949e] font-bold flex items-center justify-between">
+                              <span>
+                                Curated Challenges ({resolvedCurated.length} of {track.totalProblems})
+                              </span>
+                              <span>Status / Action</span>
+                            </div>
+                            <div className="divide-y divide-[#d0d7de]/60 dark:divide-[#30363d]/60">
+                              {resolvedCurated.map((prob, idx) => {
+                                const isSolved = prob.status === 'SOLVED';
+                                const isAttempted = prob.status === 'ATTEMPTED';
+
+                                return (
+                                  <div
+                                    key={prob.slug}
+                                    className="px-3 py-2 flex items-center justify-between gap-3 hover:bg-white dark:hover:bg-[#161b22]/70 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      {isSolved ? (
+                                        <CheckCircle2 className="w-4 h-4 text-[#1a7f37] dark:text-[#3fb950] shrink-0" />
+                                      ) : isAttempted ? (
+                                        <Clock className="w-4 h-4 text-[#9a6700] dark:text-[#d29922] shrink-0 animate-pulse" />
+                                      ) : (
+                                        <Circle className="w-4 h-4 text-[#8c959f] dark:text-[#6e7681] shrink-0" />
+                                      )}
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="text-[11px] font-mono text-[#656d76] dark:text-[#8b949e]">
+                                          {idx + 1}.
+                                        </span>
+                                        <Link
+                                          to={`/workspace/${prob.slug}`}
+                                          className="text-xs font-semibold text-[#1f2328] dark:text-[#e6edf3] hover:text-[#0969da] dark:hover:text-[#58a6ff] truncate"
+                                          title={prob.title}
+                                        >
+                                          {prob.title}
+                                        </Link>
+                                      </div>
+                                      {prob.difficulty === 'EASY' && (
+                                        <span className="hidden sm:inline-block text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950]">
+                                          Easy
+                                        </span>
+                                      )}
+                                      {prob.difficulty === 'MEDIUM' && (
+                                        <span className="hidden sm:inline-block text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922]">
+                                          Med
+                                        </span>
+                                      )}
+                                      {prob.difficulty === 'HARD' && (
+                                        <span className="hidden sm:inline-block text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#ffebe9] dark:bg-[#f8514926] text-[#cf222e] dark:text-[#f85149]">
+                                          Hard
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {isSolved ? (
+                                        <>
+                                          {prob.bestRuntimeMs ? (
+                                            <span className="text-[11px] font-mono text-[#1a7f37] dark:text-[#3fb950] flex items-center gap-0.5">
+                                              <Zap className="w-3 h-3" /> {prob.bestRuntimeMs}ms
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-mono text-[#1a7f37] dark:text-[#3fb950] font-semibold">
+                                              Passed
+                                            </span>
+                                          )}
+                                          <Link
+                                            to={`/workspace/${prob.slug}`}
+                                            className="px-2 py-0.5 rounded text-[11px] font-semibold bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] hover:border-[#0969da] hover:text-[#0969da] dark:hover:border-[#58a6ff] transition shadow-2xs"
+                                          >
+                                            Review
+                                          </Link>
+                                        </>
+                                      ) : isAttempted ? (
+                                        <>
+                                          <span className="text-[10px] font-mono text-[#9a6700] dark:text-[#d29922] px-1.5 py-0.5 rounded bg-[#fff8c5] dark:bg-[#bb800926] border border-[#d4a72c40] dark:border-[#bb800933]">
+                                            {prob.lastVerdict
+                                              ? prob.lastVerdict.replace('_', ' ')
+                                              : 'Attempted'}
+                                          </span>
+                                          <Link
+                                            to={`/workspace/${prob.slug}`}
+                                            className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] border border-[#d4a72c66] dark:border-[#bb80094d] hover:bg-[#9a6700] hover:text-white transition shadow-2xs"
+                                          >
+                                            Resume
+                                          </Link>
+                                        </>
+                                      ) : (
+                                        <Link
+                                          to={`/workspace/${prob.slug}`}
+                                          className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-white dark:bg-[#21262d] text-[#0969da] dark:text-[#58a6ff] border border-[#d0d7de] dark:border-[#30363d] hover:bg-[#0969da] hover:text-white dark:hover:bg-[#1f6feb] transition shadow-2xs flex items-center gap-1"
+                                        >
+                                          <span>Solve</span>
+                                          <ArrowRight className="w-3 h-3" />
+                                        </Link>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {track.totalProblems > resolvedCurated.length && (
+                              <div className="px-3 py-1.5 bg-[#f6f8fa]/80 dark:bg-[#161b22]/50 text-[10px] text-[#656d76] dark:text-[#8b949e] border-t border-[#d0d7de]/50 dark:border-[#30363d]/50 flex items-center justify-between">
+                                <span>
+                                  + {track.totalProblems - resolvedCurated.length} more algorithmic challenges in this track
+                                </span>
+                                <button
+                                  onClick={() => handleTrackSelect(track)}
+                                  className="font-medium text-[#0969da] dark:text-[#58a6ff] hover:underline cursor-pointer"
+                                >
+                                  View all →
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-[#d0d7de]/40 dark:border-[#30363d]/60 flex items-center justify-between">
+                        {/* Card Actions Footer */}
+                        <div className="mt-5 pt-3.5 border-t border-[#d0d7de]/60 dark:border-[#30363d]/60 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          {isFullySolved ? (
+                            <Link
+                              to={`/workspace/${targetProblem.slug}`}
+                              className="flex-1 py-2 px-3.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-[#dafbe1] dark:bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b66] dark:border-[#2ea0434d] hover:bg-[#1a7f37] hover:text-white transition shadow-2xs"
+                            >
+                              <Trophy className="w-3.5 h-3.5" />
+                              <span>Track Completed • Review</span>
+                            </Link>
+                          ) : inProgressProblem ? (
+                            <Link
+                              to={`/workspace/${inProgressProblem.slug}`}
+                              className="flex-1 py-2 px-3.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-[#fff8c5] dark:bg-[#bb800926] text-[#9a6700] dark:text-[#d29922] border border-[#d4a72c66] dark:border-[#bb80094d] hover:bg-[#9a6700] hover:text-white transition shadow-2xs truncate"
+                            >
+                              <Zap className="w-3.5 h-3.5 fill-current" />
+                              <span className="truncate">
+                                Continue Track (Resume #{inProgressProblem.title})
+                              </span>
+                            </Link>
+                          ) : (
+                            <Link
+                              to={`/workspace/${targetProblem.slug}`}
+                              className="flex-1 py-2 px-3.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-[#0969da] text-white hover:bg-[#0854ad] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] shadow-2xs"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              <span>Start Track (Problem #1)</span>
+                            </Link>
+                          )}
+
                           <button
                             onClick={() => handleTrackSelect(track)}
-                            className="w-full py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer bg-white dark:bg-[#161b22] hover:bg-[#0969da] hover:text-white dark:hover:bg-[#2ea043] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] shadow-2xs group"
+                            className="py-2 px-3.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer bg-[#f6f8fa] dark:bg-[#21262d] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] shadow-2xs shrink-0"
                           >
-                            <span>Explore Track Challenges</span>
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                            <span>Explore All ({track.totalProblems})</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
