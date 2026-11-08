@@ -382,11 +382,11 @@ export function MonacoWorkspace({
           {/* Reset Button */}
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded-lg shadow-2xs transition cursor-pointer"
+            className="p-1.5 rounded-lg text-xs text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs transition cursor-pointer"
             title="Reset code to default template"
+            aria-label="Reset Code"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset</span>
           </button>
 
           {/* Quick Preferences Popover Trigger */}
@@ -532,56 +532,68 @@ export function MonacoWorkspace({
         </div>
 
         {/* Execution Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Visualize Code Execution (Zero AI, Pure Debugger) */}
           <button
             onClick={handleVisualizeCode}
             disabled={isSubmitting || isRunningCustom || isVisualizing || !isOnline}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8250df1a] hover:bg-[#8250df26] dark:bg-[#8250df26] dark:hover:bg-[#8250df33] text-[#8250df] dark:text-[#a371f7] border border-[#8250df40] text-xs font-semibold shadow-2xs disabled:opacity-50 transition cursor-pointer"
-            title={!isOnline ? "Network is offline (visualizer disabled)" : "Visualize step-by-step code execution (Zero AI, Pure Debugger)"}
+            className="flex items-center justify-center p-1.5 sm:px-2 rounded-lg bg-[#8250df1a] hover:bg-[#8250df26] dark:bg-[#8250df26] dark:hover:bg-[#8250df33] text-[#8250df] dark:text-[#a371f7] border border-[#8250df40] text-xs font-semibold shadow-2xs disabled:opacity-50 transition cursor-pointer"
+            title={
+              !isOnline
+                ? "Network is offline (visualizer disabled)"
+                : isVisualizing
+                ? "Tracing code execution..."
+                : "Visualize step-by-step code execution (Zero AI, Pure Debugger)"
+            }
+            aria-label="Visualize Code Execution"
           >
             {isVisualizing ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8250df] dark:text-[#a371f7]" />
             ) : (
               <Eye className="w-3.5 h-3.5 text-[#8250df] dark:text-[#a371f7]" />
             )}
-            <span>{isVisualizing ? 'Tracing...' : 'Visualize'}</span>
           </button>
 
           {/* Run Code */}
           <button
             onClick={handleRunCustom}
             disabled={isSubmitting || isRunningCustom || isStreaming || !isOnline}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f6f8fa] hover:bg-[#eaeef2] dark:bg-[#21262d] dark:hover:bg-[#30363d] text-[#1f2328] dark:text-[#e6edf3] border border-[#d0d7de] dark:border-[#30363d] text-xs font-semibold shadow-2xs disabled:opacity-50 transition cursor-pointer"
-            title={!isOnline ? "Network is offline (execution disabled)" : "Run against test inputs (Ctrl+Enter)"}
+            className="flex items-center justify-center p-1.5 sm:px-2.5 rounded-lg bg-[#f6f8fa] hover:bg-[#eaeef2] dark:bg-[#21262d] dark:hover:bg-[#30363d] text-[#1f2328] dark:text-[#e6edf3] border border-[#d0d7de] dark:border-[#30363d] text-xs font-semibold shadow-2xs disabled:opacity-50 transition cursor-pointer"
+            title={
+              !isOnline
+                ? "Network is offline (execution disabled)"
+                : isRunningCustom
+                ? "Running tests..."
+                : `Run against test inputs (${isMacOS() ? '⌘+Enter' : 'Ctrl+Enter'})`
+            }
+            aria-label="Run Code"
           >
             {isRunningCustom ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1a7f37] dark:text-[#3fb950]" />
             ) : (
               <Play className="w-3.5 h-3.5 text-[#1a7f37] dark:text-[#3fb950] fill-[#1a7f37] dark:fill-[#3fb950]" />
             )}
-            <span>{isRunningCustom ? 'Running...' : 'Run'}</span>
-            <span className="hidden xl:inline text-[10px] text-[#8c959f] font-mono">
-              {isMacOS() ? '⌘↵' : 'Ctrl+↵'}
-            </span>
           </button>
 
           {/* Submit Solution */}
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || isRunningCustom || isStreaming || !isOnline}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#1f883d] to-[#1a7f37] hover:from-[#1a7f37] hover:to-[#16682c] dark:from-[#238636] dark:to-[#2ea043] text-white text-xs font-bold shadow-xs border border-[rgba(27,31,36,0.15)] dark:border-[#2ea04366] disabled:opacity-50 transition cursor-pointer"
-            title={!isOnline ? "Network is offline (submission disabled)" : "Submit for official ranking and AI evaluation (Ctrl+Shift+Enter)"}
+            className="flex items-center justify-center p-1.5 sm:px-3 rounded-lg bg-gradient-to-r from-[#1f883d] to-[#1a7f37] hover:from-[#1a7f37] hover:to-[#16682c] dark:from-[#238636] dark:to-[#2ea043] text-white text-xs font-bold shadow-xs border border-[rgba(27,31,36,0.15)] dark:border-[#2ea04366] disabled:opacity-50 transition cursor-pointer"
+            title={
+              !isOnline
+                ? "Network is offline (submission disabled)"
+                : isSubmitting
+                ? "Evaluating submission..."
+                : `Submit for official ranking and AI evaluation (${isMacOS() ? '⌘+Shift+Enter' : 'Ctrl+Shift+Enter'})`
+            }
+            aria-label="Submit Solution"
           >
             {isSubmitting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Send className="w-3.5 h-3.5" />
             )}
-            <span>{isSubmitting ? 'Evaluating...' : 'Submit'}</span>
-            <span className="hidden xl:inline text-[10px] text-emerald-200 font-mono">
-              {isMacOS() ? '⌘⇧↵' : 'Ctrl+Shift+↵'}
-            </span>
           </button>
         </div>
       </div>

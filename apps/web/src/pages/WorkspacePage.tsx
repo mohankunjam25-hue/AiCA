@@ -729,38 +729,38 @@ export function WorkspacePage() {
           </div>
 
           {/* Desktop Subnav Tabs (>= 1024px) */}
-          <nav className="hidden lg:flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <nav className="hidden lg:flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => {
                 setActiveLeftTab('desc');
                 if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 activeLeftTab === 'desc' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
+              title="Problem Description"
+              aria-label="Problem Description"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Description</span>
             </button>
             <button
               onClick={() => {
                 setActiveLeftTab('report');
                 if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              className={`relative p-1.5 sm:p-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 activeLeftTab === 'report' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
+              title="Evaluation Report"
+              aria-label="Evaluation Report"
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>Report</span>
               {report && (
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#2ea04326] text-[#1a7f37] dark:text-[#3fb950] border border-[#2ea04340]">
-                  ✓
-                </span>
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#2ea043] ring-1 ring-white dark:ring-[#161b22]" />
               )}
             </button>
             <button
@@ -769,14 +769,15 @@ export function WorkspacePage() {
                 setActiveLeftTab('compare');
                 if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 activeLeftTab === 'compare' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
+              title="Compare Approaches"
+              aria-label="Compare Approaches"
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
-              <span>Compare</span>
             </button>
             <button
               onClick={() => {
@@ -784,16 +785,17 @@ export function WorkspacePage() {
                 setActiveLeftTab('submissions');
                 if (isLeftCollapsed || isZenMode) toggleLeftCollapse();
               }}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              className={`relative p-1.5 sm:p-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 activeLeftTab === 'submissions' && !isLeftCollapsed && !isZenMode
                   ? 'bg-white dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#e6edf3] hover:bg-[#eaeef2] dark:hover:bg-[#21262d]'
               }`}
+              title="Past Submissions"
+              aria-label="Past Submissions"
             >
               <History className="w-3.5 h-3.5" />
-              <span>Submissions</span>
               {pastSubmissions.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#afb8c133] dark:bg-[#6e768166] text-[#24292f] dark:text-[#c9d1d9]">
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full text-[9px] font-mono font-bold bg-[#afb8c1] dark:bg-[#6e7681] text-white flex items-center justify-center">
                   {pastSubmissions.length}
                 </span>
               )}
@@ -804,7 +806,7 @@ export function WorkspacePage() {
           <button
             type="button"
             onClick={toggleEditorCollapse}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+            className={`hidden sm:flex items-center p-1.5 sm:p-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
               isEditorCollapsed
                 ? 'bg-[#0969da] text-white border-[#0969da] shadow-xs ring-2 ring-blue-400/40'
                 : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
@@ -816,26 +818,20 @@ export function WorkspacePage() {
                 ? 'Full-Width Evaluation Report (Alt+M)'
                 : 'Full-Width View (Alt+M)'
             }
+            aria-label="Toggle Full-Width"
           >
             {isEditorCollapsed ? (
               <Columns2 className="w-3.5 h-3.5" />
             ) : (
               <Maximize2 className="w-3.5 h-3.5" />
             )}
-            <span className="hidden md:inline">
-              {isEditorCollapsed
-                ? 'Split View'
-                : activeLeftTab === 'report'
-                ? 'Full-Width Report'
-                : 'Full-Width'}
-            </span>
           </button>
 
           {/* Quick Problem Panel Collapse Toggle (LeetCode Style: Give Editor 100% Width) */}
           <button
             type="button"
             onClick={toggleLeftCollapse}
-            className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+            className={`hidden lg:flex items-center p-1.5 sm:p-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
               isLeftCollapsed || isZenMode
                 ? 'bg-[#0969da] text-white border-[#0969da] shadow-xs'
                 : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
@@ -847,24 +843,24 @@ export function WorkspacePage() {
                 ? 'Show Problem Description Panel'
                 : 'Collapse Problem Panel (Full Editor Width)'
             }
+            aria-label="Collapse / Show Problem Panel"
           >
             {isLeftCollapsed || isZenMode ? (
               <PanelLeftOpen className="w-3.5 h-3.5" />
             ) : (
               <PanelLeftClose className="w-3.5 h-3.5" />
             )}
-            <span>{isLeftCollapsed || isZenMode ? 'Show Problem' : 'Collapse Panel'}</span>
           </button>
 
           {/* Flowchart (LFtL) Visual Programming Switcher */}
           {problem && (
             <Link
               to={`/lftl/${problem.slug}`}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-950/40 border border-purple-500/40 text-purple-300 hover:bg-purple-900/60 hover:text-white transition cursor-pointer"
+              className="hidden sm:flex items-center p-1.5 sm:p-2 rounded-lg text-xs font-semibold bg-purple-950/40 border border-purple-500/40 text-purple-300 hover:bg-purple-900/60 hover:text-white transition cursor-pointer"
               title="Solve this problem using Visual Flowchart (LFtL)"
+              aria-label="Solve with Visual Flowchart (LFtL)"
             >
               <GitFork className="w-3.5 h-3.5 text-purple-400" />
-              <span className="hidden md:inline">Flowchart (LFtL)</span>
             </Link>
           )}
 
@@ -872,15 +868,15 @@ export function WorkspacePage() {
           <button
             type="button"
             onClick={toggleZenMode}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+            className={`hidden sm:flex items-center p-1.5 sm:p-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
               isZenMode
                 ? 'bg-[#8250df] text-white border-[#8250df] shadow-xs ring-2 ring-purple-400/40'
                 : 'bg-white dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc]'
             }`}
             title={isZenMode ? 'Exit Zen Focus Mode (Esc)' : 'Zen Focus Mode (Fullscreen Code Editor)'}
+            aria-label="Zen Focus Mode"
           >
             {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="hidden xl:inline">{isZenMode ? 'Exit Zen (Esc)' : 'Zen Focus'}</span>
           </button>
         </div>
       </div>
