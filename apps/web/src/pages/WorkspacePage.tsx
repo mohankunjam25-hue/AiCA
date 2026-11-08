@@ -856,6 +856,18 @@ export function WorkspacePage() {
             <span>{isLeftCollapsed || isZenMode ? 'Show Problem' : 'Collapse Panel'}</span>
           </button>
 
+          {/* Flowchart (LFtL) Visual Programming Switcher */}
+          {problem && (
+            <Link
+              to={`/lftl/${problem.slug}`}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-950/40 border border-purple-500/40 text-purple-300 hover:bg-purple-900/60 hover:text-white transition cursor-pointer"
+              title="Solve this problem using Visual Flowchart (LFtL)"
+            >
+              <GitFork className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden md:inline">Flowchart (LFtL)</span>
+            </Link>
+          )}
+
           {/* Zen Focus Mode Button */}
           <button
             type="button"

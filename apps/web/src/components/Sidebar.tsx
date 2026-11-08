@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Settings,
   X,
+  GitFork,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -64,6 +65,12 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
       label: 'Algorithms',
       path: '/algorithms',
       icon: Workflow,
+      requiresAuth: false,
+    },
+    {
+      label: 'LFtL',
+      path: '/lftl',
+      icon: GitFork,
       requiresAuth: false,
     },
     {
