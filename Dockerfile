@@ -17,7 +17,7 @@ RUN corepack enable && corepack prepare pnpm@12.14.0 --activate
 WORKDIR /app
 
 # Copy root and workspace package manifests for dependency layer caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ai-engine/package.json ./packages/ai-engine/
 COPY apps/api/package.json ./apps/api/
