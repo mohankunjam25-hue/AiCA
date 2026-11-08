@@ -81,34 +81,34 @@ export function FlowchartBlockPalette({
   ];
 
   return (
-    <div className="flex items-center gap-1.5 p-1.5 bg-slate-900/90 dark:bg-[#161b22]/95 border border-slate-700/80 dark:border-[#30363d] rounded-2xl shadow-2xl backdrop-blur-md">
-      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 select-none">
-        Add Block:
+    <div className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-slate-900/90 dark:bg-[#161b22]/95 border border-slate-700/80 dark:border-[#30363d] rounded-2xl shadow-2xl backdrop-blur-md max-w-[95vw] overflow-x-auto scrollbar-none">
+      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-1.5 sm:px-2 select-none shrink-0 hidden md:inline">
+        Add:
       </span>
 
       {blocks.map(({ type, label, icon: Icon, color, bg }) => (
         <button
           key={type}
           onClick={() => onAddNode(type)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-transparent text-xs font-semibold text-slate-200 transition cursor-pointer ${bg}`}
+          className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-transparent text-xs font-semibold text-slate-200 transition cursor-pointer shrink-0 ${bg}`}
           title={`Add ${label} block`}
         >
           <Icon className={`w-3.5 h-3.5 ${color}`} />
-          <span>{label}</span>
+          <span className="hidden sm:inline">{label}</span>
         </button>
       ))}
 
-      <div className="h-5 w-[1px] bg-slate-700 mx-1" />
+      <div className="h-5 w-[1px] bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
 
       {/* Validate Graph */}
       <button
         onClick={onValidate}
         disabled={isValidating}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer"
+        className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer shrink-0"
         title="Check flowchart validity"
       >
         <CheckCircle className="w-3.5 h-3.5 text-blue-400" />
-        <span>Validate</span>
+        <span className="hidden sm:inline">Validate</span>
       </button>
 
       {/* Auto Reset Layout */}

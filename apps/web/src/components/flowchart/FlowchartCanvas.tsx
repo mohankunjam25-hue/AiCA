@@ -568,9 +568,9 @@ export function FlowchartCanvas({
       : null;
 
   return (
-    <div className="relative w-full h-full min-h-[680px] bg-slate-950 flex flex-col overflow-hidden select-none">
-      {/* Top Floating Block Palette */}
-      <div className="absolute top-4 left-6 z-20">
+    <div className="relative w-full h-full bg-slate-950 flex flex-col overflow-hidden select-none">
+      {/* Top Floating Block Palette - Horizontally Centered */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
         <FlowchartBlockPalette
           onAddNode={handleAddNode}
           onValidate={handleValidate}
@@ -581,13 +581,13 @@ export function FlowchartCanvas({
 
       {/* Validation Warning / Error Banner */}
       {validationResult && !validationResult.isValid && (
-        <div className="absolute top-18 left-6 z-20 max-w-lg p-2.5 rounded-xl bg-rose-950/90 border border-rose-700/80 text-rose-300 text-xs shadow-xl backdrop-blur-md flex items-center justify-between">
-          <span className="font-semibold">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20 max-w-md w-[90vw] p-2.5 rounded-xl bg-rose-950/90 border border-rose-700/80 text-rose-300 text-xs shadow-xl backdrop-blur-md flex items-center justify-between">
+          <span className="font-semibold truncate">
             {validationResult.errors[0]?.message}
           </span>
           <button
             onClick={() => setValidationResult(null)}
-            className="text-rose-400 hover:text-white ml-3 font-bold cursor-pointer"
+            className="text-rose-400 hover:text-white ml-3 font-bold cursor-pointer shrink-0"
           >
             ✕
           </button>
@@ -605,7 +605,7 @@ export function FlowchartCanvas({
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
+          fitViewOptions={{ padding: 0.25 }}
           connectionLineType={ConnectionLineType.SmoothStep}
           connectionLineStyle={{
             stroke: '#38bdf8',
@@ -629,7 +629,7 @@ export function FlowchartCanvas({
             color="#334155"
             className="bg-slate-950 dark:bg-[#0d1117]"
           />
-          <Controls className="bg-slate-900! border-slate-700! text-slate-300! fill-slate-300!" />
+          <Controls className="bg-slate-900! border-slate-700! text-slate-300! fill-slate-300! top-14! left-3!" />
           <MiniMap
             nodeColor={(n) => {
               if (n.type === 'start') return '#10b981';
@@ -640,13 +640,13 @@ export function FlowchartCanvas({
               return '#f59e0b';
             }}
             maskColor="rgba(15, 23, 42, 0.7)"
-            className="bg-slate-900/90! border-slate-800! rounded-xl!"
+            className="bg-slate-900/90! border-slate-800! rounded-xl! hidden lg:block bottom-4! right-4!"
           />
         </ReactFlow>
       </div>
 
-      {/* Right Floating Memory HUD */}
-      <div className="absolute top-4 right-6 z-20">
+      {/* Top-Right Floating Collapsible Memory HUD */}
+      <div className="absolute top-3 right-3 sm:right-4 z-20">
         <FlowchartMemoryHUD
           step={activeStep}
           output={executionResult?.output || ''}
@@ -654,37 +654,34 @@ export function FlowchartCanvas({
         />
       </div>
 
-      {/* Bottom Floating Control Bar & Testcase Drawer */}
-      <div className="absolute bottom-4 left-6 right-6 z-20 flex flex-col md:flex-row items-end gap-3 pointer-events-none">
-        {/* Left Side: Test Cases / Custom Input Drawer */}
-        <div className="w-full md:w-96 pointer-events-auto">
-          <FlowchartTestcaseDrawer
-            customInput={customInput}
-            onCustomInputChange={setCustomInput}
-            onRunCustom={handleRunCustom}
-            onRunTestCases={handleRunTestCases}
-            isRunning={isEvaluatingTests}
-            testCaseResults={testCaseResults}
-            allPassed={testCaseResults?.every((r) => r.passed)}
-          />
-        </div>
+      {/* Bottom-Left Collapsible Test Cases Drawer */}
+      <div className="absolute bottom-4 left-3 sm:left-4 z-20">
+        <FlowchartTestcaseDrawer
+          customInput={customInput}
+          onCustomInputChange={setCustomInput}
+          onRunCustom={handleRunCustom}
+          onRunTestCases={handleRunTestCases}
+          isRunning={isEvaluatingTests}
+          testCaseResults={testCaseResults}
+          allPassed={testCaseResults?.every((r) => r.passed)}
+        />
+      </div>
 
-        {/* Right Side: VCR Playback Dock */}
-        <div className="flex-1 w-full pointer-events-auto">
-          <FlowchartVCRControls
-            currentStep={currentStepIndex}
-            totalSteps={executionResult?.steps.length || 0}
-            isPlaying={isPlaying}
-            speed={speed}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onStepForward={handleStepForward}
-            onStepBackward={handleStepBackward}
-            onReset={handleReset}
-            onSeek={(step) => setCurrentStepIndex(step)}
-            onSpeedChange={(s) => setSpeed(s)}
-          />
-        </div>
+      {/* Bottom-Center Floating VCR Playback Dock */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 max-w-[90vw]">
+        <FlowchartVCRControls
+          currentStep={currentStepIndex}
+          totalSteps={executionResult?.steps.length || 0}
+          isPlaying={isPlaying}
+          speed={speed}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStepForward={handleStepForward}
+          onStepBackward={handleStepBackward}
+          onReset={handleReset}
+          onSeek={(step) => setCurrentStepIndex(step)}
+          onSpeedChange={(s) => setSpeed(s)}
+        />
       </div>
     </div>
   );

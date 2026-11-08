@@ -64,6 +64,7 @@ function AppLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isStudioPage = location.pathname.startsWith('/lftl') || location.pathname.startsWith('/workspace');
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] font-sans transition-colors duration-200">
@@ -231,7 +232,8 @@ function AppLayout() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <footer className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
+      {!isAuthPage && !isStudioPage && (
+        <footer className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="font-bold text-[#1f2328] dark:text-[#e6edf3]">AI Code Evolution Lab</span>
@@ -256,6 +258,7 @@ function AppLayout() {
             </p>
           </div>
         </footer>
+      )}
       </div>
     </div>
   );
