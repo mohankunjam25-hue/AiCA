@@ -668,6 +668,16 @@ export function FlowchartCanvas({
       ? executionResult.steps[currentStepIndex - 1]
       : null;
 
+  // Accumulate only the outputs emitted dynamically up to currentStepIndex
+  const currentOutput = useMemo(() => {
+    if (!executionResult || currentStepIndex <= 0) return '';
+    return executionResult.steps
+      .slice(0, currentStepIndex)
+      .filter((s) => s.io?.type === 'OUTPUT' && s.io?.outputValue !== undefined)
+      .map((s) => s.io!.outputValue)
+      .join('\n');
+  }, [executionResult, currentStepIndex]);
+
   return (
     <div className="relative w-full h-full bg-slate-950 flex flex-col overflow-hidden select-none">
       {/* Top Floating Block Palette - Horizontally Centered */}
@@ -752,7 +762,7 @@ export function FlowchartCanvas({
       <div className="absolute top-3 right-3 sm:right-4 z-20">
         <FlowchartMemoryHUD
           step={activeStep}
-          output={executionResult?.output || ''}
+          output={currentOutput}
           error={executionResult?.error?.message}
         />
       </div>
