@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { ArrowDownToLine, ArrowUpFromLine, Edit2, Check } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Edit2, Check, Trash2 } from 'lucide-react';
 
 export function IONode({ data, id }: NodeProps) {
   const isInput = data?.nodeType === 'input' || id?.startsWith('input');
@@ -83,13 +83,24 @@ export function IONode({ data, id }: NodeProps) {
           </span>
         </div>
 
-        <button
-          onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-          className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
-          title={isEditing ? 'Save' : 'Edit'}
-        >
-          {isEditing ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Edit2 className="w-3 h-3" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+            title={isEditing ? 'Save' : 'Edit'}
+          >
+            {isEditing ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Edit2 className="w-3 h-3" />}
+          </button>
+          {typeof data?.onDeleteNode === 'function' && (
+            <button
+              onClick={() => (data.onDeleteNode as (id: string) => void)(id)}
+              className="text-slate-400 hover:text-rose-400 p-1 rounded hover:bg-rose-950/40 transition"
+              title="Delete block"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {isInput ? (

@@ -13,6 +13,7 @@ import {
   BackgroundVariant,
   MarkerType,
   ConnectionLineType,
+  reconnectEdge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -215,6 +216,67 @@ export function FlowchartCanvas({
     [setEdges]
   );
 
+  // Delete node callback (also purges connected edges)
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const targetNode = nodes.find((n) => n.id === nodeId);
+      if (targetNode?.type === 'start') {
+        const startCount = nodes.filter((n) => n.type === 'start').length;
+        if (startCount <= 1) {
+          alert('Every flowchart requires at least one Start block.');
+          return;
+        }
+      }
+
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) =>
+        eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
+      );
+    },
+    [nodes, setNodes, setEdges]
+  );
+
+  // Toggle branch callback (for decision edges)
+  const handleToggleBranch = useCallback(
+    (edgeId: string) => {
+      setEdges((eds) =>
+        eds.map((e) => {
+          if (e.id === edgeId) {
+            const currentBranch = e.data?.branch || e.label;
+            const nextBranch = currentBranch === 'TRUE' ? 'FALSE' : 'TRUE';
+            const nextColor = nextBranch === 'TRUE' ? '#10b981' : '#f43f5e';
+            const nextHandle = nextBranch === 'TRUE' ? 'true' : 'false';
+            return {
+              ...e,
+              label: nextBranch,
+              sourceHandle: nextHandle,
+              markerEnd: {
+                ...(typeof e.markerEnd === 'object' ? e.markerEnd : {}),
+                type: MarkerType.ArrowClosed,
+                color: nextColor,
+              },
+              data: {
+                ...e.data,
+                branch: nextBranch,
+                sourceHandle: nextHandle,
+              },
+            };
+          }
+          return e;
+        })
+      );
+    },
+    [setEdges]
+  );
+
+  // Reconnect edge callback (drag arrowhead to new node)
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+    },
+    [setEdges]
+  );
+
   // Inject callback into node and edge data
   useEffect(() => {
     setNodes((nds) =>
@@ -223,10 +285,11 @@ export function FlowchartCanvas({
         data: {
           ...n.data,
           onDataChange: handleNodeDataChange,
+          onDeleteNode: handleDeleteNode,
         },
       }))
     );
-  }, [handleNodeDataChange, setNodes]);
+  }, [handleNodeDataChange, handleDeleteNode, setNodes]);
 
   useEffect(() => {
     setEdges((eds) =>
@@ -235,10 +298,11 @@ export function FlowchartCanvas({
         data: {
           ...e.data,
           onDelete: handleDeleteEdge,
+          onToggleBranch: handleToggleBranch,
         },
       }))
     );
-  }, [handleDeleteEdge, setEdges]);
+  }, [handleDeleteEdge, handleToggleBranch, setEdges]);
 
   // Connect handle
   const onConnect = useCallback(
@@ -275,12 +339,13 @@ export function FlowchartCanvas({
           branch,
           sourceHandle: connection.sourceHandle,
           onDelete: handleDeleteEdge,
+          onToggleBranch: handleToggleBranch,
         },
       };
 
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes, setEdges, handleDeleteEdge]
+    [nodes, setEdges, handleDeleteEdge, handleToggleBranch]
   );
 
   // Add block to canvas
@@ -302,12 +367,13 @@ export function FlowchartCanvas({
           inputVariables: type === 'input' ? ['a', 'b'] : undefined,
           outputExpression: type === 'output' ? 'sum' : undefined,
           onDataChange: handleNodeDataChange,
+          onDeleteNode: handleDeleteNode,
         },
       };
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [nodes.length, handleNodeDataChange, setNodes]
+    [nodes.length, handleNodeDataChange, handleDeleteNode, setNodes]
   );
 
   // Convert current nodes & edges to shared FlowchartGraph
@@ -602,6 +668,8 @@ export function FlowchartCanvas({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onReconnect={onReconnect}
+          edgesReconnectable={true}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView

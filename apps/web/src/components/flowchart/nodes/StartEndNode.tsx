@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Trash2 } from 'lucide-react';
 
 export function StartEndNode({ data, id }: NodeProps) {
   const isStart = data?.nodeType === 'start' || id?.startsWith('start');
@@ -40,6 +40,20 @@ export function StartEndNode({ data, id }: NodeProps) {
       <span className="font-semibold text-xs tracking-wider uppercase font-mono">
         {(data?.label as string) || (isStart ? 'Start' : 'End')}
       </span>
+
+      {!isStart && typeof data?.onDeleteNode === 'function' && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            (data.onDeleteNode as (id: string) => void)(id);
+          }}
+          className="text-slate-400 hover:text-rose-400 p-1 rounded-full hover:bg-rose-950/40 transition ml-1 cursor-pointer"
+          title="Delete End block"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
 
       {isStart && (
         <Handle

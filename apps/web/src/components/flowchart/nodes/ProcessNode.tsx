@@ -93,6 +93,15 @@ export function ProcessNode({ data, id }: NodeProps) {
           >
             {isEditing ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Edit2 className="w-3 h-3" />}
           </button>
+          {typeof data?.onDeleteNode === 'function' && (
+            <button
+              onClick={() => (data.onDeleteNode as (id: string) => void)(id)}
+              className="text-slate-400 hover:text-rose-400 p-1 rounded hover:bg-rose-950/40 transition"
+              title="Delete block"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
