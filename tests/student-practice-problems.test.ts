@@ -17,7 +17,7 @@ import {
 import { getProblems } from '../apps/api/src/controllers/problem.controller.js';
 import { ProblemModel } from '../apps/api/src/models/mongodb/problem.model.js';
 import { SubmissionModel } from '../apps/api/src/models/mongodb/submission.model.js';
-import { createSubmission } from '../apps/api/src/controllers/submission.controller.js';
+import { createSubmission, submissionQueue } from '../apps/api/src/controllers/submission.controller.js';
 
 function mockReqRes(options: {
   query?: Record<string, any>;
@@ -455,6 +455,7 @@ describe('Student Self-Authored Practice Problems & Personal Practice Lab Suite'
       };
 
       vi.spyOn(ProblemModel, 'findById').mockResolvedValue(mockPracticeProblem);
+      vi.spyOn(submissionQueue, 'add').mockResolvedValue({ id: 'mock_job_123' } as any);
       vi.spyOn(SubmissionModel, 'create').mockResolvedValue({
         _id: new mongoose.Types.ObjectId(),
         problemId: mockProblemId.toString(),
