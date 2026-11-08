@@ -17,7 +17,7 @@ import {
   ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Database } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 
 import {
   FlowchartNodeType,
@@ -711,25 +711,31 @@ export function FlowchartCanvas({
           />
         </div>
 
-        {/* Right Dock Controls: Inspector Toggle */}
+        {/* Right Dock Controls: Inspector Toggle (Icon-Only with Tooltip) */}
         <div className="flex items-center gap-2 shrink-0 ml-2">
-          <button
-            onClick={() => setIsInspectorOpen((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
-              isInspectorOpen
-                ? 'bg-cyan-950/70 border-cyan-700/80 text-cyan-300'
-                : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-            title={isInspectorOpen ? 'Collapse Inspector' : 'Show Execution Inspector'}
-          >
-            <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Inspector</span>
-            {varCount > 0 && (
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-cyan-900 text-cyan-200 border border-cyan-700">
-                {varCount}
-              </span>
-            )}
-          </button>
+          <div className="relative group flex items-center justify-center">
+            <button
+              onClick={() => setIsInspectorOpen((prev) => !prev)}
+              className={`relative p-2 sm:p-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer active:scale-95 flex items-center justify-center ${
+                isInspectorOpen
+                  ? 'bg-cyan-950/70 border-cyan-700/80 text-cyan-300'
+                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+              aria-label={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
+              title={isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
+            >
+              <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
+              {varCount > 0 && (
+                <span className="absolute -top-1 -right-1 text-[9px] font-mono px-1 rounded-full bg-cyan-600 text-white font-bold border border-slate-900">
+                  {varCount}
+                </span>
+              )}
+            </button>
+            <div className="absolute -bottom-9 right-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform group-hover:translate-y-0 translate-y-1 bg-slate-900 border border-slate-700 text-[11px] font-medium text-slate-200 px-2.5 py-1 rounded-md shadow-2xl whitespace-nowrap z-50 select-none">
+              {isInspectorOpen ? 'Collapse Inspector' : 'Execution Inspector'}
+              <div className="absolute -top-1 right-3 w-2 h-2 bg-slate-900 border-t border-l border-slate-700 rotate-45" />
+            </div>
+          </div>
         </div>
       </div>
 

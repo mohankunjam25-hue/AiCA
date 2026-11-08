@@ -197,6 +197,8 @@ export function FlowchartBottomConsole({
               setActiveTab('terminal');
               setIsExpanded(true);
             }}
+            title="Open Live Output Terminal"
+            aria-label="Open Live Output Terminal"
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
               activeTab === 'terminal' && isExpanded
                 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 shadow-xs'
@@ -218,6 +220,8 @@ export function FlowchartBottomConsole({
               setActiveTab('testcases');
               setIsExpanded(true);
             }}
+            title="Open Test Cases & Custom Input"
+            aria-label="Open Test Cases & Custom Input"
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
               activeTab === 'testcases' && isExpanded
                 ? 'bg-blue-950/80 text-blue-300 border border-blue-700/80 shadow-xs'
