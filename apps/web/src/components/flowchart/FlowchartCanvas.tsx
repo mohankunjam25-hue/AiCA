@@ -187,9 +187,18 @@ export function FlowchartCanvas({
 
   const playTimerRef = useRef<any>(null);
 
+  // Invalidate previous execution state when graph structure changes
+  const invalidateExecution = useCallback(() => {
+    setIsPlaying(false);
+    if (playTimerRef.current) clearInterval(playTimerRef.current);
+    setExecutionResult(null);
+    setCurrentStepIndex(0);
+  }, []);
+
   // Callback to update node data inline from custom node components
   const handleNodeDataChange = useCallback(
     (id: string, updates: any) => {
+      invalidateExecution();
       setNodes((nds) =>
         nds.map((n) => {
           if (n.id === id) {
@@ -205,20 +214,22 @@ export function FlowchartCanvas({
         })
       );
     },
-    [setNodes]
+    [invalidateExecution, setNodes]
   );
 
   // Delete edge callback
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
+      invalidateExecution();
       setEdges((eds) => eds.filter((e) => e.id !== edgeId));
     },
-    [setEdges]
+    [invalidateExecution, setEdges]
   );
 
   // Delete node callback (also purges connected edges)
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
+      invalidateExecution();
       const targetNode = nodes.find((n) => n.id === nodeId);
       if (targetNode?.type === 'start') {
         const startCount = nodes.filter((n) => n.type === 'start').length;
@@ -233,12 +244,13 @@ export function FlowchartCanvas({
         eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
       );
     },
-    [nodes, setNodes, setEdges]
+    [invalidateExecution, nodes, setNodes, setEdges]
   );
 
   // Toggle branch callback (for decision edges)
   const handleToggleBranch = useCallback(
     (edgeId: string) => {
+      invalidateExecution();
       setEdges((eds) =>
         eds.map((e) => {
           if (e.id === edgeId) {
@@ -266,7 +278,7 @@ export function FlowchartCanvas({
         })
       );
     },
-    [setEdges]
+    [invalidateExecution, setEdges]
   );
 
   // Reconnect edge callback (drag arrowhead to new node)
@@ -307,6 +319,7 @@ export function FlowchartCanvas({
   // Connect handle
   const onConnect = useCallback(
     (connection: Connection) => {
+      invalidateExecution();
       const sourceNode = nodes.find((n) => n.id === connection.source);
       let label: string | undefined = undefined;
       let branch: string | undefined = undefined;
@@ -345,12 +358,13 @@ export function FlowchartCanvas({
 
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes, setEdges, handleDeleteEdge, handleToggleBranch]
+    [invalidateExecution, nodes, setEdges, handleDeleteEdge, handleToggleBranch]
   );
 
   // Add block to canvas
   const handleAddNode = useCallback(
     (type: FlowchartNodeType) => {
+      invalidateExecution();
       const id = `${type}-${Date.now().toString(36)}`;
       const yOffset = 100 + (nodes.length % 5) * 80;
       const xOffset = 200 + ((nodes.length * 40) % 200);
@@ -373,7 +387,7 @@ export function FlowchartCanvas({
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [nodes.length, handleNodeDataChange, handleDeleteNode, setNodes]
+    [invalidateExecution, nodes.length, handleNodeDataChange, handleDeleteNode, setNodes]
   );
 
   // Convert current nodes & edges to shared FlowchartGraph
@@ -411,22 +425,29 @@ export function FlowchartCanvas({
   }, [getCurrentGraph]);
 
   // Execute flowchart with custom input
-  const handleRunCustom = useCallback(() => {
-    setIsPlaying(false);
-    if (playTimerRef.current) clearInterval(playTimerRef.current);
+  const handleRunCustom = useCallback(
+    (autoPlay: boolean = true) => {
+      setIsPlaying(false);
+      if (playTimerRef.current) clearInterval(playTimerRef.current);
 
-    const graph = getCurrentGraph();
-    const validation = validateFlowchart(graph);
-    setValidationResult(validation);
+      const graph = getCurrentGraph();
+      const validation = validateFlowchart(graph);
+      setValidationResult(validation);
 
-    if (!validation.isValid) {
-      return;
-    }
+      if (!validation.isValid) {
+        return null;
+      }
 
-    const result = executeFlowchart(graph, customInput);
-    setExecutionResult(result);
-    setCurrentStepIndex(1); // Jump to step 1
-  }, [getCurrentGraph, customInput]);
+      const result = executeFlowchart(graph, customInput);
+      setExecutionResult(result);
+      setCurrentStepIndex(1); // Jump to step 1
+      if (autoPlay && result.steps.length > 0) {
+        setIsPlaying(true);
+      }
+      return result;
+    },
+    [getCurrentGraph, customInput]
+  );
 
   // Evaluate against problem test cases
   const handleRunTestCases = useCallback(async () => {
@@ -558,6 +579,7 @@ export function FlowchartCanvas({
             runtimeValue: runtimeVal,
             branchTaken: branch,
             lastEvaluated: lastEval,
+            stepIndex: step && n.id === step.nodeId ? currentStepIndex : undefined,
           },
         };
       })
@@ -600,31 +622,44 @@ export function FlowchartCanvas({
   }, [isPlaying, speed, executionResult]);
 
   // Step controls
-  const handlePlay = () => {
-    if (!executionResult) {
-      handleRunCustom();
+  const handlePlay = useCallback(() => {
+    // If not executed yet, or if already at the end of the execution:
+    if (!executionResult || currentStepIndex >= executionResult.steps.length) {
+      handleRunCustom(true);
+      return;
     }
+
+    // Otherwise, resume playback from current step
     setIsPlaying(true);
-  };
-  const handlePause = () => setIsPlaying(false);
-  const handleStepForward = () => {
+  }, [executionResult, currentStepIndex, handleRunCustom]);
+
+  const handlePause = useCallback(() => {
     setIsPlaying(false);
-    if (!executionResult) {
-      handleRunCustom();
+  }, []);
+
+  const handleStepForward = useCallback(() => {
+    setIsPlaying(false);
+    if (!executionResult || currentStepIndex >= executionResult.steps.length) {
+      const res = handleRunCustom(false);
+      if (res && res.steps.length > 0) {
+        setCurrentStepIndex(1);
+      }
       return;
     }
     setCurrentStepIndex((prev) =>
       Math.min(prev + 1, executionResult.steps.length)
     );
-  };
-  const handleStepBackward = () => {
+  }, [executionResult, currentStepIndex, handleRunCustom]);
+
+  const handleStepBackward = useCallback(() => {
     setIsPlaying(false);
     setCurrentStepIndex((prev) => Math.max(prev - 1, 0));
-  };
-  const handleReset = () => {
+  }, []);
+
+  const handleReset = useCallback(() => {
     setIsPlaying(false);
     setCurrentStepIndex(0);
-  };
+  }, []);
 
   const activeStep =
     executionResult &&
@@ -726,8 +761,11 @@ export function FlowchartCanvas({
       <div className="absolute bottom-4 left-3 sm:left-4 z-20">
         <FlowchartTestcaseDrawer
           customInput={customInput}
-          onCustomInputChange={setCustomInput}
-          onRunCustom={handleRunCustom}
+          onCustomInputChange={(val) => {
+            setCustomInput(val);
+            invalidateExecution();
+          }}
+          onRunCustom={() => handleRunCustom(true)}
           onRunTestCases={handleRunTestCases}
           isRunning={isEvaluatingTests}
           testCaseResults={testCaseResults}

@@ -122,12 +122,13 @@ export function DecisionNode({ data, id }: NodeProps) {
         title="TRUE branch port"
       />
 
-      {/* Bottom Auxiliary Outflow Handle */}
+      {/* Bottom Auxiliary Inflow Handle (for loopbacks from underneath) */}
       <Handle
-        type="source"
+        type="target"
         position={Position.Bottom}
-        id="default"
-        className="w-3 h-3 bg-purple-500 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
+        id="target-bottom"
+        className="w-3.5 h-3.5 bg-purple-400 border-2 border-slate-900 rounded-full hover:scale-125 transition-transform"
+        title="Loop entry port"
       />
 
       {/* Two explicit branch indicator badges */}

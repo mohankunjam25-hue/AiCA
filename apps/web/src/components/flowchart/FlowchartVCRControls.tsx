@@ -38,6 +38,7 @@ export function FlowchartVCRControls({
   disabled = false,
 }: FlowchartVCRControlsProps) {
   const speeds = [0.5, 1, 2, 4];
+  const isFinished = totalSteps > 0 && currentStep >= totalSteps;
 
   return (
     <div className="flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900/95 dark:bg-[#161b22]/95 border border-slate-700/80 dark:border-[#30363d] rounded-2xl shadow-2xl backdrop-blur-md max-w-xl">
@@ -63,18 +64,25 @@ export function FlowchartVCRControls({
 
         <button
           onClick={isPlaying ? onPause : onPlay}
-          disabled={disabled || totalSteps === 0}
+          disabled={disabled}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer shadow-md ${
             isPlaying
               ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 disabled:opacity-40'
+              : isFinished
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
           }`}
-          title={isPlaying ? 'Pause' : 'Play Flowchart'}
+          title={isPlaying ? 'Pause' : isFinished ? 'Replay from start' : 'Play Flowchart'}
         >
           {isPlaying ? (
             <>
               <Pause className="w-3.5 h-3.5 fill-white" />
               <span>Pause</span>
+            </>
+          ) : isFinished ? (
+            <>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Replay</span>
             </>
           ) : (
             <>
@@ -86,7 +94,7 @@ export function FlowchartVCRControls({
 
         <button
           onClick={onStepForward}
-          disabled={disabled || currentStep >= totalSteps}
+          disabled={disabled || (totalSteps > 0 && currentStep >= totalSteps)}
           className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
           title="Step Forward (F10)"
         >
