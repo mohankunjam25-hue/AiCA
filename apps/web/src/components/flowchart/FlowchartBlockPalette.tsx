@@ -21,6 +21,7 @@ interface FlowchartBlockPaletteProps {
   onResetLayout?: () => void;
   isValidating?: boolean;
   isSaving?: boolean;
+  variant?: 'chrome-tab' | 'floating';
 }
 
 export function FlowchartBlockPalette({
@@ -31,6 +32,7 @@ export function FlowchartBlockPalette({
   onResetLayout,
   isValidating = false,
   isSaving = false,
+  variant = 'chrome-tab',
 }: FlowchartBlockPaletteProps) {
   const blocks: Array<{
     type: FlowchartNodeType;
@@ -90,8 +92,8 @@ export function FlowchartBlockPalette({
     },
   ];
 
-  return (
-    <div className="inline-flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-900/90 dark:bg-[#161b22]/95 border border-slate-800 shadow-2xl backdrop-blur-xl rounded-xl select-none">
+  const renderButtons = () => (
+    <>
       {/* Node Type Blocks: Micro Icon Buttons */}
       {blocks.map(({ type, tooltip, icon: Icon, color, hoverBg }) => (
         <div key={type} className="relative group flex items-center justify-center">
@@ -185,6 +187,64 @@ export function FlowchartBlockPalette({
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (variant === 'chrome-tab') {
+    return (
+      <div className="relative flex items-end h-full select-none">
+        {/* Google Chrome Tab 'Cap' Shape: Rounded top, dark bg matching canvas, flared bottom ear curves */}
+        <div className="relative h-[42px] px-2.5 sm:px-3 flex items-center gap-0.5 sm:gap-1 bg-slate-900 border-t border-x border-slate-700/80 rounded-t-xl z-20 shadow-md bottom-[-1px]">
+          {/* Left SVG Ear (Concave fillet joining vertical tab side to header baseline) */}
+          <svg
+            className="absolute bottom-0 -left-3 w-3 h-3 pointer-events-none"
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M 0 12 A 12 12 0 0 0 12 0 L 12 12 Z"
+              className="fill-slate-900"
+            />
+            <path
+              d="M 0 12 A 12 12 0 0 0 12 0"
+              className="stroke-slate-700/80"
+              strokeWidth="1"
+              fill="none"
+            />
+          </svg>
+
+          {renderButtons()}
+
+          {/* Right SVG Ear (Concave fillet joining vertical tab side to header baseline) */}
+          <svg
+            className="absolute bottom-0 -right-3 w-3 h-3 pointer-events-none"
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M 0 0 A 12 12 0 0 0 12 12 L 0 12 Z"
+              className="fill-slate-900"
+            />
+            <path
+              d="M 0 0 A 12 12 0 0 0 12 12"
+              className="stroke-slate-700/80"
+              strokeWidth="1"
+              fill="none"
+            />
+          </svg>
+
+          {/* 1px bottom seam cover to ensure absolute 0px seam with canvas below */}
+          <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-slate-900 pointer-events-none" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-0.5 sm:gap-1 p-1 bg-slate-900/90 dark:bg-[#161b22]/95 border border-slate-800 shadow-2xl backdrop-blur-xl rounded-xl select-none">
+      {renderButtons()}
     </div>
   );
 }
