@@ -41,7 +41,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useDebounce } from '../hooks';
 
-export type ProblemHubTab = 'all' | 'solved' | 'pending' | 'new' | 'tracks';
+export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks';
 export type ViewMode = 'table' | 'grid';
 
 interface CuratedTrack {
@@ -182,8 +182,8 @@ export function ProblemListPage() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
 
-  // Hub View States
-  const [activeTab, setActiveTab] = useState<ProblemHubTab>('all');
+  // Hub View States (Option B: Default view strictly shows New & Unsolved challenges)
+  const [activeTab, setActiveTab] = useState<ProblemHubTab>('unsolved');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   // Solution Code Preview Modal State
@@ -273,12 +273,14 @@ export function ProblemListPage() {
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
 
       // Map active hub tab to backend statusFilter
-      if (activeTab === 'solved') {
+      if (activeTab === 'unsolved') {
+        params.statusFilter = 'UNSOLVED';
+      } else if (activeTab === 'solved') {
         params.statusFilter = 'SOLVED';
       } else if (activeTab === 'pending') {
         params.statusFilter = 'ATTEMPTED';
-      } else if (activeTab === 'new') {
-        params.statusFilter = 'TODO';
+      } else if (activeTab === 'all') {
+        params.statusFilter = 'ALL';
       }
 
       const res = await api.get('/problems', { params });
@@ -314,7 +316,7 @@ export function ProblemListPage() {
 
   const handleTrackSelect = (track: CuratedTrack) => {
     setSelectedTag(track.primaryTag);
-    setActiveTab('all');
+    setActiveTab('unsolved');
     setPage(1);
   };
 
@@ -430,14 +432,14 @@ export function ProblemListPage() {
           </div>
 
           {/* ============================================================== */}
-          {/* 5 SMART SEGMENTED TABS                                         */}
+          {/* 5 SMART SEGMENTED TABS (Option B)                              */}
           {/* ============================================================== */}
           <div className="flex items-center gap-2 mt-5 overflow-x-auto pb-1 border-b border-[#d0d7de]/70 dark:border-[#30363d]">
             {[
-              { id: 'all', label: 'Explore All', icon: BookOpen, count: pagination.total || totalCatalog },
+              { id: 'unsolved', label: 'New & Unsolved', icon: Sparkles, badgeColor: 'text-indigo-600 dark:text-indigo-400' },
               { id: 'solved', label: 'Solved Questions', icon: CheckCircle2, badgeColor: 'text-[#1a7f37] dark:text-[#3fb950]' },
               { id: 'pending', label: 'In-Progress / Pending', icon: Clock, badgeColor: 'text-[#9a6700] dark:text-[#d29922]' },
-              { id: 'new', label: 'New & Fresh', icon: Sparkles, badgeColor: 'text-indigo-600 dark:text-indigo-400' },
+              { id: 'all', label: 'Full Catalog', icon: BookOpen, count: pagination.total || totalCatalog },
               { id: 'tracks', label: 'Algorithm Tracks', icon: Award, badgeColor: 'text-[#8250df] dark:text-[#a371f7]' }
             ].map((tab) => {
               const Icon = tab.icon;
@@ -670,15 +672,19 @@ export function ProblemListPage() {
                   <div className="p-16 text-center space-y-3 bg-white dark:bg-[#161b22] rounded-xl border border-[#d0d7de] dark:border-[#30363d]">
                     <BookOpen className="w-8 h-8 text-[#8c959f] dark:text-[#6e7681] mx-auto" />
                     <p className="text-[#1f2328] dark:text-[#f0f6fc] font-bold text-sm">
-                      {activeTab === 'solved'
+                      {activeTab === 'unsolved'
+                        ? 'Great job! No unsolved challenges remaining'
+                        : activeTab === 'solved'
                         ? 'No solved challenges yet'
                         : activeTab === 'pending'
                         ? 'No in-progress challenges found'
                         : 'No matching problems found'}
                     </p>
                     <p className="text-[#656d76] dark:text-[#848d97] text-xs max-w-sm mx-auto">
-                      {activeTab === 'solved'
-                        ? 'Start solving problems from the "Explore All" tab to build your verified solution dossier!'
+                      {activeTab === 'unsolved'
+                        ? 'You have solved all available challenges! Review your solutions in "Solved Questions" or explore the Full Catalog.'
+                        : activeTab === 'solved'
+                        ? 'Start solving problems from "New & Unsolved" to build your verified solution dossier!'
                         : 'Try adjusting your keyword search, difficulty, or topic filter.'}
                     </p>
                     {isFiltered && (

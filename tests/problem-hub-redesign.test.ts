@@ -267,6 +267,66 @@ describe('Dynamic Problem Hub: Segregation & Status Metrics', () => {
     expect(items[0].userStatus).toBe('TODO');
   });
 
+  it('correctly filters to UNSOLVED problems by excluding solved IDs using $nin', async () => {
+    const solvedProbId = new mongoose.Types.ObjectId();
+    const unsolvedProbId = new mongoose.Types.ObjectId();
+
+    vi.spyOn(SubmissionModel, 'find').mockImplementation((query: any) => {
+      return {
+        select: () => ({
+          lean: () =>
+            Promise.resolve([
+              { problemId: solvedProbId.toString(), verdict: 'ACCEPTED' }
+            ])
+        })
+      } as any;
+    });
+
+    let capturedFilter: any = null;
+    vi.spyOn(ProblemModel, 'find').mockImplementation((filter: any) => {
+      capturedFilter = filter;
+      return {
+        select: () => ({
+          skip: () => ({
+            limit: () => ({
+              sort: () => ({
+                lean: () =>
+                  Promise.resolve([
+                    {
+                      _id: unsolvedProbId,
+                      title: 'Unsolved Problem',
+                      slug: 'unsolved-prob',
+                      difficulty: 'MEDIUM',
+                      tags: ['Strings'],
+                      totalSubmissions: 5,
+                      acceptedSubmissions: 0
+                    }
+                  ])
+              })
+            })
+          })
+        })
+      } as any;
+    });
+
+    vi.spyOn(ProblemModel, 'countDocuments').mockResolvedValue(1 as any);
+
+    const { req, res } = mockReqRes({
+      query: { statusFilter: 'UNSOLVED' },
+      user: { id: 'student_999', role: 'STUDENT' }
+    });
+
+    await getProblems(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(capturedFilter._id.$nin).toBeDefined();
+    expect(capturedFilter._id.$nin[0].toString()).toBe(solvedProbId.toString());
+
+    const items: ProblemListItem[] = res.data.data.problems;
+    expect(items).toHaveLength(1);
+    expect(items[0].slug).toBe('unsolved-prob');
+  });
+
   it('safely returns 0 items for unauthenticated guests filtering by SOLVED or ATTEMPTED', async () => {
     let capturedFilter: any = null;
     vi.spyOn(ProblemModel, 'find').mockImplementation((filter: any) => {

@@ -90,7 +90,7 @@ export const ProblemQuerySchema = z.object({
   tag: z.string().optional(),
   search: z.string().max(100).optional(),
   sortBy: z.enum(['latest', 'difficulty_asc', 'difficulty_desc', 'title_asc']).default('latest'),
-  statusFilter: z.enum(['ALL', 'SOLVED', 'ATTEMPTED', 'TODO']).optional()
+  statusFilter: z.enum(['ALL', 'SOLVED', 'ATTEMPTED', 'TODO', 'UNSOLVED']).optional()
 });
 
 export type ProblemQueryDto = z.infer<typeof ProblemQuerySchema>;
