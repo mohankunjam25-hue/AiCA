@@ -158,18 +158,18 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
                   navigate('/admin/dashboard');
                 }
               }}
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shadow-2xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shadow-2xs transition cursor-pointer"
               title={location.pathname.startsWith('/admin') ? 'Switch to Student View' : 'Go to Admin Mission Control'}
             >
               {location.pathname.startsWith('/admin') ? (
                 <>
-                  <Eye className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                  <span>View as Student</span>
+                  <Eye className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span className="hidden xs:inline sm:inline">View as Student</span>
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                  <span>Admin Console</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span className="hidden xs:inline sm:inline">Admin Console</span>
                 </>
               )}
             </button>
@@ -254,11 +254,26 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
 
                     <button
                       type="button"
-                      onClick={() => handleNavigate('/dashboard')}
+                      onClick={() =>
+                        handleNavigate(
+                          (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode
+                            ? '/admin/dashboard'
+                            : '/dashboard'
+                        )
+                      }
                       className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[#1f2328] dark:text-[#e6edf3] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] transition cursor-pointer text-left font-medium"
                     >
-                      <LayoutDashboard className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
-                      <span>Your Dashboard</span>
+                      {(user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode ? (
+                        <>
+                          <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          <span>Admin Mission Control</span>
+                        </>
+                      ) : (
+                        <>
+                          <LayoutDashboard className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
+                          <span>Your Dashboard</span>
+                        </>
+                      )}
                     </button>
 
                     <button

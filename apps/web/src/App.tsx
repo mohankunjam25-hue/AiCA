@@ -37,10 +37,26 @@ const GOOGLE_CLIENT_ID =
 
 function HomeRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
+
   if (isAuthenticated) {
+    if ((user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode) {
+      return <AdminDashboardPage />;
+    }
     return <DeveloperHomePage />;
   }
   return <HeroLandingPage />;
+}
+
+function DashboardRoute() {
+  const user = useAuthStore((s) => s.user);
+  const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
+
+  if ((user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <DashboardPage />;
 }
 
 function AppLayout() {
@@ -138,7 +154,7 @@ function AppLayout() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute requireAuth>
-                    <DashboardPage />
+                    <DashboardRoute />
                   </ProtectedRoute>
                 }
               />

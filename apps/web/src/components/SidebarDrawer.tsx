@@ -40,6 +40,7 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
@@ -274,20 +275,39 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             </Link>
 
             <Link
-              to="/dashboard"
+              to={
+                (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode
+                  ? '/admin/dashboard'
+                  : '/dashboard'
+              }
               onClick={onClose}
               className={`flex items-center justify-between px-3 py-2 rounded-md transition ${
-                location.pathname.startsWith('/dashboard')
-                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#0969da] dark:border-[#58a6ff]'
+                location.pathname.startsWith('/admin/dashboard') || location.pathname.startsWith('/dashboard')
+                  ? 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] font-bold border-l-2 border-[#8250df] dark:border-[#a371f7]'
                   : 'text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]'
               }`}
             >
               <span className="flex items-center gap-3">
-                <BarChart2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
-                <span>Dashboard (Analytics)</span>
+                {(user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Admin Mission Control</span>
+                  </>
+                ) : (
+                  <>
+                    <BarChart2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
+                    <span>Dashboard (Analytics)</span>
+                  </>
+                )}
               </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de] dark:border-[#30363d]">
-                Stats
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
+                  (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode
+                    ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                    : 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border-[#d0d7de] dark:border-[#30363d]'
+                }`}
+              >
+                {(user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode ? 'OPS' : 'Stats'}
               </span>
             </Link>
           </nav>
@@ -297,8 +317,9 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
             <>
               <div className="pt-2 border-t border-[#d0d7de] dark:border-[#30363d]" />
               <div className="space-y-0.5">
-                <div className="px-3 pb-1 text-[11px] font-bold text-[#57606a] dark:text-[#8b949e] uppercase tracking-wider">
-                  Staff Controls
+                <div className="px-3 pb-1 text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Enterprise Staff Controls</span>
                 </div>
                 <Link
                   to="/admin/dashboard"
