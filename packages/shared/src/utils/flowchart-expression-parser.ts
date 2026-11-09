@@ -68,7 +68,7 @@ export class FlowchartTokenizer {
       // 2-character operators
       const twoChar = this.input.slice(this.pos, this.pos + 2);
       if (
-        ['==', '!=', '<=', '>=', '&&', '||', '**'].includes(twoChar)
+        ['==', '!=', '<=', '>=', '&&', '||', '**', '//'].includes(twoChar)
       ) {
         tokens.push({ type: 'OPERATOR', value: twoChar, position: this.pos });
         this.pos += 2;
@@ -223,6 +223,14 @@ export class FlowchartExpressionParser {
   }
 
   parseExpression(): ASTNode {
+    // Gracefully handle pseudocode prefix keywords: "return 1", "Return count", "print 42"
+    if (
+      this.current < this.tokens.length &&
+      this.tokens[this.current].type === 'IDENTIFIER' &&
+      ['return', 'print', 'output'].includes(this.tokens[this.current].value.toLowerCase())
+    ) {
+      this.current++;
+    }
     return this.parseLogicalOr();
   }
 
@@ -278,7 +286,7 @@ export class FlowchartExpressionParser {
 
   private parseMultiplicative(): ASTNode {
     let expr = this.parseExponent();
-    while (this.matchOperator('*', '/', '%')) {
+    while (this.matchOperator('*', '/', '//', '%')) {
       const operator = this.previous().value;
       const right = this.parseExponent();
       expr = { type: 'BinaryOp', operator, left: expr, right };
@@ -486,6 +494,7 @@ const BUILTINS: Record<string, (...args: any[]) => any> = {
     if (!Array.isArray(arr)) throw new FlowchartExpressionError('pop() target must be an array');
     return arr.pop();
   },
+  print: (...args: any[]) => (args.length === 1 ? args[0] : args),
 };
 
 export class FlowchartInterpreterEnv {
@@ -496,6 +505,9 @@ export class FlowchartInterpreterEnv {
   }
 
   get(name: string): any {
+    if (name === 'Math') {
+      return Math;
+    }
     if (this.variables.has(name)) {
       return this.variables.get(name);
     }
@@ -503,6 +515,7 @@ export class FlowchartInterpreterEnv {
   }
 
   has(name: string): boolean {
+    if (name === 'Math') return true;
     return this.variables.has(name);
   }
 
@@ -596,6 +609,9 @@ export function evaluateExpression(
           return target;
         }
       }
+      if (target === Math && typeof (Math as any)[ast.method] === 'function') {
+        return (Math as any)[ast.method](...args);
+      }
       throw new FlowchartExpressionError(
         `Unsupported method '${ast.method}' on ${typeof target}`
       );
@@ -655,6 +671,12 @@ export function evaluateExpression(
             throw new FlowchartExpressionError('Division by zero');
           }
           return Number(left) / Number(right);
+
+        case '//':
+          if (Number(right) === 0) {
+            throw new FlowchartExpressionError('Division by zero in integer division');
+          }
+          return Math.floor(Number(left) / Number(right));
 
         case '%':
           if (Number(right) === 0) {

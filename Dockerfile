@@ -41,7 +41,13 @@ RUN pnpm --filter @aica/shared build && \
 
 # Copy and set permissions for entrypoint script
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh && \
+    mkdir -p /var/log/redis /var/lib/redis /tmp && \
+    chown -R node:node /app /var/log/redis /var/lib/redis /tmp && \
+    chmod 1777 /tmp
+
+# Run as unprivileged node user (non-root container hardening)
+USER node
 
 # Default environment variables
 ENV NODE_ENV=production

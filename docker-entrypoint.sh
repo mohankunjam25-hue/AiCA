@@ -7,7 +7,7 @@ echo "=========================================================="
 
 # 1. Start internal Redis server in daemonized mode
 echo "[1/3] Starting internal Redis server on 127.0.0.1:6379..."
-redis-server --daemonize yes --bind 127.0.0.1 --port 6379 --maxmemory 128mb --maxmemory-policy allkeys-lru --save ""
+redis-server --daemonize yes --bind 127.0.0.1 --port 6379 --dir /tmp --pidfile /tmp/redis-server.pid --maxmemory 128mb --maxmemory-policy allkeys-lru --save ""
 
 # Verify Redis is up and answering
 for i in {1..10}; do
