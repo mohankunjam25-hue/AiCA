@@ -78,6 +78,32 @@ describe('Flowchart AST Expression Parser & Evaluator', () => {
     ).toBe(9);
   });
 
+  it('supports Python-style integer division (//) and pseudocode keywords (Return/print)', () => {
+    const env = new FlowchartInterpreterEnv({ N: 1234, count: 4 });
+
+    // Integer division //
+    const intDivAst = FlowchartExpressionParser.parse('N // 10');
+    expect(evaluateExpression(intDivAst, env)).toBe(123);
+
+    // Assignment with //
+    executeAssignment('N = N // 10', env);
+    expect(env.get('N')).toBe(123);
+
+    // Pseudocode Return / print prefix in expressions
+    const returnAst = FlowchartExpressionParser.parse('Return 1');
+    expect(evaluateExpression(returnAst, env)).toBe(1);
+
+    const returnVarAst = FlowchartExpressionParser.parse('return count');
+    expect(evaluateExpression(returnVarAst, env)).toBe(4);
+
+    const printAst = FlowchartExpressionParser.parse('print(count)');
+    expect(evaluateExpression(printAst, env)).toBe(4);
+
+    // Math.floor method call
+    const mathAst = FlowchartExpressionParser.parse('Math.floor(123 / 10)');
+    expect(evaluateExpression(mathAst, env)).toBe(12);
+  });
+
   it('safely throws errors on division by zero and undefined variables', () => {
     const env = new FlowchartInterpreterEnv({ a: 10, b: 0 });
     const divZero = FlowchartExpressionParser.parse('a / b');

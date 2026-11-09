@@ -40,10 +40,28 @@ app.use(
   })
 );
 
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((u) => u.trim())
+  : ['http://localhost:5173'];
+
+const isAllowedOrigin = (origin?: string): boolean => {
+  if (!origin) return true;
+  if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return true;
+  if (
+    origin.endsWith('.vercel.app') ||
+    origin.endsWith('.onrender.com') ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1')
+  ) {
+    return true;
+  }
+  return process.env.NODE_ENV !== 'production';
+};
+
 // Bulletproof CORS headers middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
+  if (origin && isAllowedOrigin(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -56,23 +74,12 @@ app.use((req, res, next) => {
   next();
 });
 
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',').map((u) => u.trim())
-  : ['http://localhost:5173'];
-
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (
-      allowedOrigins.includes('*') ||
-      allowedOrigins.includes(origin) ||
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('.onrender.com') ||
-      origin.includes('localhost')
-    ) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
-    return callback(null, true); // Permissive in production for client frontends
+    return callback(new Error(`CORS error: Origin '${origin}' is not authorized.`));
   },
   credentials: true
 };
