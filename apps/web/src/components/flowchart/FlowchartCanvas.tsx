@@ -193,6 +193,12 @@ export const FlowchartCanvas = React.forwardRef<
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultInitialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultInitialEdges);
 
+  // Synchronous refs to access latest nodes/edges inside callbacks without creating dependency cycles
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+
   // VCR Execution State
   const [executionResult, setExecutionResult] =
     useState<FlowchartExecutionResult | null>(null);
@@ -212,6 +218,16 @@ export const FlowchartCanvas = React.forwardRef<
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   const playTimerRef = useRef<any>(null);
+
+  // Unmount cleanup guard to prevent playback timer leaks
+  useEffect(() => {
+    return () => {
+      if (playTimerRef.current) {
+        clearInterval(playTimerRef.current);
+        playTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Auto-align / Beautify layout callback
   const handleAutoAlign = useCallback(() => {
@@ -264,21 +280,22 @@ export const FlowchartCanvas = React.forwardRef<
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       invalidateExecution();
-      const targetNode = nodes.find((n) => n.id === nodeId);
-      if (targetNode?.type === 'start') {
-        const startCount = nodes.filter((n) => n.type === 'start').length;
-        if (startCount <= 1) {
-          alert('Every flowchart requires at least one Start block.');
-          return;
+      setNodes((nds) => {
+        const targetNode = nds.find((n) => n.id === nodeId);
+        if (targetNode?.type === 'start') {
+          const startCount = nds.filter((n) => n.type === 'start').length;
+          if (startCount <= 1) {
+            alert('Every flowchart requires at least one Start block.');
+            return nds;
+          }
         }
-      }
-
-      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+        return nds.filter((n) => n.id !== nodeId);
+      });
       setEdges((eds) =>
         eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
       );
     },
-    [invalidateExecution, nodes, setNodes, setEdges]
+    [invalidateExecution, setNodes, setEdges]
   );
 
   // Toggle branch callback (for decision edges)
@@ -323,38 +340,46 @@ export const FlowchartCanvas = React.forwardRef<
     [setEdges]
   );
 
-  // Inject callback into node and edge data
+  // Inject callback into node and edge data (Guarded against infinite re-render loops)
   useEffect(() => {
-    setNodes((nds) =>
-      nds.map((n) => ({
+    setNodes((nds) => {
+      const needsUpdate = nds.some(
+        (n) => n.data?.onDataChange !== handleNodeDataChange || n.data?.onDeleteNode !== handleDeleteNode
+      );
+      if (!needsUpdate) return nds;
+      return nds.map((n) => ({
         ...n,
         data: {
           ...n.data,
           onDataChange: handleNodeDataChange,
           onDeleteNode: handleDeleteNode,
         },
-      }))
-    );
+      }));
+    });
   }, [handleNodeDataChange, handleDeleteNode, setNodes]);
 
   useEffect(() => {
-    setEdges((eds) =>
-      eds.map((e) => ({
+    setEdges((eds) => {
+      const needsUpdate = eds.some(
+        (e) => e.data?.onDelete !== handleDeleteEdge || e.data?.onToggleBranch !== handleToggleBranch
+      );
+      if (!needsUpdate) return eds;
+      return eds.map((e) => ({
         ...e,
         data: {
           ...e.data,
           onDelete: handleDeleteEdge,
           onToggleBranch: handleToggleBranch,
         },
-      }))
-    );
+      }));
+    });
   }, [handleDeleteEdge, handleToggleBranch, setEdges]);
 
   // Connect handle
   const onConnect = useCallback(
     (connection: Connection) => {
       invalidateExecution();
-      const sourceNode = nodes.find((n) => n.id === connection.source);
+      const sourceNode = nodesRef.current.find((n) => n.id === connection.source);
       let label: string | undefined = undefined;
       let branch: string | undefined = undefined;
 
@@ -392,16 +417,17 @@ export const FlowchartCanvas = React.forwardRef<
 
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [invalidateExecution, nodes, setEdges, handleDeleteEdge, handleToggleBranch]
+    [invalidateExecution, setEdges, handleDeleteEdge, handleToggleBranch]
   );
 
   // Add block to canvas
   const handleAddNode = useCallback(
     (type: FlowchartNodeType) => {
       invalidateExecution();
+      const currentLength = nodesRef.current.length;
       const id = `${type}-${Date.now().toString(36)}`;
-      const yOffset = 100 + (nodes.length % 5) * 80;
-      const xOffset = 200 + ((nodes.length * 40) % 200);
+      const yOffset = 100 + (currentLength % 5) * 80;
+      const xOffset = 200 + ((currentLength * 40) % 200);
 
       const newNode: Node = {
         id,
@@ -421,7 +447,7 @@ export const FlowchartCanvas = React.forwardRef<
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [invalidateExecution, nodes.length, handleNodeDataChange, handleDeleteNode, setNodes]
+    [invalidateExecution, handleNodeDataChange, handleDeleteNode, setNodes]
   );
 
   // Convert current nodes & edges to shared FlowchartGraph
