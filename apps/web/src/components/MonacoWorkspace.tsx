@@ -88,6 +88,21 @@ export function MonacoWorkspace({
   // Monaco Editor instance reference
   const editorRef = useRef<any>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Unmount cleanup guard for intervals and editor instance
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      if (editorRef.current) {
+        editorRef.current.dispose();
+        editorRef.current = null;
+      }
+    };
+  }, []);
 
   // ResizeObserver to detect layout/container width changes and re-layout Monaco seamlessly
   useEffect(() => {
@@ -237,14 +252,34 @@ export function MonacoWorkspace({
       // Start SSE stream for real-time stage updates
       startStream(submissionId);
 
-      // Poll fallback for final evaluation report
-      const interval = setInterval(async () => {
+      // Poll fallback for final evaluation report (tracked in ref with 45s safety timeout)
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+
+      let pollCount = 0;
+      pollIntervalRef.current = setInterval(async () => {
+        pollCount++;
+        if (pollCount > 45) {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          setIsSubmitting(false);
+          setConsoleOutput((prev) => `${prev}\n[Notice] Polling reached timeout threshold. Check the Submissions tab for final report.`);
+          return;
+        }
+
         try {
           const pollRes = await api.get(`/submissions/${submissionId}`);
           const subData = pollRes.data.data;
 
           if (subData.pipelineStatus === 'COMPLETED' || subData.pipelineStatus === 'FAILED') {
-            clearInterval(interval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setIsSubmitting(false);
 
             if (subData.verdict === 'ACCEPTED') {
@@ -258,7 +293,7 @@ export function MonacoWorkspace({
             }
           }
         } catch {
-          // keep polling until complete
+          // keep polling until complete or timeout
         }
       }, 1000);
     } catch (err: any) {
