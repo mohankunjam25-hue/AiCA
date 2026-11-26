@@ -104,6 +104,14 @@ function AppLayout() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/problems/:id"
+                  element={
+                    <ProtectedRoute requireAuth>
+                      <WorkspacePage />
+                    </ProtectedRoute>
+                  }
+                />
               <Route
                 path="/algorithms"
                 element={

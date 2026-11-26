@@ -26,7 +26,8 @@ import {
   Copy,
   Check,
   GitFork,
-  Sparkles
+  Sparkles,
+  Share2
 } from 'lucide-react';
 import {
   Problem,
@@ -38,6 +39,7 @@ import {
 } from '@aica/shared';
 import { MonacoWorkspace } from '../components/MonacoWorkspace';
 import { EvaluationReportView } from '../components/EvaluationReportView';
+import { ShareProblemModal } from '../components/ShareProblemModal';
 import { useClipboard, useWorkspaceSplitter, useKeyboardShortcuts } from '../hooks';
 import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
@@ -242,6 +244,17 @@ export function WorkspacePage() {
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [generatingComparison, setGeneratingComparison] = useState(false);
   const [mobileWorkspaceTab, setMobileWorkspaceTab] = useState<'problem' | 'editor'>('editor');
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Dynamic Browser Tab Title for Social & Deep Link Context
+  useEffect(() => {
+    if (problem?.title) {
+      document.title = `${problem.title} | AiCA Coding Workspace`;
+    }
+    return () => {
+      document.title = 'AiCA - AI-Powered Competitive Architecture';
+    };
+  }, [problem?.title]);
 
   // Decoupled Resizable Splitter State
   const { containerRef, leftWidth, splitterProps } = useWorkspaceSplitter({
@@ -696,6 +709,18 @@ export function WorkspacePage() {
               <span>{forking ? 'Forking...' : 'Fork to Practice'}</span>
             </button>
           ) : null}
+
+          {!isZenMode && (
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] text-[#1f2328] dark:text-[#f0f6fc] hover:bg-[#f6f8fa] dark:hover:bg-[#30363d] hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer shadow-2xs"
+              title="Share this problem with friends on WhatsApp or copy link"
+            >
+              <Share2 className="w-3.5 h-3.5 text-blue-500" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Adaptive Segmented Switcher & Controls */}
@@ -1423,6 +1448,13 @@ export function WorkspacePage() {
           </div>
         </div>
       )}
+
+      {/* Social & Deep-Linking Share Modal */}
+      <ShareProblemModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        problem={problem}
+      />
     </div>
   );
 }

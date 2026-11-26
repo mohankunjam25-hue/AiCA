@@ -49,7 +49,11 @@ export function RegisterPage() {
         {redirectUrl && (
           <div className="mb-6 p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2.5">
             <Lock className="w-4 h-4 shrink-0" />
-            <span>Please create an account to access your requested page.</span>
+            <span>
+              {redirectUrl.includes('/workspace/') || redirectUrl.includes('/problems/')
+                ? 'Create your account to view and solve this shared coding challenge. You will be taken straight to the problem!'
+                : 'Please create an account to access your requested page.'}
+            </span>
           </div>
         )}
 
