@@ -44,6 +44,7 @@ import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useDebounce } from '../hooks';
+import { ShareProblemModal } from '../components/ShareProblemModal';
 
 export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks' | 'practice';
 export type ViewMode = 'table' | 'grid';
@@ -426,6 +427,13 @@ export function ProblemListPage() {
   };
 
   const [copiedProblemSlug, setCopiedProblemSlug] = useState<string | null>(null);
+  const [shareTargetProblem, setShareTargetProblem] = useState<any | null>(null);
+
+  const handleOpenShareModal = (e: React.MouseEvent, prob: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShareTargetProblem(prob);
+  };
 
   const handleSharePractice = (e: React.MouseEvent, slug: string) => {
     e.preventDefault();
@@ -1207,29 +1215,24 @@ export function ProblemListPage() {
                           </span>
 
                           <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenShareModal(e, prob)}
+                              className="p-1.5 rounded-md hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer"
+                              title="Share Challenge (WhatsApp / Direct Link)"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+
                             {prob.isCustomPractice && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleSharePractice(e, prob.slug || prob.id)}
-                                  className="p-1.5 rounded-md hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer"
-                                  title="Share Practice Link"
-                                >
-                                  {copiedProblemSlug === (prob.slug || prob.id) ? (
-                                    <Check className="w-3.5 h-3.5 text-green-500" />
-                                  ) : (
-                                    <Share2 className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleDeletePractice(e, prob.id)}
-                                  className="p-1.5 rounded-md hover:bg-[#ffebe9] dark:hover:bg-[#f8514926] text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#f85149] transition cursor-pointer"
-                                  title="Delete Practice Problem"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeletePractice(e, prob.id)}
+                                className="p-1.5 rounded-md hover:bg-[#ffebe9] dark:hover:bg-[#f8514926] text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#f85149] transition cursor-pointer"
+                                title="Delete Practice Problem"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             )}
 
                             {prob.solutionCode && (
@@ -1385,29 +1388,24 @@ export function ProblemListPage() {
 
                           {/* Column 5: Action Link & Code Preview Button */}
                           <div className="col-span-2 sm:col-span-2 md:col-span-1 flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenShareModal(e, prob)}
+                              className="p-1 rounded hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer"
+                              title="Share Challenge (WhatsApp / Direct Link)"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+
                             {prob.isCustomPractice && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleSharePractice(e, prob.slug || prob.id)}
-                                  className="p-1 rounded hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer"
-                                  title="Share Practice Link"
-                                >
-                                  {copiedProblemSlug === (prob.slug || prob.id) ? (
-                                    <Check className="w-3.5 h-3.5 text-green-500" />
-                                  ) : (
-                                    <Share2 className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleDeletePractice(e, prob.id)}
-                                  className="p-1 rounded hover:bg-[#ffebe9] dark:hover:bg-[#f8514926] text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#f85149] transition cursor-pointer"
-                                  title="Delete Practice Problem"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeletePractice(e, prob.id)}
+                                className="p-1 rounded hover:bg-[#ffebe9] dark:hover:bg-[#f8514926] text-[#656d76] dark:text-[#848d97] hover:text-[#cf222e] dark:hover:text-[#f85149] transition cursor-pointer"
+                                title="Delete Practice Problem"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             )}
 
                             {prob.solutionCode && (
@@ -1675,6 +1673,13 @@ export function ProblemListPage() {
           </div>
         </div>
       )}
+
+      {/* Question Social & Deep-Linking Share Modal */}
+      <ShareProblemModal
+        isOpen={Boolean(shareTargetProblem)}
+        onClose={() => setShareTargetProblem(null)}
+        problem={shareTargetProblem}
+      />
     </div>
   );
 }
