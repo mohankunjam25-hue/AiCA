@@ -85,8 +85,7 @@ Print the largest number.`,
 
 function findLargestOfThree(a, b, c) {
     // Write your conditional logic here without Math.max()
-    let largest = a;
-    return largest;
+    return 0;
 }
 
 const input = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);
@@ -100,8 +99,7 @@ if (input.length >= 3) {
 
 def findLargestOfThree(a: int, b: int, c: int) -> int:
     # Write your conditional logic here without max()
-    largest = a
-    return largest
+    pass
 
 if __name__ == '__main__':
     tokens = sys.stdin.read().split()
@@ -112,10 +110,8 @@ if __name__ == '__main__':
 using namespace std;
 
 int findLargestOfThree(int a, int b, int c) {
-    int largest = a;
-    if (b > largest) largest = b;
-    if (c > largest) largest = c;
-    return largest;
+    // Write your conditional logic here without max()
+    return 0;
 }
 
 int main() {
@@ -200,7 +196,7 @@ Print \`Even\` or \`Odd\`.`,
 
 function checkEvenOrOdd(n) {
     // Return "Even" or "Odd"
-    return n % 2 === 0 ? "Even" : "Odd";
+    return "";
 }
 
 const input = fs.readFileSync(0, 'utf-8').trim();
@@ -212,7 +208,7 @@ if (input.length > 0) {
 
 def checkEvenOrOdd(n: int) -> str:
     # Return "Even" or "Odd"
-    return "Even" if n % 2 == 0 else "Odd"
+    pass
 
 if __name__ == '__main__':
     raw = sys.stdin.read().strip()
@@ -222,7 +218,8 @@ if __name__ == '__main__':
 using namespace std;
 
 string checkEvenOrOdd(int n) {
-    return (n % 2 == 0) ? "Even" : "Odd";
+    // Return "Even" or "Odd"
+    return "";
 }
 
 int main() {
@@ -1043,8 +1040,8 @@ if (input.length > 0) {
       python: `import sys
 
 def findMissingNumber(n: int, arr: list[int]) -> int:
-    expected_sum = (n * (n + 1)) // 2
-    return expected_sum - sum(arr)
+    # Return the missing number from 1 to n
+    pass
 
 if __name__ == '__main__':
     tokens = sys.stdin.read().split()
@@ -1291,14 +1288,8 @@ Print the first non-repeating character, or \`None\`.`,
       javascript: `const fs = require('fs');
 
 function firstUniqueChar(str) {
-    const freq = {};
-    for (const ch of str) {
-        freq[ch] = (freq[ch] || 0) + 1;
-    }
-    for (const ch of str) {
-        if (freq[ch] === 1) return ch;
-    }
-    return 'None';
+    // Return first non-repeating character, or 'None'
+    return "";
 }
 
 const input = fs.readFileSync(0, 'utf-8').trim();
@@ -1306,13 +1297,8 @@ if (input) console.log(firstUniqueChar(input));`,
       python: `import sys
 
 def firstUniqueChar(s: str) -> str:
-    freq = {}
-    for ch in s:
-        freq[ch] = freq.get(ch, 0) + 1
-    for ch in s:
-        if freq[ch] == 1:
-            return ch
-    return 'None'
+    # Return first non-repeating character, or 'None'
+    pass
 
 if __name__ == '__main__':
     raw = sys.stdin.read().strip()

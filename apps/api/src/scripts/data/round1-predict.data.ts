@@ -37,32 +37,22 @@ Print the two output lines:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `// Predict what is logged by the two console.log lines
-function predictOutput() {
-    let a = 5;
-    let b = "3";
-    let c = 2;
-    console.log(a + b + c);
-    console.log(a + c + b);
-}
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
 
-predictOutput();`,
-      python: `def predictOutput():
-    print("532")
-    print("73")
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
 
-predictOutput()`,
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "532" << endl << "73" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -107,25 +97,22 @@ Print the 4 boolean results on separate lines.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `console.log(0 == false);
-console.log(0 === false);
-console.log("10" == 10);
-console.log("10" === 10);`,
-      python: `print("true")
-print("false")
-print("true")
-print("false")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "true" << endl << "false" << endl << "true" << endl << "false" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -169,22 +156,22 @@ Print the three integers space-separated on a single line.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `let x = 5;
-let y = x++;
-let z = ++x;
-console.log(x, y, z);`,
-      python: `print("7 5 7")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "7 5 7" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -228,23 +215,24 @@ Print the final value of \`sum\`.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'int',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `let sum = 0;
-for (let i = 1; i <= 5; i++) {
-    if (i % 2 === 0) continue;
-    sum += i;
-}
-console.log(sum);`,
-      python: `print(9)`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << 9 << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q4-1', input: 'run', expectedOutput: '9', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -287,21 +275,24 @@ Print the three numbers space-separated on a single line.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `const nums = [10, 20, 30];
-nums.push(40);
-nums[1] = 25;
-console.log(nums.length, nums[1], nums[3]);`,
-      python: `print("4 25 40")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << "4 25 40" << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q5-1', input: 'run', expectedOutput: '4 25 40', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -348,27 +339,22 @@ Print the two lines:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `var a = 10;
-let b = 20;
-if (true) {
-    var a = 30;
-    let b = 40;
-    console.log(a, b);
-}
-console.log(a, b);`,
-      python: `print("30 40")
-print("30 20")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "30 40" << endl << "30 20" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -418,27 +404,22 @@ Print the three lines:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `console.log(greet());
-console.log(count);
-var count = 5;
-function greet() {
-    return "Hello JS";
-}
-console.log(count);`,
-      python: `print("Hello JS")
-print("undefined")
-print("5")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "Hello JS" << endl << "undefined" << endl << "5" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -487,25 +468,24 @@ Print the accumulated string.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `let result = "";
-for (let i = 1; i <= 3; i++) {
-    for (let j = 1; j <= i; j++) {
-        result += j;
-    }
-    result += "-";
-}
-console.log(result);`,
-      python: `print("1-12-123-")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << "1-12-123-" << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q8-1', input: 'run', expectedOutput: '1-12-123-', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -551,27 +531,24 @@ Print the comma-separated string.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `function process(arr, fn) {
-    let out = [];
-    for (let item of arr) {
-        out.push(fn(item));
-    }
-    return out;
-}
-const nums = [1, 2, 3, 4];
-const res = process(nums, (n) => n * 2);
-console.log(res.join(","));`,
-      python: `print("2,4,6,8")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << "2,4,6,8" << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q9-1', input: 'run', expectedOutput: '2,4,6,8', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -618,25 +595,22 @@ Print the four outputs on separate lines:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `console.log("5" - 2);
-console.log("5" + 2);
-console.log(true + false);
-console.log(typeof NaN);`,
-      python: `print("3")
-print("52")
-print("1")
-print("number")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "3" << endl << "52" << endl << "1" << endl << "number" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -686,27 +660,24 @@ Print the three integers space-separated on a single line.`,
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `function makeCounter(start) {
-    let count = start;
-    return function () {
-        count += 2;
-        return count;
-    };
-}
-const c1 = makeCounter(1);
-const c2 = makeCounter(10);
-console.log(c1(), c1(), c2());`,
-      python: `print("3 5 12")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << "3 5 12" << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q11-1', input: 'run', expectedOutput: '3 5 12', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -752,25 +723,24 @@ Print the four integers space-separated:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `const fns = [];
-for (var i = 0; i < 3; i++) {
-    fns.push(() => i);
-}
-for (let j = 0; j < 3; j++) {
-    fns.push(() => j);
-}
-console.log(fns[0](), fns[1](), fns[3](), fns[4]());`,
-      python: `print("3 3 0 1")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << "3 3 0 1" << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q12-1', input: 'run', expectedOutput: '3 3 0 1', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -818,24 +788,24 @@ Print the exact string:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `Promise.resolve(5)
-    .then((x) => x * 2)
-    .then((x) => {
-        throw new Error("Boom");
-    })
-    .catch(() => 100)
-    .then((x) => console.log("Final:", x));`,
-      python: `print("Final: 100")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
-int main() { cout << "Final: 100" << endl; return 0; }`
+
+int main() {
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
+    return 0;
+}`
     },
     testCases: [
       { id: 'tc-q13-1', input: 'run', expectedOutput: 'Final: 100', isPublic: true, isEdgeCase: false, weight: 1 }
@@ -882,25 +852,22 @@ Print the four letters on separate lines:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `console.log("A");
-setTimeout(() => console.log("B"), 0);
-Promise.resolve().then(() => console.log("C"));
-console.log("D");`,
-      python: `print("A")
-print("D")
-print("C")
-print("B")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "A" << endl << "D" << endl << "C" << endl << "B" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },
@@ -955,29 +922,22 @@ Print the four numbers on separate lines:
     timeLimitMs: 2000,
     memoryLimitKb: 262144,
     benchmarks: { targetTimeMs: 10, pythonMultiplier: 3.0, jsMultiplier: 2.0, cppMultiplier: 1.0, javaMultiplier: 2.0 },
-    functionSignature: {
-      functionName: 'predictOutput',
-      className: 'Solution',
-      returnType: 'string',
-      parameters: [{ name: 'trigger', type: 'string' }]
-    },
     starterCode: {
-      javascript: `async function run() {
-    console.log("1");
-    await Promise.resolve();
-    console.log("2");
-}
-console.log("0");
-run();
-console.log("3");`,
-      python: `print("0")
-print("1")
-print("3")
-print("2")`,
+      javascript: `// Predict the output of the code snippet in the description.
+// Print each line of your predicted output below:
+
+`,
+      python: `# Predict the output of the code snippet in the description.
+# Print each line of your predicted output below:
+
+`,
       cpp: `#include <iostream>
 using namespace std;
+
 int main() {
-    cout << "0" << endl << "1" << endl << "3" << endl << "2" << endl;
+    // Predict the output of the code snippet in the description.
+    // Print each line of your predicted output below:
+
     return 0;
 }`
     },

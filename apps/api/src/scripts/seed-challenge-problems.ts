@@ -27,7 +27,7 @@ export async function seedChallengeProblems() {
   let upsertedCount = 0;
 
   for (const p of allChallengeProblems) {
-    const doc = {
+    const doc: any = {
       title: p.title,
       slug: p.slug,
       status: 'PUBLISHED',
@@ -42,14 +42,22 @@ export async function seedChallengeProblems() {
       benchmarks: p.benchmarks,
       starterCode: p.starterCode,
       testCases: p.testCases,
-      functionSignature: p.functionSignature,
       isCustomPractice: false,
       practiceVisibility: 'CATALOG_APPROVED'
     };
 
+    if (p.functionSignature) {
+      doc.functionSignature = p.functionSignature;
+    }
+
+    const updateQuery: any = { $set: doc };
+    if (!p.functionSignature) {
+      updateQuery.$unset = { functionSignature: 1 };
+    }
+
     const res = await ProblemModel.updateOne(
       { slug: p.slug },
-      { $set: doc },
+      updateQuery,
       { upsert: true }
     );
 

@@ -60,27 +60,8 @@ const input = fs.readFileSync(0, 'utf-8').trim();
 if (input.length > 0) {
     console.log(checkAge(parseInt(input, 10)));
 }`,
-      python: `import sys
-
-def checkAge(age: int) -> str:
-    return "Adult" if age >= 18 else "Minor"
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw:
-        print(checkAge(int(raw)))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-string checkAge(int age) {
-    return (age >= 18) ? "Adult" : "Minor";
-}
-
-int main() {
-    int age;
-    if (cin >> age) cout << checkAge(age) << endl;
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d1-1', input: '20', expectedOutput: 'Adult', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -158,23 +139,8 @@ const input = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);
 if (input.length >= 2) {
     console.log(calculateTotal(parseInt(input[0], 10), parseInt(input[1], 10)));
 }`,
-      python: `import sys
-
-def calculateTotal(price: int, tax: int) -> int:
-    return price + tax
-
-if __name__ == '__main__':
-    tokens = sys.stdin.read().split()
-    if len(tokens) >= 2:
-        print(calculateTotal(int(tokens[0]), int(tokens[1])))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int price, tax;
-    if (cin >> price >> tax) cout << price + tax << endl;
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d2-1', input: '100 18', expectedOutput: '118', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -251,26 +217,8 @@ function isValidScore(score) {
 
 const input = fs.readFileSync(0, 'utf-8').trim();
 if (input.length > 0) console.log(isValidScore(parseInt(input, 10)));`,
-      python: `import sys
-
-def isValidScore(score: int) -> str:
-    return "Valid" if 0 <= score <= 100 else "Invalid"
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw: print(isValidScore(int(raw)))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-string isValidScore(int score) {
-    return (score >= 0 && score <= 100) ? "Valid" : "Invalid";
-}
-
-int main() {
-    int s;
-    if (cin >> s) cout << isValidScore(s) << endl;
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d3-1', input: '150', expectedOutput: 'Invalid', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -354,33 +302,8 @@ if (input.length > 0) {
     const nums = input.slice(1, n + 1).map(Number);
     console.log(sumArray(nums));
 }`,
-      python: `import sys
-
-def sumArray(nums: list[int]) -> int:
-    return sum(nums)
-
-if __name__ == '__main__':
-    tokens = sys.stdin.read().split()
-    if tokens:
-        n = int(tokens[0])
-        nums = [int(x) for x in tokens[1:n+1]]
-        print(sumArray(nums))`,
-      cpp: `#include <iostream>
-#include <vector>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) {
-        long long sum = 0;
-        for (int i = 0; i < n; i++) {
-            long long x; cin >> x;
-            sum += x;
-        }
-        cout << sum << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d4-1', input: '3\n10 20 30', expectedOutput: '60', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -466,29 +389,8 @@ if (input) {
     const n = parseInt(input, 10);
     console.log(countdown(n).join(' '));
 }`,
-      python: `import sys
-
-def countdown(n: int) -> list[int]:
-    return list(range(n, 0, -1))
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw:
-        print(' '.join(map(str, countdown(int(raw)))))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) {
-        for (int i = n; i >= 1; i--) {
-            if (i < n) cout << " ";
-            cout << i;
-        }
-        cout << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d5-1', input: '3', expectedOutput: '3 2 1', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -576,33 +478,8 @@ if (input.length > 0) {
     const nums = input.slice(1, n + 1).map(Number);
     console.log(containsEven(nums) ? 'true' : 'false');
 }`,
-      python: `import sys
-
-def containsEven(nums: list[int]) -> bool:
-    return any(x % 2 == 0 for x in nums)
-
-if __name__ == '__main__':
-    t = sys.stdin.read().split()
-    if t:
-        n = int(t[0])
-        nums = [int(x) for x in t[1:n+1]]
-        print('true' if containsEven(nums) else 'false')`,
-      cpp: `#include <iostream>
-#include <vector>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) {
-        bool hasEven = false;
-        for (int i = 0; i < n; i++) {
-            long long x; cin >> x;
-            if (x % 2 == 0) hasEven = true;
-        }
-        cout << (hasEven ? "true" : "false") << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d6-1', input: '4\n1 3 4 5', expectedOutput: 'true', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -700,34 +577,8 @@ if (input.length > 0) {
     const prices = input.slice(1, n + 1).map(Number);
     console.log(getDiscountedPrices(prices).join(' '));
 }`,
-      python: `import sys
-
-def getDiscountedPrices(prices: list[int]) -> list[int]:
-    return [p - (20 if p > 500 else 10) for p in prices]
-
-if __name__ == '__main__':
-    t = sys.stdin.read().split()
-    if t:
-        n = int(t[0])
-        prices = [int(x) for x in t[1:n+1]]
-        print(' '.join(map(str, getDiscountedPrices(prices))))`,
-      cpp: `#include <iostream>
-#include <vector>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) {
-        for (int i = 0; i < n; i++) {
-            int p; cin >> p;
-            int discount = (p > 500) ? 20 : 10;
-            if (i > 0) cout << " ";
-            cout << (p - discount);
-        }
-        cout << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d7-1', input: '2\n200 600', expectedOutput: '190 580', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -804,26 +655,8 @@ const input = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);
 if (input.length >= 2) {
     console.log(addMarks(input[0], input[1]));
 }`,
-      python: `import sys
-
-def addMarks(a: str, b: str) -> int:
-    return int(a) + int(b)
-
-if __name__ == '__main__':
-    t = sys.stdin.read().split()
-    if len(t) >= 2:
-        print(addMarks(t[0], t[1]))`,
-      cpp: `#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    string a, b;
-    if (cin >> a >> b) {
-        cout << (stoi(a) + stoi(b)) << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d8-1', input: '35 15', expectedOutput: '50', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -903,33 +736,8 @@ const input = fs.readFileSync(0, 'utf-8').trim();
 if (input) {
     console.log(printPairs(parseInt(input, 10)).join(' '));
 }`,
-      python: `import sys
-
-def printPairs(n: int) -> list[str]:
-    return [f"{i}-{j}" for i in range(1, n + 1) for j in range(1, i + 1)]
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw:
-        print(' '.join(printPairs(int(raw))))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) {
-        bool first = true;
-        for (int i = 1; i <= n; i++) {
-            for (int j = 1; j <= i; j++) {
-                if (!first) cout << " ";
-                cout << i << "-" << j;
-                first = false;
-            }
-        }
-        cout << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d9-1', input: '3', expectedOutput: '1-1 2-1 2-2 3-1 3-2 3-3', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -1013,27 +821,8 @@ if (input.length >= 3) {
     const withBonus = addBonus(student, bonus);
     console.log(\`original: \${student.score}, updated: \${withBonus.score}\`);
 }`,
-      python: `import sys
-
-def addBonus(name: str, score: int, bonus: int) -> str:
-    return f"original: {score}, updated: {score + bonus}"
-
-if __name__ == '__main__':
-    t = sys.stdin.read().split()
-    if len(t) >= 3:
-        print(addBonus(t[0], int(t[1]), int(t[2])))`,
-      cpp: `#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    string name;
-    int score, bonus;
-    if (cin >> name >> score >> bonus) {
-        cout << "original: " << score << ", updated: " << (score + bonus) << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d10-1', input: 'Riya 80 10', expectedOutput: 'original: 80, updated: 90', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -1119,32 +908,8 @@ if (input.length > 0) {
     const res = doubleArray(nums);
     console.log(Array.isArray(res) ? res.join(' ') : 'undefined');
 }`,
-      python: `import sys
-
-def doubleArray(nums: list[int]) -> list[int]:
-    return [x * 2 for x in nums]
-
-if __name__ == '__main__':
-    t = sys.stdin.read().split()
-    if t:
-        n = int(t[0])
-        nums = [int(x) for x in t[1:n+1]]
-        print(' '.join(map(str, doubleArray(nums))))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) {
-        for (int i = 0; i < n; i++) {
-            long long x; cin >> x;
-            if (i > 0) cout << " ";
-            cout << (x * 2);
-        }
-        cout << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d11-1', input: '3\n1 2 3', expectedOutput: '2 4 6', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -1231,29 +996,8 @@ if (input) {
     const count = parseInt(input, 10);
     console.log(createTimers(count).join(', '));
 }`,
-      python: `import sys
-
-def createTimers(count: int) -> list[str]:
-    return [f"Task {i}" for i in range(1, count + 1)]
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw:
-        print(', '.join(createTimers(int(raw))))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int count;
-    if (cin >> count) {
-        for (int i = 1; i <= count; i++) {
-            if (i > 1) cout << ", ";
-            cout << "Task " << i;
-        }
-        cout << endl;
-    }
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d12-1', input: '3', expectedOutput: 'Task 1, Task 2, Task 3', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -1338,23 +1082,8 @@ const input = fs.readFileSync(0, 'utf-8').trim();
 if (input) {
     showResult(parseInt(input, 10));
 }`,
-      python: `import sys
-
-def showResult(base: int) -> str:
-    return f"Score: {base + 5}"
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw:
-        print(showResult(int(raw)))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int b;
-    if (cin >> b) cout << "Score: " << (b + 5) << endl;
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d13-1', input: '95', expectedOutput: 'Score: 100', isPublic: true, isEdgeCase: false, weight: 1 },
@@ -1435,23 +1164,8 @@ const input = fs.readFileSync(0, 'utf-8').trim();
 if (input) {
     getDoubleAsync(parseInt(input, 10)).then(res => console.log(res));
 }`,
-      python: `import sys
-
-def getDoubleAsync(num: int) -> int:
-    return (num * 2) + 10
-
-if __name__ == '__main__':
-    raw = sys.stdin.read().strip()
-    if raw:
-        print(getDoubleAsync(int(raw)))`,
-      cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int n;
-    if (cin >> n) cout << (n * 2 + 10) << endl;
-    return 0;
-}`
+      python: `# Round 2: Debugging Challenge\n# This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`,
+      cpp: `// Round 2: Debugging Challenge\n// This is a JavaScript code debugging challenge. Please select JavaScript in the editor to locate and repair the bug.\n`
     },
     testCases: [
       { id: 'tc-d14-1', input: '5', expectedOutput: '20', isPublic: true, isEdgeCase: false, weight: 1 },
