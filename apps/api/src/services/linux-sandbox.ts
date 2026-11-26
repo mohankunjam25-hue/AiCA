@@ -179,7 +179,6 @@ export async function executeInLinuxSandbox(
       `--fsize=${maxFileBytes}:${maxFileBytes}`,
       `--cpu=${cpuTimeSeconds}:${cpuTimeSeconds}`,
       '--core=0:0',
-      '--nproc=64:64',
       '--',
       executable,
       ...args
