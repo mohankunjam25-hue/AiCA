@@ -167,6 +167,10 @@ export class UniversalDriverService {
         }
       : this.detectSignature(code, 'python');
 
+    if (!signature && !detected) {
+      return code;
+    }
+
     const fnName = detected?.functionName || 'twoSum';
     const isClass = detected ? detected.isClassMethod : code.includes('class Solution');
     const className = detected?.className || 'Solution';
@@ -376,6 +380,10 @@ if __name__ == '__main__':
         }
       : this.detectSignature(code, 'javascript');
 
+    if (!signature && !detected) {
+      return code;
+    }
+
     const fnName = detected?.functionName || 'twoSum';
     const isClass = detected ? detected.isClassMethod : code.includes('class Solution');
     const className = detected?.className || 'Solution';
@@ -552,6 +560,10 @@ function TreeNode(val, left, right) {
           isClassMethod: true
         }
       : this.detectSignature(code, 'cpp');
+
+    if (!signature && !detected) {
+      return code;
+    }
 
     const fnName = detected?.functionName || 'twoSum';
 
@@ -761,6 +773,10 @@ int main() {
           isClassMethod: true
         }
       : this.detectSignature(code, 'java');
+
+    if (!signature && !detected) {
+      return code;
+    }
 
     const fnName = detected?.functionName || 'twoSum';
 
