@@ -87,6 +87,45 @@ api.interceptors.response.use(
       }
     }
 
+    // Approach 1: Centralized Network Error Normalizer
+    // Catches network drops, offline states, timeouts, and server unreachable events
+    if (!error.response || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      const isOffline =
+        typeof window !== 'undefined' &&
+        typeof window.navigator !== 'undefined' &&
+        !window.navigator.onLine;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.toLowerCase().includes('timeout');
+
+      let networkErrorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      let networkErrorCode = 'NETWORK_ERROR';
+
+      if (isOffline) {
+        networkErrorMessage = 'You are currently offline. Please check your internet connection and try again.';
+        networkErrorCode = 'OFFLINE';
+      } else if (isTimeout) {
+        networkErrorMessage = 'Connection timed out. The server took too long to respond. Please try again.';
+        networkErrorCode = 'TIMEOUT';
+      }
+
+      error.isNetworkError = true;
+      error.networkMessage = networkErrorMessage;
+
+      // Polyfill error.response so all standard Axios catch blocks receive the meaningful English message
+      error.response = {
+        status: 0,
+        statusText: 'Network Error',
+        headers: {},
+        config: originalRequest || error.config,
+        data: {
+          success: false,
+          error: {
+            code: networkErrorCode,
+            message: networkErrorMessage
+          }
+        }
+      };
+    }
+
     return Promise.reject(error);
   }
 );

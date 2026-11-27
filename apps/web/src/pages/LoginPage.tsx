@@ -4,11 +4,13 @@ import { Lock } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { getErrorMessage, isNetworkError } from '../utils/errorUtils';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isNetworkIssue, setIsNetworkIssue] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [searchParams] = useSearchParams();
@@ -20,6 +22,7 @@ export function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsNetworkIssue(false);
     setLoading(true);
 
     try {
@@ -30,7 +33,8 @@ export function LoginPage() {
       const targetUrl = redirectUrl || (isAdminOrInstructor ? '/admin/dashboard' : '/dashboard');
       navigate(targetUrl);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Invalid email or password');
+      setError(getErrorMessage(err, 'Invalid email or password'));
+      setIsNetworkIssue(isNetworkError(err));
     } finally {
       setLoading(false);
     }
@@ -60,8 +64,18 @@ export function LoginPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-500 dark:text-rose-400 text-center">
-            {error}
+          <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 font-medium">
+            <div className="text-center">{error}</div>
+            {isNetworkIssue && (
+              <button
+                type="button"
+                onClick={(e) => handleLogin(e)}
+                disabled={loading}
+                className="mt-2.5 w-full py-1.5 px-3 rounded-lg bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                <span>↻ Retry Connection</span>
+              </button>
+            )}
           </div>
         )}
 
