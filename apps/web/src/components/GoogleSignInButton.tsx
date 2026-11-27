@@ -3,6 +3,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface GoogleSignInButtonProps {
   onError?: (errorMessage: string) => void;
@@ -41,7 +42,7 @@ export function GoogleSignInButton({ onError, text = 'signin_with', label, redir
       navigate(targetPath);
     } catch (err: any) {
       console.error('[GoogleAuth] Backend verification failed:', err);
-      const msg = err.response?.data?.error?.message || 'Google authentication failed. Please try again.';
+      const msg = getErrorMessage(err, 'Google authentication failed. Please try again.');
       onError?.(msg);
     } finally {
       setLoading(false);
@@ -64,7 +65,7 @@ export function GoogleSignInButton({ onError, text = 'signin_with', label, redir
       setAuth(user, accessToken, profile);
       navigate(targetPath);
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || 'Dev Google login failed';
+      const msg = getErrorMessage(err, 'Dev Google login failed');
       onError?.(msg);
     } finally {
       setLoading(false);

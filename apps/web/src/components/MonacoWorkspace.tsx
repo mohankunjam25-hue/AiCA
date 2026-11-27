@@ -38,6 +38,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { toast } from '../store/useToastStore';
 import { CodeExecutionVisualizerModal } from './visualizer/CodeExecutionVisualizerModal';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface MonacoWorkspaceProps {
   problem: Problem;
@@ -222,7 +223,7 @@ export function MonacoWorkspace({
         setConsoleOutput(data.stderr || data.stdout || `Execution failed with status: ${data.verdict}`);
       }
     } catch (err: any) {
-      setConsoleOutput(`Custom run error: ${err.response?.data?.error?.message || err.message}`);
+      setConsoleOutput(`Custom run error: ${getErrorMessage(err, 'Custom execution failed')}`);
     } finally {
       setIsRunningCustom(false);
     }
@@ -298,7 +299,7 @@ export function MonacoWorkspace({
       }, 1000);
     } catch (err: any) {
       setIsSubmitting(false);
-      setConsoleOutput(`Submission error: ${err.response?.data?.error?.message || err.message}`);
+      setConsoleOutput(`Submission error: ${getErrorMessage(err, 'Submission failed')}`);
     }
   };
 
@@ -330,7 +331,7 @@ export function MonacoWorkspace({
       setIsVisualizerModalOpen(true);
     } catch (err: any) {
       console.error('[MonacoWorkspace] Visualization failed:', err);
-      const msg = err.response?.data?.message || 'Visualization tracer failed. Ensure code has valid syntax.';
+      const msg = getErrorMessage(err, 'Visualization tracer failed. Ensure code has valid syntax.');
       toast.error(msg);
     } finally {
       setIsVisualizing(false);

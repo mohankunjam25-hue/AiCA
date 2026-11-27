@@ -1,10 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { User, UserProfile } from '@aica/shared';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/v1`
-  : '/api/v1';
+import { API_BASE_URL } from '../config/api.config';
 
 interface AuthState {
   user: User | null;

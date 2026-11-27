@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import argon2 from 'argon2';
-import { pgPool, redisClient } from '../config/db.js';
+import { pgPool, redisClient, withTransaction } from '../config/db.js';
 import {
   RegisterRequestSchema,
   LoginRequestSchema,
@@ -73,12 +73,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     const passwordHash = await argon2.hash(password);
 
     // 3. Insert user into PostgreSQL transaction
-    const client = await pgPool.connect();
-    let newUser: User;
-
-    try {
-      await client.query('BEGIN');
-
+    const newUser: User = await withTransaction(async (client) => {
       const userRes = await client.query(
         `INSERT INTO users (email, username, password_hash, role, status)
          VALUES ($1, $2, $3, 'STUDENT', 'ACTIVE')
@@ -86,22 +81,17 @@ export async function register(req: Request, res: Response): Promise<void> {
         [email, username, passwordHash]
       );
 
-      newUser = userRes.rows[0];
+      const createdUser: User = userRes.rows[0];
 
       // Create default user profile
       await client.query(
         `INSERT INTO user_profiles (user_id, full_name, avatar_url, total_submissions, problems_solved, current_streak)
          VALUES ($1, $2, $3, 0, 0, 0)`,
-        [newUser.id, username, `https://api.dicebear.com/7.x/identicon/svg?seed=${username}`]
+        [createdUser.id, username, `https://api.dicebear.com/7.x/identicon/svg?seed=${username}`]
       );
 
-      await client.query('COMMIT');
-    } catch (txErr: any) {
-      await client.query('ROLLBACK');
-      throw txErr;
-    } finally {
-      client.release();
-    }
+      return createdUser;
+    });
 
     // 4. Issue Tokens
     const accessToken = TokenService.signAccessToken(newUser);
@@ -316,130 +306,134 @@ export async function googleAuth(req: Request, res: Response): Promise<void> {
   const { email, googleId, name, picture } = verifiedGoogleUser;
 
   // 2. Atomic Single-Roundtrip Database Transaction
-  const client = await pgPool.connect();
   try {
-    await client.query('BEGIN');
+    const txResult = await withTransaction(async (client) => {
+      const existingRes = await client.query(
+        `SELECT id, email, username, role, status, auth_provider, google_id, created_at, updated_at
+         FROM users
+         WHERE google_id = $1 OR email = $2
+         LIMIT 1
+         FOR UPDATE`,
+        [googleId, email]
+      );
 
-    const existingRes = await client.query(
-      `SELECT id, email, username, role, status, auth_provider, google_id, created_at, updated_at
-       FROM users
-       WHERE google_id = $1 OR email = $2
-       LIMIT 1
-       FOR UPDATE`,
-      [googleId, email]
-    );
+      let user: User;
 
-    let user: User;
+      if (existingRes.rows.length > 0) {
+        const row = existingRes.rows[0];
 
-    if (existingRes.rows.length > 0) {
-      const row = existingRes.rows[0];
+        if (row.status !== 'ACTIVE') {
+          return { error: 'ACCOUNT_SUSPENDED' as const };
+        }
 
-      if (row.status !== 'ACTIVE') {
-        await client.query('ROLLBACK');
-        res.status(403).json(createErrorResponse('ACCOUNT_SUSPENDED', 'Account is suspended or pending verification'));
-        return;
-      }
+        // Link google_id if not linked
+        if (!row.google_id || row.google_id !== googleId) {
+          await client.query(
+            `UPDATE users SET google_id = $1, auth_provider = 'google', updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+            [googleId, row.id]
+          );
+        }
 
-      // Link google_id if not linked
-      if (!row.google_id || row.google_id !== googleId) {
+        // Update avatar or name if missing
+        if (picture || name) {
+          await client.query(
+            `UPDATE user_profiles
+             SET avatar_url = COALESCE(avatar_url, $1),
+                 full_name = COALESCE(full_name, $2)
+             WHERE user_id = $3`,
+            [picture || null, name || null, row.id]
+          );
+        }
+
+        user = {
+          id: row.id,
+          email: row.email,
+          username: row.username,
+          role: row.role,
+          status: row.status,
+          authProvider: 'google',
+          googleId,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        };
+      } else {
+        // Create new user with Google identity
+        const baseName = (name || email.split('@')[0])
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, '_')
+          .slice(0, 20) || 'student';
+
+        let candidateUsername = baseName;
+        const usernameCheck = await client.query(
+          'SELECT id FROM users WHERE username = $1 LIMIT 1',
+          [candidateUsername]
+        );
+
+        if (usernameCheck.rows.length > 0) {
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+          candidateUsername = `${baseName.slice(0, 15)}_${randomSuffix}`;
+        }
+
+        const insertRes = await client.query(
+          `INSERT INTO users (email, username, password_hash, role, status, auth_provider, google_id)
+           VALUES ($1, $2, NULL, 'STUDENT', 'ACTIVE', 'google', $3)
+           RETURNING id, email, username, role, status, auth_provider, google_id, created_at, updated_at`,
+          [email, candidateUsername, googleId]
+        );
+
+        const insertedRow = insertRes.rows[0];
+        user = {
+          id: insertedRow.id,
+          email: insertedRow.email,
+          username: insertedRow.username,
+          role: insertedRow.role,
+          status: insertedRow.status,
+          authProvider: insertedRow.auth_provider,
+          googleId: insertedRow.google_id,
+          createdAt: insertedRow.created_at,
+          updatedAt: insertedRow.updated_at
+        };
+
+        // Create profile
         await client.query(
-          `UPDATE users SET google_id = $1, auth_provider = 'google', updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [googleId, row.id]
+          `INSERT INTO user_profiles (user_id, full_name, avatar_url, total_submissions, problems_solved, current_streak)
+           VALUES ($1, $2, $3, 0, 0, 0)
+           ON CONFLICT (user_id) DO UPDATE
+           SET avatar_url = COALESCE(user_profiles.avatar_url, EXCLUDED.avatar_url),
+               full_name = COALESCE(user_profiles.full_name, EXCLUDED.full_name)`,
+          [user.id, name || null, picture || null]
         );
       }
 
-      // Update avatar or name if missing
-      if (picture || name) {
-        await client.query(
-          `UPDATE user_profiles
-           SET avatar_url = COALESCE(avatar_url, $1),
-               full_name = COALESCE(full_name, $2)
-           WHERE user_id = $3`,
-          [picture || null, name || null, row.id]
-        );
-      }
-
-      user = {
-        id: row.id,
-        email: row.email,
-        username: row.username,
-        role: row.role,
-        status: row.status,
-        authProvider: 'google',
-        googleId,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      };
-    } else {
-      // Create new user with Google identity
-      const baseName = (name || email.split('@')[0])
-        .toLowerCase()
-        .replace(/[^a-z0-9_]/g, '_')
-        .slice(0, 20) || 'student';
-
-      let candidateUsername = baseName;
-      const usernameCheck = await client.query(
-        'SELECT id FROM users WHERE username = $1 LIMIT 1',
-        [candidateUsername]
+      // Fetch user profile
+      const profileRes = await client.query(
+        `SELECT full_name, github_handle, bio, avatar_url, total_submissions, problems_solved, current_streak, last_active_at
+         FROM user_profiles WHERE user_id = $1 LIMIT 1`,
+        [user.id]
       );
 
-      if (usernameCheck.rows.length > 0) {
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        candidateUsername = `${baseName.slice(0, 15)}_${randomSuffix}`;
-      }
-
-      const insertRes = await client.query(
-        `INSERT INTO users (email, username, password_hash, role, status, auth_provider, google_id)
-         VALUES ($1, $2, NULL, 'STUDENT', 'ACTIVE', 'google', $3)
-         RETURNING id, email, username, role, status, auth_provider, google_id, created_at, updated_at`,
-        [email, candidateUsername, googleId]
-      );
-
-      const insertedRow = insertRes.rows[0];
-      user = {
-        id: insertedRow.id,
-        email: insertedRow.email,
-        username: insertedRow.username,
-        role: insertedRow.role,
-        status: insertedRow.status,
-        authProvider: insertedRow.auth_provider,
-        googleId: insertedRow.google_id,
-        createdAt: insertedRow.created_at,
-        updatedAt: insertedRow.updated_at
+      const profileRow = profileRes.rows[0];
+      const profile: UserProfile = {
+        userId: user.id,
+        fullName: profileRow?.full_name,
+        githubHandle: profileRow?.github_handle,
+        bio: profileRow?.bio,
+        avatarUrl: profileRow?.avatar_url,
+        totalSubmissions: profileRow?.total_submissions || 0,
+        problemsSolved: profileRow?.problems_solved || 0,
+        currentStreak: profileRow?.current_streak || 0,
+        lastActiveAt: profileRow?.last_active_at || user.createdAt
       };
 
-      // Create profile
-      await client.query(
-        `INSERT INTO user_profiles (user_id, full_name, avatar_url, total_submissions, problems_solved, current_streak)
-         VALUES ($1, $2, $3, 0, 0, 0)
-         ON CONFLICT (user_id) DO UPDATE
-         SET avatar_url = COALESCE(user_profiles.avatar_url, EXCLUDED.avatar_url),
-             full_name = COALESCE(user_profiles.full_name, EXCLUDED.full_name)`,
-        [user.id, name || null, picture || null]
-      );
+      return { user, profile };
+    });
+
+    if ('error' in txResult && txResult.error === 'ACCOUNT_SUSPENDED') {
+      res.status(403).json(createErrorResponse('ACCOUNT_SUSPENDED', 'Account is suspended or pending verification'));
+      return;
     }
 
-    // Fetch user profile
-    const profileRes = await client.query(
-      `SELECT full_name, github_handle, bio, avatar_url, total_submissions, problems_solved, current_streak, last_active_at
-       FROM user_profiles WHERE user_id = $1 LIMIT 1`,
-      [user.id]
-    );
-
-    await client.query('COMMIT');
-
-    const profileRow = profileRes.rows[0];
-    const profile: UserProfile = {
-      userId: user.id,
-      fullName: profileRow?.full_name,
-      githubHandle: profileRow?.github_handle,
-      bio: profileRow?.bio,
-      avatarUrl: profileRow?.avatar_url,
-      totalSubmissions: profileRow?.total_submissions || 0,
-      problemsSolved: profileRow?.problems_solved || 0,
-      currentStreak: profileRow?.current_streak || 0,
-      lastActiveAt: profileRow?.last_active_at || user.createdAt
-    };
+    const { user, profile } = txResult;
 
     // 3. Issue Token Pair
     const accessToken = TokenService.signAccessToken(user);
@@ -466,11 +460,8 @@ export async function googleAuth(req: Request, res: Response): Promise<void> {
       )
     );
   } catch (txErr: any) {
-    await client.query('ROLLBACK');
     console.error('[AuthController] Google auth transaction failed:', txErr.message);
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'Failed to authenticate with Google'));
-  } finally {
-    client.release();
   }
 }
 

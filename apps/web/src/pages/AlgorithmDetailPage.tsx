@@ -20,6 +20,7 @@ import type { Algorithm } from './AlgorithmsPage';
 import { VisualizerCanvasHost } from '../components/visualizer/VisualizerCanvasHost';
 import { parseComplexityBreakdown } from '../components/algorithms/ComplexityBadgeWithPopover';
 import { AlgorithmCodeViewer, SupportedCodeLanguage } from '../components/algorithms/AlgorithmCodeViewer';
+import { getErrorMessage } from '../utils/errorUtils';
 
 type SupportedLanguage = 'javascript' | 'python' | 'cpp' | 'java';
 
@@ -116,7 +117,7 @@ export function AlgorithmDetailPage() {
       })
       .catch((err) => {
         if (active) {
-          setError(err.response?.data?.message || 'Could not load this algorithm. Check your connection.');
+          setError(getErrorMessage(err, 'Could not load this algorithm. Check your connection.'));
         }
       })
       .finally(() => {

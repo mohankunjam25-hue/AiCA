@@ -45,6 +45,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useDebounce } from '../hooks';
 import { ShareProblemModal } from '../components/ShareProblemModal';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks' | 'practice';
 export type ViewMode = 'table' | 'grid';
@@ -452,7 +453,7 @@ export function ProblemListPage() {
       await api.delete(`/problems/practice/${id}`);
       setProblems((prev) => prev.filter((p) => p.id !== id));
     } catch (err: any) {
-      alert(err.response?.data?.error?.message || 'Failed to delete practice problem');
+      alert(getErrorMessage(err, 'Failed to delete practice problem'));
     }
   };
 

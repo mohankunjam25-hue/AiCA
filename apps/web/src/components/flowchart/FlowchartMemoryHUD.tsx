@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Database, Terminal, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { FlowchartExecutionStep } from '@aica/shared';
+import { formatVal } from './utils/formatVal';
 
 interface FlowchartMemoryHUDProps {
   step: FlowchartExecutionStep | null;
@@ -163,14 +164,4 @@ export function FlowchartMemoryHUD({ step, output, error }: FlowchartMemoryHUDPr
       </div>
     </div>
   );
-}
-
-function formatVal(v: any): string {
-  if (Array.isArray(v)) {
-    return `[${v.join(', ')}]`;
-  }
-  if (typeof v === 'object' && v !== null) {
-    return JSON.stringify(v);
-  }
-  return String(v);
 }

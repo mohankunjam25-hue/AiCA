@@ -34,6 +34,7 @@ import {
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { toast } from '../store/useToastStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export function AdminDashboardPage() {
   const { user, setStudentPreviewMode } = useAuthStore();
@@ -90,7 +91,7 @@ export function AdminDashboardPage() {
       toast.success(res.data?.message || 'Platform cache invalidated successfully');
       fetchDashboardData(true);
     } catch (err: any) {
-      toast.error(err.response?.data?.error?.message || 'Failed to flush cache');
+      toast.error(getErrorMessage(err, 'Failed to flush cache'));
     } finally {
       setFlushingCache(false);
     }

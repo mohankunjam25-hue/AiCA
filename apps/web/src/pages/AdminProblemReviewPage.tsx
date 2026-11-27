@@ -20,6 +20,7 @@ import {
 import { ProblemProposal, ProposalStatus } from '@aica/shared';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export function AdminProblemReviewPage() {
   const user = useAuthStore((s) => s.user);
@@ -87,7 +88,7 @@ export function AdminProblemReviewPage() {
         fetchProposals();
       }, 1500);
     } catch (err: any) {
-      setActionError(err.response?.data?.error?.message || 'Failed to approve proposal.');
+      setActionError(getErrorMessage(err, 'Failed to approve proposal.'));
     } finally {
       setIsSubmittingAction(false);
     }
@@ -114,7 +115,7 @@ export function AdminProblemReviewPage() {
         fetchProposals();
       }, 1500);
     } catch (err: any) {
-      setActionError(err.response?.data?.error?.message || 'Failed to reject proposal.');
+      setActionError(getErrorMessage(err, 'Failed to reject proposal.'));
     } finally {
       setIsSubmittingAction(false);
     }

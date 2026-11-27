@@ -515,7 +515,7 @@ export function WorkspacePage() {
         navigate(`/workspace/${forkedProblem.id}`);
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error?.message || 'Failed to fork problem to practice lab');
+      toast.error(getErrorMessage(err, 'Failed to fork problem to practice lab'));
     } finally {
       setForking(false);
     }

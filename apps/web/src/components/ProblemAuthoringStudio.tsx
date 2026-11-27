@@ -35,6 +35,7 @@ import {
 } from '@aica/shared';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export interface ProblemFormData {
   title: string;
@@ -559,11 +560,7 @@ export function ProblemAuthoringStudio({
         setTimeout(() => onSuccess(savedProblem), 800);
       }
     } catch (err: any) {
-      const msg =
-        err.response?.data?.error?.message ||
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to save problem.';
+      const msg = getErrorMessage(err, 'Failed to save problem.');
       setError(msg);
     } finally {
       setIsSubmitting(false);
