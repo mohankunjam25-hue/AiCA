@@ -642,7 +642,7 @@ export function WorkspacePage() {
       className={`flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-[#0d1117] transition-all duration-200 ${
         isZenMode
           ? 'fixed inset-0 z-50 h-screen w-screen bg-[#f6f8fa] dark:bg-[#010409]'
-          : 'h-[calc(100vh-3.5rem)]'
+          : 'h-full max-h-[calc(100vh-3.5rem)]'
       }`}
     >
       {/* Workspace Subheader (GitHub Repo Header Style with Responsive Controls) */}
@@ -909,7 +909,7 @@ export function WorkspacePage() {
       {/* Main Resizable Canvas with Draggable Splitter */}
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 h-full flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
+        className="flex-1 min-h-0 w-full flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
       >
         {/* Left Pane (Description / Report / Comparison) */}
         {!isZenMode && (!isLeftCollapsed || isEditorCollapsed) && (
@@ -919,7 +919,7 @@ export function WorkspacePage() {
               mobileWorkspaceTab === 'problem' || isEditorCollapsed ? 'flex' : 'hidden'
             } lg:flex flex-col h-full min-h-0 overflow-hidden w-full lg:w-auto shrink-0 transition-[width] duration-200`}
           >
-            <div className="flex-1 h-full overflow-y-auto pr-0 lg:pr-1.5 space-y-4">
+            <div className="flex-1 min-h-0 h-full overflow-y-auto overscroll-contain pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
             <div className="min-h-full p-5 bg-white dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] rounded-2xl space-y-5 shadow-xs">
               {problem.isCustomPractice && (
