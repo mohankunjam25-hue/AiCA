@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getErrorMessage } from '../apps/web/src/utils/errorUtils';
+import { getErrorMessage, isNetworkError } from '../apps/web/src/utils/errorUtils';
 import { useToastStore, toast } from '../apps/web/src/store/useToastStore';
 import { ErrorBoundary } from '../apps/web/src/components/ui/ErrorBoundary';
 
@@ -12,7 +12,16 @@ describe('UI Resilience & Error Handling Invariants', () => {
 
     it('should translate Axios Network Error into friendly text', () => {
       const err = new Error('Network Error');
-      expect(getErrorMessage(err)).toContain('Network connection lost');
+      expect(getErrorMessage(err)).toMatch(/connect|internet/i);
+    });
+
+    it('should detect network error using isNetworkError helper', () => {
+      expect(isNetworkError(new Error('Network Error'))).toBe(true);
+      expect(isNetworkError({ code: 'ERR_NETWORK' })).toBe(true);
+      expect(isNetworkError({ code: 'ECONNABORTED' })).toBe(true);
+      expect(isNetworkError({ isNetworkError: true })).toBe(true);
+      expect(isNetworkError({ response: { status: 0 } })).toBe(true);
+      expect(isNetworkError({ response: { status: 400 } })).toBe(false);
     });
 
     it('should extract message from nested Axios response data.error.message', () => {

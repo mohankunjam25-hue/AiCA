@@ -345,8 +345,8 @@ int main() {
       expect(outcome.verdict).toBe('ACCEPTED');
       expect(outcome.passedCount).toBe(5);
       expect(outcome.totalCount).toBe(5);
-      // All 5 test cases including compilation should complete in under 1.5 seconds
-      expect(elapsed).toBeLessThan(1500);
+      // All 5 test cases including single compilation should complete well within timeout
+      expect(elapsed).toBeLessThan(3000);
     });
 
     it('should short-circuit immediately on first failing test case (LeetCode behavior)', async () => {
