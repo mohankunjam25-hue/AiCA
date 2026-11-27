@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -227,7 +227,7 @@ function CopyableCodeBlock({ text, className = '' }: { text: string; className?:
 export function WorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [forking, setForking] = useState(false);
@@ -271,7 +271,7 @@ export function WorkspacePage() {
     return localStorage.getItem('aica_workspace_editor_collapsed') === 'true';
   });
 
-  const toggleEditorCollapse = () => {
+  const toggleEditorCollapse = useCallback(() => {
     setIsEditorCollapsed((prev) => {
       const next = !prev;
       if (next) {
@@ -289,9 +289,9 @@ export function WorkspacePage() {
       } catch {}
       return next;
     });
-  };
+  }, []);
 
-  const toggleLeftCollapse = () => {
+  const toggleLeftCollapse = useCallback(() => {
     if (isZenMode) {
       // Exit Zen Mode and immediately restore Left Problem panel
       try {
@@ -323,9 +323,9 @@ export function WorkspacePage() {
       } catch {}
       return next;
     });
-  };
+  }, [isZenMode, isEditorCollapsed]);
 
-  const toggleZenMode = () => {
+  const toggleZenMode = useCallback(() => {
     setIsZenMode((prev) => {
       const next = !prev;
       if (next) {
@@ -347,7 +347,7 @@ export function WorkspacePage() {
       }
       return next;
     });
-  };
+  }, []);
 
   // Sync state if user exits native fullscreen via browser controls (e.g. Esc or F11)
   useEffect(() => {
@@ -521,7 +521,7 @@ export function WorkspacePage() {
     }
   };
 
-  const fetchProblemSubmissions = async (force: boolean = false) => {
+  const fetchProblemSubmissions = useCallback(async (force: boolean = false) => {
     if (!problem?.id) return;
     const cacheKey = `submissions_problem_${problem.id}`;
     const cached = useDataCacheStore.getState().get<any[]>(cacheKey);
@@ -574,9 +574,9 @@ export function WorkspacePage() {
     } finally {
       setLoadingPastSubmissions(false);
     }
-  };
+  }, [problem?.id]);
 
-  const handleEvaluationComplete = async (reportId: string, submissionId: string) => {
+  const handleEvaluationComplete = useCallback(async (reportId: string, submissionId: string) => {
     try {
       const res = await api.get(`/submissions/${submissionId}/report`);
       setReport(res.data.data);
@@ -593,7 +593,7 @@ export function WorkspacePage() {
     } catch (err: any) {
       console.warn('[WorkspacePage] Evaluation report deferred or not found:', err.message);
     }
-  };
+  }, [isLeftCollapsed, isZenMode, fetchProblemSubmissions]);
 
   const handleCompareClick = async () => {
     if (!problem?.id) return;

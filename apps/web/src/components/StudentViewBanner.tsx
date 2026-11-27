@@ -4,7 +4,9 @@ import { Eye, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 
 export function StudentViewBanner() {
-  const { user, isStudentPreviewMode, setStudentPreviewMode } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
+  const setStudentPreviewMode = useAuthStore((s) => s.setStudentPreviewMode);
   const navigate = useNavigate();
 
   const isStaff = user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR';

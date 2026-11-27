@@ -91,6 +91,7 @@ export function MonacoWorkspace({
   const editorRef = useRef<any>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const draftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Unmount cleanup guard for intervals and editor instance
   useEffect(() => {
@@ -98,6 +99,10 @@ export function MonacoWorkspace({
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
+      }
+      if (draftTimeoutRef.current) {
+        clearTimeout(draftTimeoutRef.current);
+        draftTimeoutRef.current = null;
       }
       if (editorRef.current) {
         editorRef.current.dispose();
@@ -175,18 +180,33 @@ export function MonacoWorkspace({
     }
   }, [loadedCode, problem.id]);
 
-  // Handle Code Change & Draft Saving
+  // Handle Code Change & Draft Saving with 400ms debounce to prevent main-thread I/O jank
   const handleCodeChange = (value?: string) => {
     const newCode = value || '';
     setCode(newCode);
-    localStorage.setItem(`draft_${problem.id}_${language}`, newCode);
+
+    if (draftTimeoutRef.current) {
+      clearTimeout(draftTimeoutRef.current);
+    }
+    draftTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(`draft_${problem.id}_${language}`, newCode);
+      } catch (err) {
+        console.warn('Failed to save code draft to localStorage:', err);
+      }
+    }, 400);
   };
 
   const handleReset = () => {
+    if (draftTimeoutRef.current) {
+      clearTimeout(draftTimeoutRef.current);
+    }
     const defaultCode =
       problem.starterCode?.[language] || LANGUAGE_CONFIGS[language].defaultBoilerplate;
     setCode(defaultCode);
-    localStorage.removeItem(`draft_${problem.id}_${language}`);
+    try {
+      localStorage.removeItem(`draft_${problem.id}_${language}`);
+    } catch {}
   };
 
   // Ephemeral Custom Run
