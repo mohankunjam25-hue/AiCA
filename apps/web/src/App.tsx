@@ -37,9 +37,14 @@ const GOOGLE_CLIENT_ID =
   '1000000000000-dummygoogleclientidforinitialization.apps.googleusercontent.com';
 
 function HomeRoute() {
+  const isInitializing = useAuthStore((s) => s.isInitializing);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
+
+  if (isInitializing) {
+    return <PageLoadingFallback message="Loading AiCA Evolution Lab..." />;
+  }
 
   if (isAuthenticated) {
     if ((user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode) {
@@ -51,8 +56,13 @@ function HomeRoute() {
 }
 
 function DashboardRoute() {
+  const isInitializing = useAuthStore((s) => s.isInitializing);
   const user = useAuthStore((s) => s.user);
   const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
+
+  if (isInitializing) {
+    return <PageLoadingFallback message="Loading your dashboard..." />;
+  }
 
   if ((user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode) {
     return <Navigate to="/admin/dashboard" replace />;
@@ -273,6 +283,11 @@ function AppLayout() {
 }
 
 export function App() {
+  React.useEffect(() => {
+    // Background fast-path silent authentication rehydration
+    useAuthStore.getState().initAuth();
+  }, []);
+
   return (
     <ErrorBoundary level="global">
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

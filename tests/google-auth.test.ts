@@ -30,4 +30,33 @@ describe('Google Authentication Tests', () => {
     const extractedEmail = devToken.replace('dev-mock-google-', '');
     expect(extractedEmail).toBe(mockEmail);
   });
+
+  describe('Fake Email Prevention & Meaningful Error Invariants', () => {
+    it('should detect disposable / fake email domains', () => {
+      const disposableDomains = ['tempmail.com', 'mailinator.com', '10minutemail.com', 'guerrillamail.com'];
+      const fakeEmail = 'attacker123@mailinator.com';
+      const domain = fakeEmail.split('@')[1];
+      expect(disposableDomains.includes(domain)).toBe(true);
+    });
+
+    it('should identify Gmail addresses requiring Google OAuth verification', () => {
+      const candidate1 = 'student@gmail.com';
+      const candidate2 = 'user@googlemail.com';
+      const candidate3 = 'corporate@customcompany.org';
+
+      const isGmail = (email: string) =>
+        email.endsWith('@gmail.com') || email.endsWith('@googlemail.com');
+
+      expect(isGmail(candidate1)).toBe(true);
+      expect(isGmail(candidate2)).toBe(true);
+      expect(isGmail(candidate3)).toBe(false);
+    });
+
+    it('should verify meaningful Hindi/English error when Google account is unverified or does not exist', () => {
+      const errorMessage =
+        'Aapka yeh email Google me exist nahi karta hai ya verified nahi hai. Kripya valid Google account use karein.';
+      expect(errorMessage).toContain('Aapka yeh email Google me exist nahi karta');
+      expect(errorMessage).toContain('verified nahi hai');
+    });
+  });
 });

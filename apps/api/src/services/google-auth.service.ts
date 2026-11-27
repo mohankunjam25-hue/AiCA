@@ -35,12 +35,12 @@ export class GoogleAuthService {
 
       const payload = ticket.getPayload();
       if (!payload || !payload.sub || !payload.email) {
-        throw new Error('Google ID token payload is missing subject or email');
+        throw new Error('Google ID token payload is missing subject or email. Kripya valid Google account use karein.');
       }
 
       // Strict Security Invariant: Ensure email is verified by Google
       if (payload.email_verified !== true) {
-        throw new Error('Google account email has not been verified. Please verify your email with Google.');
+        throw new Error('Aapka yeh email Google me exist nahi karta hai ya verified nahi hai. Kripya valid Google account use karein.');
       }
 
       return {
