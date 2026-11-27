@@ -30,6 +30,7 @@ import {
   getCanonicalApproaches
 } from '@aica/shared';
 import { api } from '../services/api';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface EvaluationReportViewProps {
   report: EvaluationReport;
@@ -140,7 +141,7 @@ export function EvaluationReportView({
         }
       }, 3000);
     } catch (err: any) {
-      setRetryMessage(`Retry failed: ${err.response?.data?.error?.message || err.message}`);
+      setRetryMessage(`Retry failed: ${getErrorMessage(err, 'Failed to retry evaluation')}`);
       setIsRetrying(false);
     }
   };

@@ -96,7 +96,7 @@ export function AdminProblemManagementPage() {
       const res = await api.get('/problems/admin/all', { params });
       setProblems(res.data.data.problems || []);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to load admin problems list');
+      setError(getErrorMessage(err, 'Failed to load admin problems list'));
     } finally {
       setLoading(false);
     }

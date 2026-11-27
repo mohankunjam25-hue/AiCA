@@ -45,6 +45,7 @@ import {
   executeFlowchart,
 } from '@aica/shared';
 import { api } from '../../services/api';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 const nodeTypes = {
   start: StartEndNode,
@@ -537,7 +538,7 @@ export const FlowchartCanvas = React.forwardRef<
       }
     } catch (err: any) {
       console.error('Error evaluating test cases:', err);
-      alert(err.response?.data?.message || 'Failed to evaluate test cases');
+      alert(getErrorMessage(err, 'Failed to evaluate test cases'));
     } finally {
       setIsEvaluatingTests(false);
     }

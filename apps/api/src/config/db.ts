@@ -52,6 +52,30 @@ export const pgPool = new Pool(
       }
 );
 
+export type TransactionClient = pg.PoolClient;
+
+/**
+ * Execute a unit of work inside an atomic database transaction.
+ * Automatically acquires a client from the pool, runs BEGIN, passes client to callback,
+ * runs COMMIT upon success, or ROLLBACK upon failure, and safely releases the client back to the pool.
+ */
+export async function withTransaction<T>(
+  callback: (client: pg.PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 // Redis Client Configuration with URL auto-sanitization & safe initialization
 function sanitizeRedisUrl(value?: string): string {
   const candidate = value?.trim().replace(/^['"]|['"]$/g, '');

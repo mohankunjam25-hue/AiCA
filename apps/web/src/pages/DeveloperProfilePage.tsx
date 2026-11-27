@@ -32,6 +32,7 @@ import {
 import { api } from '../services/api';
 import { DeveloperProfileResponse, DeveloperSolvedItem } from '@aica/shared';
 import { useAuthStore } from '../store/useAuthStore';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export function DeveloperProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -73,7 +74,7 @@ export function DeveloperProfilePage() {
       }
     } catch (err: any) {
       console.error('[DeveloperProfilePage] fetch error:', err);
-      setError(err.response?.data?.error?.message || 'Failed to load developer profile');
+      setError(getErrorMessage(err, 'Failed to load developer profile'));
     } finally {
       if (!silent) setLoading(false);
     }

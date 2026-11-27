@@ -24,6 +24,7 @@ import {
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { ProblemAuthoringStudio } from '../components/ProblemAuthoringStudio';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const QUICK_PROMPTS = [
   '🏢 FAANG: Given an integer array nums and an integer k, return the total number of continuous subarrays whose sum equals to k in O(n) time.',
@@ -152,8 +153,10 @@ export function CreateProblemPage() {
       }, 1000);
     } catch (err: any) {
       setError(
-        err.response?.data?.error?.message ||
+        getErrorMessage(
+          err,
           'Failed to generate instant practice problem. You can also craft it directly using the Manual Authoring Studio.'
+        )
       );
     } finally {
       setIsGeneratingInstantPractice(false);
@@ -179,7 +182,7 @@ export function CreateProblemPage() {
         id: effectiveId
       });
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to submit problem idea. Please try again.');
+      setError(getErrorMessage(err, 'Failed to submit problem idea. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -213,7 +216,7 @@ export function CreateProblemPage() {
         id: proposalPayload.id || proposalPayload.proposalId || proposalId
       });
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to submit answers.');
+      setError(getErrorMessage(err, 'Failed to submit answers.'));
     } finally {
       setIsSubmittingClarification(false);
     }

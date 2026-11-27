@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { SubmissionStatusStreamEvent } from '@aica/shared';
 import { useAuthStore } from '../store/useAuthStore';
+import { API_BASE_URL } from '../config/api.config';
 
 export function useSubmissionSSE(submissionId: string | null) {
   const [currentEvent, setCurrentEvent] = useState<SubmissionStatusStreamEvent | null>(null);
@@ -25,11 +26,7 @@ export function useSubmissionSSE(submissionId: string | null) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const apiBase = import.meta.env.VITE_API_URL
-      ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/v1`
-      : '/api/v1';
-
-    fetchEventSource(`${apiBase}/submissions/${id}/status-stream`, {
+    fetchEventSource(`${API_BASE_URL}/submissions/${id}/status-stream`, {
       method: 'GET',
       headers,
       signal: ctrl.signal,

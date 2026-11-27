@@ -44,6 +44,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { api } from '../services/api';
 import { calculateUserBadges, DynamicBadge } from '../utils/badgeCalculator';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export interface DynamicEvolutionItem {
   id: string;
@@ -163,7 +164,7 @@ export function ProfilePage() {
         setSaveSuccess(false);
       }, 1000);
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.error?.message || 'Failed to update profile');
+      setErrorMsg(getErrorMessage(err, 'Failed to update profile'));
     } finally {
       setSaving(false);
     }

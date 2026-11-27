@@ -21,6 +21,7 @@ import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { VisualizerCanvasHost } from '../components/visualizer/VisualizerCanvasHost';
 import { ComplexityBadgeWithPopover, SpaceComplexityBadgeWithPopover } from '../components/algorithms/ComplexityBadgeWithPopover';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export type Algorithm = {
   _id?: string;
@@ -99,7 +100,7 @@ export function AlgorithmsPage() {
       })
       .catch((err) => {
         if (active) {
-          setError(err.response?.data?.message || 'Could not load algorithms. Check your connection.');
+          setError(getErrorMessage(err, 'Could not load algorithms. Check your connection.'));
         }
       })
       .finally(() => {
@@ -146,7 +147,7 @@ export function AlgorithmsPage() {
       setGenerationQuery('');
       navigate(`/algorithms/${generated.slug}`);
     } catch (err: any) {
-      setGenerationError(err.response?.data?.message || 'Could not generate this algorithm. Please try again.');
+      setGenerationError(getErrorMessage(err, 'Could not generate this algorithm. Please try again.'));
     } finally {
       setGenerating(false);
     }
