@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 export interface ShortcutConfig {
   key: string; // e.g. 'Enter', 'b', '`', 'k', 'Escape'
@@ -56,6 +56,9 @@ export function formatShortcutBadge(config: Pick<ShortcutConfig, 'key' | 'ctrlOr
  * and intelligent input field isolation to avoid conflict while typing.
  */
 export function useKeyboardShortcuts(shortcuts: ShortcutConfig[], enabled: boolean = true) {
+  const shortcutsRef = useRef<ShortcutConfig[]>(shortcuts);
+  shortcutsRef.current = shortcuts;
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!enabled) return;
@@ -63,7 +66,7 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[], enabled: boole
       const isMac = isMacOS();
       const ctrlOrMetaPressed = isMac ? e.metaKey : e.ctrlKey;
 
-      for (const shortcut of shortcuts) {
+      for (const shortcut of shortcutsRef.current) {
         if (shortcut.disabled) continue;
 
         // Check if focus is inside an input, textarea, or contentEditable element
@@ -93,7 +96,7 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[], enabled: boole
         }
       }
     },
-    [shortcuts, enabled]
+    [enabled]
   );
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -116,11 +116,11 @@ export function ProfilePage() {
     }
   }, [paramTab]);
 
-  const handleTabSelect = (tab: ProfileTab) => {
+  const handleTabSelect = useCallback((tab: ProfileTab) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setSearchParams({ tab }, { replace: true });
-  };
+  }, [activeTab, setSearchParams]);
 
   useEffect(() => {
     if (profile) {
@@ -131,18 +131,18 @@ export function ProfilePage() {
     }
   }, [profile]);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
-  };
+  }, []);
 
-  const handleRandomAvatar = () => {
+  const handleRandomAvatar = useCallback(() => {
     const randomSeed = Math.random().toString(36).substring(7);
     setAvatarUrl(`https://api.dicebear.com/7.x/identicon/svg?seed=${randomSeed}`);
-  };
+  }, []);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setErrorMsg(null);
@@ -168,9 +168,9 @@ export function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [fullName, bio, githubHandle, avatarUrl, updateProfile]);
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     setPasswordStatus(null);
 
@@ -195,12 +195,12 @@ export function ProfilePage() {
       setNewPassword('');
       setConfirmPassword('');
     }, 800);
-  };
+  }, [currentPassword, newPassword, confirmPassword]);
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = useCallback(() => {
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
   const [realSubmissions, setRealSubmissions] = useState<any[]>([]);
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});

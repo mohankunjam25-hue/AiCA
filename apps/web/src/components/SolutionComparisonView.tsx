@@ -8,7 +8,7 @@ interface SolutionComparisonViewProps {
 }
 
 export function SolutionComparisonView({ comparison }: SolutionComparisonViewProps) {
-  const { isDark } = useThemeStore();
+  const isDark = useThemeStore((s) => s.isDark);
   const { submissionA: subA, submissionB: subB, deltaAnalysis: delta } = comparison;
 
   const langA = subA.language as SupportedLanguage;

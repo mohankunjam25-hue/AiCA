@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   CheckCircle2,
   XCircle,
@@ -64,29 +64,36 @@ export function EvaluationReportView({
   const isFailed = ai?.status === 'FAILED';
   const isSkipped = ai?.status === 'SKIPPED';
 
-  // Deterministic Analytics Fallback & Derivation
-  const deterministic = report.deterministicAnalytics || {
-    runtimePercentile: report.metrics?.percentileTime || 92.4,
-    memoryPercentile: report.metrics?.percentileMemory || 86.1,
-    cyclomaticComplexity: 3,
-    maxLoopDepth: 1,
-    qualityScore: 88,
-    qualityGrade: 'A' as const,
-    codeSmells: [],
-    positivePatterns: ['Linear single-pass traversal', 'Efficient auxiliary space allocation']
-  };
+  // Deterministic Analytics Fallback & Derivation (Memoized to prevent object re-allocation)
+  const deterministic = useMemo(() => {
+    return report.deterministicAnalytics || {
+      runtimePercentile: report.metrics?.percentileTime || 92.4,
+      memoryPercentile: report.metrics?.percentileMemory || 86.1,
+      cyclomaticComplexity: 3,
+      maxLoopDepth: 1,
+      qualityScore: 88,
+      qualityGrade: 'A' as const,
+      codeSmells: [],
+      positivePatterns: ['Linear single-pass traversal', 'Efficient auxiliary space allocation']
+    };
+  }, [report.deterministicAnalytics, report.metrics?.percentileTime, report.metrics?.percentileMemory]);
 
-  // Canonical Approaches Fallback: check report, or look up canonical by problemId
-  const canonicalFallback = getCanonicalApproaches(report.problemId);
-  const solutionApproaches: SolutionApproach[] =
-    (ai?.solutionApproaches && ai.solutionApproaches.length > 0)
+  // Canonical Approaches Fallback: check report, or look up canonical by problemId (Memoized)
+  const canonicalFallback = useMemo(() => {
+    return getCanonicalApproaches(report.problemId);
+  }, [report.problemId]);
+
+  const solutionApproaches: SolutionApproach[] = useMemo(() => {
+    return (ai?.solutionApproaches && ai.solutionApproaches.length > 0)
       ? ai.solutionApproaches
       : (canonicalFallback?.solutionApproaches || []);
+  }, [ai?.solutionApproaches, canonicalFallback]);
 
-  const comparisonMatrix: ApproachComparisonRow[] =
-    (ai?.comparisonMatrix && ai.comparisonMatrix.length > 0)
+  const comparisonMatrix: ApproachComparisonRow[] = useMemo(() => {
+    return (ai?.comparisonMatrix && ai.comparisonMatrix.length > 0)
       ? ai.comparisonMatrix
       : (canonicalFallback?.comparisonMatrix || []);
+  }, [ai?.comparisonMatrix, canonicalFallback]);
 
   // Determine user approach index if present
   useEffect(() => {
@@ -94,12 +101,13 @@ export function EvaluationReportView({
     if (userAppIdx !== -1) {
       setSelectedApproachIndex(userAppIdx);
     }
-  }, [solutionApproaches.length]);
+  }, [solutionApproaches]);
 
-  // Auto-poll report while AI analysis is PENDING so user gets deep insights when ready
+  // Auto-poll report while AI analysis is PENDING with isMounted unmount guard
   useEffect(() => {
     if (!isPending || !report?.submissionId) return;
 
+    let isMounted = true;
     let count = 0;
     const interval = setInterval(async () => {
       count++;
@@ -109,6 +117,7 @@ export function EvaluationReportView({
       }
       try {
         const res = await api.get(`/submissions/${report.submissionId}/report`);
+        if (!isMounted) return;
         if (res.data.data?.aiAnalysis?.status && res.data.data.aiAnalysis.status !== 'PENDING') {
           setReport(res.data.data);
           onReportUpdate?.(res.data.data);
@@ -119,10 +128,13 @@ export function EvaluationReportView({
       }
     }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isPending, report?.submissionId, onReportUpdate]);
 
-  const handleRetryAi = async () => {
+  const handleRetryAi = useCallback(async () => {
     setIsRetrying(true);
     setRetryMessage(null);
     try {
@@ -144,9 +156,9 @@ export function EvaluationReportView({
       setRetryMessage(`Retry failed: ${getErrorMessage(err, 'Failed to retry evaluation')}`);
       setIsRetrying(false);
     }
-  };
+  }, [report.submissionId, onReportUpdate]);
 
-  const handleManualRefresh = async () => {
+  const handleManualRefresh = useCallback(async () => {
     try {
       const res = await api.get(`/submissions/${report.submissionId}/report`);
       setReport(res.data.data);
@@ -154,7 +166,7 @@ export function EvaluationReportView({
     } catch (err: any) {
       console.warn('Refresh failed:', err.message);
     }
-  };
+  }, [report.submissionId, onReportUpdate]);
 
   const currentApproach = solutionApproaches[selectedApproachIndex] || solutionApproaches[0];
 

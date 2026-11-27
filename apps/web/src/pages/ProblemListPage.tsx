@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -40,6 +40,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { ProblemListItem, ProblemDifficulty, ProblemSortOption } from '@aica/shared';
+import axios from 'axios';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
@@ -306,10 +307,8 @@ export function ProblemListPage() {
     return map;
   }, [problems]);
 
-  // Reset to page 1 whenever tab or debounced search changes
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab, debouncedSearch]);
+  // Track filters to cleanly reset page to 1 without double-fetching
+  const prevFiltersRef = useRef({ activeTab, debouncedSearch, difficulty, selectedTag, sortBy });
 
   // Keyboard shortcut: Press "/" or "Ctrl+K" to focus search input
   useEffect(() => {
@@ -326,12 +325,17 @@ export function ProblemListPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Fetch problems when filters, tab, or pagination change
-  useEffect(() => {
-    fetchProblems();
-  }, [page, difficulty, selectedTag, sortBy, debouncedSearch, activeTab]);
+  const activeControllerRef = useRef<AbortController | null>(null);
 
-  const fetchProblems = async () => {
+  // Fetch problems with AbortController to cancel stale in-flight requests & prevent race conditions
+  const fetchProblems = useCallback(async () => {
+    // Abort previous in-flight request if any
+    if (activeControllerRef.current) {
+      activeControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    activeControllerRef.current = controller;
+
     const fetchLimit = activeTab === 'tracks' ? 50 : 15;
     const fetchPage = activeTab === 'tracks' ? 1 : page;
     const cacheKey = `hub_${fetchPage}_${fetchLimit}_${difficulty}_${selectedTag}_${sortBy}_${debouncedSearch}_${activeTab}_${user?.id || 'guest'}`;
@@ -356,7 +360,10 @@ export function ProblemListPage() {
         if (selectedTag !== 'All Topics') practiceParams.tag = selectedTag;
         if (debouncedSearch.trim()) practiceParams.search = debouncedSearch.trim();
 
-        const res = await api.get('/problems/practice/my-practice', { params: practiceParams });
+        const res = await api.get('/problems/practice/my-practice', {
+          params: practiceParams,
+          signal: controller.signal
+        });
         const data = res.data.data;
         const fetchedProblems = data.problems || [];
         const fetchedPagination = data.pagination || null;
@@ -390,7 +397,10 @@ export function ProblemListPage() {
         params.statusFilter = 'ALL';
       }
 
-      const res = await api.get('/problems', { params });
+      const res = await api.get('/problems', {
+        params,
+        signal: controller.signal
+      });
       const data = res.data.data;
       const fetchedProblems = data.problems || [];
       const fetchedPagination = data.pagination || null;
@@ -405,13 +415,44 @@ export function ProblemListPage() {
         pagination: fetchedPagination
       });
     } catch (err: any) {
+      if (axios.isCancel(err) || err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+        return;
+      }
       console.warn('[ProblemHub] Failed to fetch problems:', err.message);
       setError('Unable to load problems from catalog. Please verify your connection.');
       setProblems([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [activeTab, page, difficulty, selectedTag, sortBy, debouncedSearch, user?.id]);
+
+  useEffect(() => {
+    const filtersChanged =
+      prevFiltersRef.current.activeTab !== activeTab ||
+      prevFiltersRef.current.debouncedSearch !== debouncedSearch ||
+      prevFiltersRef.current.difficulty !== difficulty ||
+      prevFiltersRef.current.selectedTag !== selectedTag ||
+      prevFiltersRef.current.sortBy !== sortBy;
+
+    prevFiltersRef.current = { activeTab, debouncedSearch, difficulty, selectedTag, sortBy };
+
+    // When filters change and current page is not 1, reset page to 1
+    // The resulting re-render will trigger the fetch with page 1, avoiding a duplicate request.
+    if (filtersChanged && page !== 1) {
+      setPage(1);
+      return;
+    }
+
+    fetchProblems();
+
+    return () => {
+      if (activeControllerRef.current) {
+        activeControllerRef.current.abort();
+      }
+    };
+  }, [page, difficulty, selectedTag, sortBy, debouncedSearch, activeTab, fetchProblems]);
 
   const handleClearFilters = () => {
     setSearch('');

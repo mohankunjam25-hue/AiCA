@@ -37,7 +37,8 @@ import { toast } from '../store/useToastStore';
 import { getErrorMessage } from '../utils/errorUtils';
 
 export function AdminDashboardPage() {
-  const { user, setStudentPreviewMode } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const setStudentPreviewMode = useAuthStore((s) => s.setStudentPreviewMode);
   const navigate = useNavigate();
 
   const [overview, setOverview] = useState<AdminOverviewData | null>(null);
