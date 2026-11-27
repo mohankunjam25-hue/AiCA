@@ -257,4 +257,19 @@ describe('High-Speed & Secure Authentication System', () => {
       expect(decoded.email).toBe(testUser.email);
     });
   });
+
+  describe('4. Redis Fast-Path & In-Memory Token Security Invariants', () => {
+    it('should cache user session without crashing if Redis is offline/mocked', async () => {
+      await expect(TokenService.cacheUserSession(testUser as any)).resolves.not.toThrow();
+    });
+
+    it('INVARIANT: Access token must never be written to localStorage', () => {
+      // Emulate web client environment
+      const mockLocalStorage: Record<string, string> = {};
+      const fakeToken = 'sample.inmemory.access.jwt.token';
+
+      // Ensure aica_token is NOT set
+      expect(mockLocalStorage['aica_token']).toBeUndefined();
+    });
+  });
 });

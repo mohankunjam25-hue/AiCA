@@ -50,7 +50,7 @@ export function GoogleSignInButton({ onError, text = 'signin_with', label, redir
 
   const handleGoogleError = () => {
     console.error('[GoogleAuth] Google Sign-In failed or popup was closed');
-    onError?.('Google Sign-In initialization failed. Please ensure "http://localhost:5173" is added to "Authorized JavaScript origins" in Google Cloud Console.');
+    onError?.('Google Sign-In cancel ho gaya ya Google account verify nahi ho saka. Kripya apna valid Google account select karein.');
   };
 
   const handleDevMockLogin = async () => {

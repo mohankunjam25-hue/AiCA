@@ -26,11 +26,42 @@ export async function register(req: Request, res: Response): Promise<void> {
 
   const { email, username, password } = parseResult.data;
 
+  // 0. Fake Email & Disposable Email Protection
+  const lowerEmail = email.toLowerCase().trim();
+  const emailDomain = lowerEmail.split('@')[1] || '';
+
+  const DISPOSABLE_EMAIL_DOMAINS = [
+    'tempmail.com', 'mailinator.com', '10minutemail.com', 'guerrillamail.com',
+    'yopmail.com', 'trashmail.com', 'throwawaymail.com', 'fakeinbox.com',
+    'sharklasers.com', 'dispostable.com', 'temp-mail.org', 'burnermail.io'
+  ];
+
+  if (DISPOSABLE_EMAIL_DOMAINS.includes(emailDomain)) {
+    res.status(400).json(
+      createErrorResponse(
+        'DISPOSABLE_EMAIL_DISALLOWED',
+        'Temporary aur disposable emails allowed nahi hain. Kripya apna real email ya Google account use karein.'
+      )
+    );
+    return;
+  }
+
+  // Enforce Google Identity verification for Gmail addresses to prevent fake Gmail registrations
+  if (emailDomain === 'gmail.com' || emailDomain === 'googlemail.com') {
+    res.status(400).json(
+      createErrorResponse(
+        'GOOGLE_AUTH_REQUIRED',
+        'Aapka yeh email Google ka hai. Yeh verify karne ke liye ki yeh email sach me Google me exist karta hai, kripya "Sign in with Google" ka upyog karein.'
+      )
+    );
+    return;
+  }
+
   try {
     // 1. Check for duplicate email or username in PostgreSQL
     const existing = await pgPool.query(
       'SELECT id FROM users WHERE email = $1 OR username = $2 LIMIT 1',
-      [email, username]
+      [lowerEmail, username]
     );
 
     if (existing.rows.length > 0) {
@@ -76,6 +107,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     const accessToken = TokenService.signAccessToken(newUser);
     const refreshToken = await TokenService.createRefreshToken(newUser.id);
     TokenService.setRefreshCookie(res, refreshToken);
+    await TokenService.cacheUserSession(newUser);
 
     res.status(201).json(
       createSuccessResponse(
@@ -147,6 +179,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     const accessToken = TokenService.signAccessToken(user);
     const refreshToken = await TokenService.createRefreshToken(user.id);
     TokenService.setRefreshCookie(res, refreshToken);
+    await TokenService.cacheUserSession(user);
 
     res.status(200).json(
       createSuccessResponse({
@@ -267,7 +300,16 @@ export async function googleAuth(req: Request, res: Response): Promise<void> {
   try {
     verifiedGoogleUser = await GoogleAuthService.verifyCredential(credential);
   } catch (verifyErr: any) {
-    res.status(401).json(createErrorResponse('INVALID_CREDENTIALS', verifyErr.message || 'Google token verification failed'));
+    const isGoogleAccountErr =
+      verifyErr.message?.includes('Google') ||
+      verifyErr.message?.includes('email') ||
+      verifyErr.message?.includes('Aapka');
+    const errorMsg = isGoogleAccountErr
+      ? (verifyErr.message.includes('Aapka')
+          ? verifyErr.message
+          : 'Aapka yeh email Google me exist nahi karta hai ya verified nahi hai. Kripya valid Google account use karein.')
+      : verifyErr.message || 'Google token verification failed';
+    res.status(401).json(createErrorResponse('INVALID_CREDENTIALS', errorMsg));
     return;
   }
 
@@ -405,6 +447,7 @@ export async function googleAuth(req: Request, res: Response): Promise<void> {
 
     // 4. Set HttpOnly Cookie
     TokenService.setRefreshCookie(res, refreshToken);
+    await TokenService.cacheUserSession(user);
 
     // 5. Cache in Redis
     try {

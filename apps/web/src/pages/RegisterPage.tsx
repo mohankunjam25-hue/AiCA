@@ -23,8 +23,15 @@ export function RegisterPage() {
     setError(null);
     setLoading(true);
 
+    const lowerEmail = email.toLowerCase().trim();
+    if (lowerEmail.endsWith('@gmail.com') || lowerEmail.endsWith('@googlemail.com')) {
+      setError('Aapka yeh email Google ka hai. Yeh verify karne ke liye ki yeh email Google me exist karta hai, kripya "Sign up with Google" ka use karein.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await api.post('/auth/register', { email, username, password });
+      const res = await api.post('/auth/register', { email: lowerEmail, username, password });
       const { user, accessToken, profile } = res.data.data;
       setAuth(user, accessToken, profile);
       navigate(redirectUrl || '/dashboard');
@@ -59,10 +66,34 @@ export function RegisterPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-500 dark:text-rose-400 text-center">
+          <div className="mb-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-500 dark:text-rose-400 text-center font-medium">
             {error}
           </div>
         )}
+
+        {/* Google Authentication Button (Primary & Verified) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium px-1">
+            <span>Fast & Spam-Protected</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+              ✓ Verified Identity
+            </span>
+          </div>
+          <GoogleSignInButton
+            onError={(msg) => setError(msg)}
+            text="signup_with"
+            label="Sign up with Google"
+            redirectUrl={redirectUrl || undefined}
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="relative flex items-center justify-center my-6">
+          <div className="w-full border-t border-slate-200 dark:border-slate-700/80" />
+          <span className="absolute bg-white dark:bg-[#232936] px-3 text-xs text-slate-500 dark:text-slate-400 font-normal">
+            or custom domain
+          </span>
+        </div>
 
         {/* Register Form */}
         <form onSubmit={handleRegister} className="space-y-6">
@@ -83,7 +114,7 @@ export function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email Address"
+              placeholder="Corporate / Custom Email"
               className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-[#ee495c] pb-2.5 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none transition text-sm font-sans"
             />
           </div>
@@ -107,22 +138,6 @@ export function RegisterPage() {
             {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
           </button>
         </form>
-
-        {/* Divider */}
-        <div className="relative flex items-center justify-center my-6">
-          <div className="w-full border-t border-slate-200 dark:border-slate-700/80" />
-          <span className="absolute bg-white dark:bg-[#232936] px-3 text-xs text-slate-500 dark:text-slate-400 font-normal">
-            or
-          </span>
-        </div>
-
-        {/* Google Authentication Button */}
-        <GoogleSignInButton
-          onError={(msg) => setError(msg)}
-          text="signup_with"
-          label="Sign up with Google"
-          redirectUrl={redirectUrl || undefined}
-        />
 
         {/* Bottom Switcher */}
         <div className="border-t border-slate-200 dark:border-slate-700/80 my-8" />
