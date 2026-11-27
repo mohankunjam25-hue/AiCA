@@ -656,7 +656,7 @@ export function MonacoWorkspace({
       )}
 
       {/* Monaco Code Editor Canvas (Takes 100% of available vertical height with robust absolute inset layout) */}
-      <div ref={editorContainerRef} className="flex-1 min-h-[420px] lg:min-h-[480px] w-full relative">
+      <div ref={editorContainerRef} className="flex-1 min-h-[140px] w-full relative overflow-hidden">
         <div className="absolute inset-0">
           <Editor
             height="100%"
@@ -766,7 +766,7 @@ export function MonacoWorkspace({
 
         {/* Console Content Body (Shown only when expanded) */}
         {!isConsoleCollapsed && (
-          <div className="flex-1 p-4 overflow-y-auto text-xs font-mono min-h-0">
+          <div className="flex-1 p-4 overflow-y-auto overscroll-contain text-xs font-mono min-h-0">
             {activeTab === 'tests' ? (
               <div className="space-y-3">
                 <div className="flex gap-2">

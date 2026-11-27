@@ -74,10 +74,17 @@ function AppLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isStudioPage = location.pathname.startsWith('/lftl') || location.pathname.startsWith('/workspace');
+  const isStudioPage =
+    location.pathname.startsWith('/lftl') ||
+    location.pathname.startsWith('/workspace') ||
+    (location.pathname.startsWith('/problems/') && location.pathname !== '/problems');
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] font-sans transition-colors duration-200">
+    <div
+      className={`flex flex-col bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] font-sans transition-colors duration-200 ${
+        isStudioPage ? 'h-screen overflow-hidden' : 'min-h-screen'
+      }`}
+    >
       {/* Network Connectivity Indicator */}
       <NetworkStatusIndicator />
 
@@ -100,8 +107,8 @@ function AppLayout() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : ''}`}>
+        <main className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : ''}`}>
           <ErrorBoundary level="route">
             <Suspense fallback={<PageLoadingFallback />}>
               <Routes>
