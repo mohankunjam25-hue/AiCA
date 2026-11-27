@@ -180,7 +180,7 @@ export function AdminDashboardPage() {
 
             <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40 font-mono">
               <Cpu className="w-3.5 h-3.5" />
-              <span>BullMQ Backlog: {telemetry?.queueBacklog ?? 0} jobs</span>
+              <span>Queue Backlog: {telemetry?.queueBacklog ?? 0} jobs</span>
             </span>
 
             <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/40 font-mono">

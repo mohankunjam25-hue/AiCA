@@ -35,11 +35,11 @@ const QUICK_PROMPTS = [
 ];
 
 const STAGES: { key: string; label: string; description: string }[] = [
-  { key: 'QUEUED_FOR_GENERATION', label: '1. Ingestion', description: 'Queued in BullMQ worker' },
+  { key: 'QUEUED_FOR_GENERATION', label: '1. Ingestion', description: 'Queued in background execution queue' },
   { key: 'AI_ANALYZING', label: '2. Ambiguity Check', description: 'AI checking requirements & constraints' },
   { key: 'AWAITING_CLARIFICATION', label: '3. Clarification', description: 'Interactive student questionnaire' },
   { key: 'GENERATED', label: '4. Synthesis', description: 'Drafting statement, tests & dual oracles' },
-  { key: 'VALIDATING', label: '5. Dual Sandbox', description: 'Differential execution in Judge0 sandboxes' },
+  { key: 'VALIDATING', label: '5. Verification', description: 'Differential execution across compilers' },
   { key: 'PENDING_REVIEW', label: '6. Review Ready', description: 'Validated & awaiting instructor approval' }
 ];
 
