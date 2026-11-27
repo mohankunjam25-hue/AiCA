@@ -877,7 +877,7 @@ export function HeroLandingPage() {
               Ready to master algorithmic architecture?
             </h2>
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Join software engineers analyzing how algorithms perform in real sandbox environments. Free access with full Judge0 telemetry and AI analytics.
+              Join software engineers analyzing how algorithms perform in secure runtime environments. Free access with full runtime telemetry and AI analytics.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
               <Link

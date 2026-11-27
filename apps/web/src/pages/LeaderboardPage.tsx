@@ -267,7 +267,7 @@ export function LeaderboardPage() {
             Platform Standings
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-[#656d76] dark:text-[#848d97]">
-            Real-time, language-normalized composite scoring across deterministic sandbox executions and AI code quality evaluations.
+            Real-time, language-normalized composite scoring across automated runtime executions and AI code quality evaluations.
           </p>
         </div>
 

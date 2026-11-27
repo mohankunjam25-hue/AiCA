@@ -337,10 +337,10 @@ export function EvaluationReportView({
             <Zap className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff]" />
             <div>
               <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
-                Static AST Code Quality & Structure
+                Code Structure &amp; Architecture Health
               </h3>
               <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
-                Deterministic Code Analysis &bull; Zero External AI Dependency
+                Automated Complexity &amp; Code Standards Analysis
               </span>
             </div>
           </div>
@@ -648,10 +648,10 @@ export function EvaluationReportView({
             <Brain className="w-4 h-4 text-[#8250df] dark:text-[#a371f7]" />
             <div>
               <h3 className="text-sm font-bold text-[#1f2328] dark:text-[#e6edf3]">
-                AI Deep Socratic Insights
+                AI Socratic Code Coach
               </h3>
               <span className="text-[11px] text-[#57606a] dark:text-[#8b949e]">
-                Google Gemini Engine &bull; {ai?.mode === 'OPTIMIZATION' ? 'Optimization Mode' : 'Diagnostic Mode'}
+                Intelligent Analysis &bull; {ai?.mode === 'OPTIMIZATION' ? 'Optimization Mode' : 'Diagnostic Mode'}
               </span>
             </div>
           </div>
@@ -693,7 +693,7 @@ export function EvaluationReportView({
                 Deep Refactoring Vectors Generating
               </h4>
               <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
-                Deterministic tests passed! Deep asymptotic complexity and refactoring insights are being generated in the background.
+                All core test cases passed! Deep asymptotic complexity and refactoring insights are being generated in the background.
               </p>
             </div>
           </div>
@@ -704,7 +704,7 @@ export function EvaluationReportView({
             <div className="flex items-center gap-2 text-xs text-[#57606a] dark:text-[#8b949e]">
               <Sparkles className="w-4 h-4 text-[#d29922] shrink-0" />
               <span>
-                Gemini API daily limit reached or offline. All deterministic evaluation, AST code quality, percentiles, and multi-approach taxonomy above remain 100% active.
+                AI Code Coach is currently processing high volume. All core test evaluations, quality grades, and complexity metrics remain 100% active.
               </span>
             </div>
           </div>

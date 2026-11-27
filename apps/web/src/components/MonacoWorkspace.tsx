@@ -39,6 +39,7 @@ import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { toast } from '../store/useToastStore';
 import { CodeExecutionVisualizerModal } from './visualizer/CodeExecutionVisualizerModal';
 import { getErrorMessage } from '../utils/errorUtils';
+import { formatPipelineStage } from '../utils/statusPresentation';
 
 interface MonacoWorkspaceProps {
   problem: Problem;
@@ -248,7 +249,7 @@ export function MonacoWorkspace({
       });
 
       const submissionId = res.data.data.submissionId;
-      setConsoleOutput(`Submission #${submissionId} queued for sandbox execution & deterministic scoring...\nWaiting for pipeline worker...`);
+      setConsoleOutput('Solution queued for evaluation...\nRunning test cases...');
 
       // Start SSE stream for real-time stage updates
       startStream(submissionId);
@@ -284,7 +285,7 @@ export function MonacoWorkspace({
             setIsSubmitting(false);
 
             if (subData.verdict === 'ACCEPTED') {
-              setConsoleOutput(`🎉 VERDICT: ACCEPTED!\nAll ${subData.testCasesPassed}/${subData.testCasesTotal} test cases passed.\nExecution Time: ${subData.executionTimeMs}ms | Memory: ${Math.round(subData.memoryUsedKb / 1024)}MB\nComposite Score: ${subData.compositeScore} pts\nAI code quality review is now available in the Report tab!`);
+              setConsoleOutput(`🎉 VERDICT: ACCEPTED!\nAll ${subData.testCasesPassed}/${subData.testCasesTotal} test cases passed.\nExecution Time: ${subData.executionTimeMs}ms | Memory: ${Math.round(subData.memoryUsedKb / 1024)}MB\nComposite Score: ${subData.compositeScore} pts\nDetailed code quality and performance insights are ready in the Report tab!`);
             } else {
               setConsoleOutput(`Verdict: ${subData.verdict}\nPassed: ${subData.testCasesPassed}/${subData.testCasesTotal}\n${subData.compileOutput || 'Failed test verification.'}`);
             }
@@ -643,7 +644,7 @@ export function MonacoWorkspace({
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0969da]"></span>
             </span>
             <span className="text-[#0969da] dark:text-[#58a6ff] font-semibold text-[11px]">
-              Stage: {currentEvent?.pipelineStatus || 'QUEUED'}
+              Status: {formatPipelineStage(currentEvent?.pipelineStatus).label}
             </span>
             {currentEvent?.verdict && currentEvent.verdict !== 'PENDING' && (
               <span className="text-[#57606a] dark:text-[#8b949e] text-[11px]">Verdict: {currentEvent.verdict}</span>
