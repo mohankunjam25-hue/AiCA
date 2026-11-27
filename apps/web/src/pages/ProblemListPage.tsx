@@ -963,8 +963,9 @@ export function ProblemListPage() {
                   </div>
                 )}
 
-                {/* Unified Filter & Search Bar */}
-                <div className="p-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
+                {/* Unified Filter & Search Bar (Adaptive Sticky Below Navbar) */}
+                <div className="sticky top-14 z-20 py-2 bg-[#f6f8fa]/95 dark:bg-[#010409]/95 backdrop-blur-md transition-all duration-200">
+                  <div className="p-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                     {/* Search input with keyboard hint */}
                     <div className="relative flex-1">
@@ -1064,6 +1065,7 @@ export function ProblemListPage() {
                     </div>
                   </div>
                 </div>
+              </div>
 
                 {/* Loading / Error States */}
                 {loading ? (

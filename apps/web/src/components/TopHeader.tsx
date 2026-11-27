@@ -20,12 +20,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { ThemeToggle } from './ThemeToggle';
 import { AiCALogo } from './AiCALogo';
+import { useScrollTrigger } from '../hooks';
 
 interface TopHeaderProps {
   onOpenSidebar: () => void;
 }
 
 export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
+  const { isScrolled, scrollProgress } = useScrollTrigger({ threshold: 20 });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -105,7 +107,13 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-14 bg-white/95 dark:bg-[#161b22]/95 backdrop-blur-md border-b border-[#d0d7de] dark:border-[#30363d] transition-colors duration-200">
+    <header
+      className={`sticky top-0 z-30 h-14 border-b transition-all duration-200 relative ${
+        isScrolled
+          ? 'bg-white/85 dark:bg-[#161b22]/85 backdrop-blur-xl shadow-xs border-[#d0d7de] dark:border-[#30363d]'
+          : 'bg-white/95 dark:bg-[#161b22]/95 backdrop-blur-md border-[#d0d7de]/60 dark:border-[#30363d]/60'
+      }`}
+    >
       <div className="h-full px-3 sm:px-6 flex items-center justify-between gap-4">
         {/* Left Section: GitHub Hamburger Trigger + Brand/Context */}
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
@@ -461,6 +469,14 @@ export function TopHeader({ onOpenSidebar }: TopHeaderProps) {
           )}
         </div>
       </div>
+
+      {/* Dynamic Scroll-Triggered Reading Progress Line */}
+      {scrollProgress > 0 && (
+        <div
+          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#0969da] via-[#8250df] to-[#2ea043] transition-all duration-150 ease-out pointer-events-none opacity-85"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      )}
     </header>
   );
 }

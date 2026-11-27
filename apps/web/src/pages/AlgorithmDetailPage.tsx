@@ -21,6 +21,7 @@ import { VisualizerCanvasHost } from '../components/visualizer/VisualizerCanvasH
 import { parseComplexityBreakdown } from '../components/algorithms/ComplexityBadgeWithPopover';
 import { AlgorithmCodeViewer, SupportedCodeLanguage } from '../components/algorithms/AlgorithmCodeViewer';
 import { getErrorMessage } from '../utils/errorUtils';
+import { useScrollTrigger } from '../hooks';
 
 type SupportedLanguage = 'javascript' | 'python' | 'cpp' | 'java';
 
@@ -103,6 +104,7 @@ const EXTENDED_CODE_SNIPPETS: Record<string, Partial<Record<SupportedLanguage, s
 
 export function AlgorithmDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { isScrolled } = useScrollTrigger({ threshold: 80 });
   const [algorithm, setAlgorithm] = useState<Algorithm | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -182,24 +184,45 @@ export function AlgorithmDetailPage() {
 
   return (
     <div className="flex-1 bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] pb-16 transition-colors duration-200">
-      {/* 1. Breadcrumb Bar */}
-      <div className="bg-white dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] py-4 shadow-2xs">
+      {/* 1. Dynamic Adaptive Sticky Sub-Header */}
+      <div
+        className={`sticky top-14 z-20 transition-all duration-200 border-b ${
+          isScrolled
+            ? 'bg-white/90 dark:bg-[#161b22]/90 backdrop-blur-xl py-2.5 shadow-xs border-[#d0d7de] dark:border-[#30363d]'
+            : 'bg-white dark:bg-[#161b22] py-3.5 border-[#d0d7de] dark:border-[#30363d] shadow-2xs'
+        }`}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <Link
-              to="/algorithms"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Algorithms Library</span>
-            </Link>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link
+                to="/algorithms"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline shrink-0"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Back to Library</span>
+                <span className="sm:hidden">Back</span>
+              </Link>
+
+              {isScrolled && (
+                <div className="flex items-center gap-2 truncate animate-in fade-in duration-200">
+                  <span className="text-[#8c959f] dark:text-[#6e7681] text-xs">/</span>
+                  <span className="font-bold text-xs text-[#1f2328] dark:text-[#f0f6fc] truncate">
+                    {algorithm.name}
+                  </span>
+                  <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#8250df]/10 text-[#8250df] dark:text-[#a371f7]">
+                    {algorithm.category}
+                  </span>
+                </div>
+              )}
+            </div>
 
             <Link
               to="/problems"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Practice in Linux Sandbox</span>
+              <span>Practice in Sandbox</span>
             </Link>
           </div>
         </div>
