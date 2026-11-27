@@ -207,8 +207,9 @@ export function AlgorithmsPage() {
           {/* LEFT COLUMN: HIGH-DENSITY CATALOG (8-9 Cols)                    */}
           {/* ============================================================== */}
           <main className="lg:col-span-8 xl:col-span-9 space-y-4 min-w-0">
-            {/* Filter & Search Bar */}
-            <div className="p-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
+            {/* Filter & Search Bar (Adaptive Sticky Below Navbar) */}
+            <div className="sticky top-14 z-20 py-2 bg-[#f6f8fa]/95 dark:bg-[#010409]/95 backdrop-blur-md transition-all duration-200">
+              <div className="p-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 {/* Search Input */}
                 <div className="relative flex-1">
@@ -259,6 +260,7 @@ export function AlgorithmsPage() {
                 ))}
               </div>
             </div>
+          </div>
 
             {/* High-Density Algorithm Data Table */}
             <div className="rounded-xl border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] shadow-xs">

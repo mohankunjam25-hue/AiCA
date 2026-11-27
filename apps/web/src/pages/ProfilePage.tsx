@@ -440,10 +440,11 @@ export function ProfilePage() {
       </div>
 
       {/* ================================================================== */}
-      {/* 2. TAB NAVIGATION (With Dynamic Blur Focus Effect)                 */}
+      {/* 2. TAB NAVIGATION (Adaptive Sticky with Glassmorphism)             */}
       {/* ================================================================== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="flex border-b border-[#d0d7de] dark:border-[#30363d] gap-2 sm:gap-4 text-xs font-semibold overflow-x-auto pb-px">
+      <div className="sticky top-14 z-20 bg-white/95 dark:bg-[#010409]/95 backdrop-blur-md pt-3 border-b border-[#d0d7de] dark:border-[#30363d] shadow-2xs transition-all duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-2 sm:gap-4 text-xs font-semibold overflow-x-auto pb-px">
           {/* Profile Info */}
           <button
             type="button"
@@ -501,13 +502,14 @@ export function ProfilePage() {
           </button>
         </div>
       </div>
+    </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
           {/* ================================================================ */}
           {/* LEFT SUB-MENU SIDEBAR (Nested Navigation Under Active Tab)       */}
           {/* ================================================================ */}
-          <aside className="md:col-span-3 lg:col-span-3 space-y-4 md:sticky md:top-20">
+          <aside className="md:col-span-3 lg:col-span-3 space-y-4 md:sticky md:top-28">
             {/* 1. Sub-menu for Profile Info */}
             {activeTab === 'info' && (
               <div className="rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] p-3 shadow-xs">
