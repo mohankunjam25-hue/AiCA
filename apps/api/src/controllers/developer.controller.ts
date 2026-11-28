@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { pgPool } from '../config/db.js';
 import { SubmissionModel } from '../models/mongodb/submission.model.js';
 import { ProblemModel } from '../models/mongodb/problem.model.js';
+import { EvaluationReportModel } from '../models/mongodb/evaluation-report.model.js';
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -223,6 +224,30 @@ export async function getDeveloperProfile(req: Request, res: Response): Promise<
       problemMap.set(p._id.toString(), p);
     }
 
+    // Fetch real AI evaluation summaries when unlocked
+    const reportMap = new Map<string, string>();
+    if (canViewCode) {
+      const reportIds = bestSubmissions
+        .map((s: any) => s.evaluationReportId)
+        .filter((id: any): id is string => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id));
+
+      if (reportIds.length > 0) {
+        try {
+          const reports: any[] = await EvaluationReportModel.find({
+            _id: { $in: reportIds.map((id) => new mongoose.Types.ObjectId(id)) }
+          })
+            .select('_id summary aiAnalysis.codeSummary')
+            .lean();
+          for (const r of reports) {
+            const text = r.aiAnalysis?.codeSummary || r.summary;
+            if (text) reportMap.set(r._id.toString(), text);
+          }
+        } catch {
+          // Graceful fallback if evaluation report lookup is unavailable
+        }
+      }
+    }
+
     // 5. Aggregate difficulty, score, and skill tags
     const difficultyBreakdown = { easy: 0, medium: 0, hard: 0 };
     const tagCountMap = new Map<string, number>();
@@ -244,6 +269,9 @@ export async function getDeveloperProfile(req: Request, res: Response): Promise<
         tagCountMap.set(t, (tagCountMap.get(t) || 0) + 1);
       });
 
+      const resolvedSummary =
+        canViewCode && sub.evaluationReportId ? reportMap.get(sub.evaluationReportId) : undefined;
+
       return {
         problemId: sub.problemId,
         title: prob?.title || `Challenge #${sub.problemId.slice(-6)}`,
@@ -258,7 +286,7 @@ export async function getDeveloperProfile(req: Request, res: Response): Promise<
         isCodeLocked: !canViewCode,
         // STRICT PRIVACY ENFORCEMENT: Stripped completely when not following
         code: canViewCode ? sub.code : undefined,
-        aiAnalysisSummary: canViewCode ? 'Deterministic baseline passed with clean AST.' : undefined
+        aiAnalysisSummary: resolvedSummary
       };
     });
 
@@ -341,7 +369,8 @@ export async function getDeveloperDirectory(req: Request, res: Response): Promis
           _id: '$userId',
           username: { $first: '$username' },
           problemsSolved: { $sum: 1 },
-          totalScore: { $sum: '$bestScore' }
+          totalScore: { $sum: '$bestScore' },
+          problemIds: { $addToSet: '$_id.problemId' }
         }
       },
       {
@@ -350,6 +379,33 @@ export async function getDeveloperDirectory(req: Request, res: Response): Promis
     ];
 
     const aggResults = await SubmissionModel.aggregate(pipeline);
+
+    // Resolve real problem tags for topSkills
+    const allSolvedProblemIds = Array.from(
+      new Set(
+        aggResults.flatMap((agg: any) =>
+          Array.isArray(agg.problemIds) ? agg.problemIds : []
+        )
+      )
+    );
+    const problemTagsMap = new Map<string, string[]>();
+    if (allSolvedProblemIds.length > 0) {
+      try {
+        const validObjectIds = allSolvedProblemIds
+          .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
+          .map((id: string) => new mongoose.Types.ObjectId(id));
+        const probs: any[] = await ProblemModel.find({
+          $or: [{ _id: { $in: validObjectIds } }, { _id: { $in: allSolvedProblemIds } }]
+        })
+          .select('_id tags')
+          .lean();
+        for (const p of probs) {
+          problemTagsMap.set(p._id.toString(), Array.isArray(p.tags) ? p.tags : []);
+        }
+      } catch {
+        // Ignore if problem tags lookup fails
+      }
+    }
 
     // 2. Fetch all registered users from PostgreSQL to merge
     const pgUsers = await pgPool.query(
@@ -400,6 +456,17 @@ export async function getDeveloperDirectory(req: Request, res: Response): Promis
       const totalScore = Math.round((agg.totalScore || 0) * 10) / 10;
       const league = getLeague(totalScore);
 
+      const userTagFreq = new Map<string, number>();
+      for (const pid of agg.problemIds || []) {
+        for (const t of problemTagsMap.get(pid) || []) {
+          userTagFreq.set(t, (userTagFreq.get(t) || 0) + 1);
+        }
+      }
+      const realTopSkills = Array.from(userTagFreq.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([tag]) => tag);
+
       allDevelopers.push({
         userId: agg._id,
         username: u?.username || agg.username || 'Developer',
@@ -409,7 +476,7 @@ export async function getDeveloperDirectory(req: Request, res: Response): Promis
         totalSolved: agg.problemsSolved || 0,
         totalScore,
         streak: u?.current_streak || 0,
-        topSkills: ['Algorithms', 'Logic'],
+        topSkills: realTopSkills,
         followerCount: followerCountMap.get(agg._id) || 0,
         isFollowing: followingSet.has(agg._id)
       });
@@ -427,7 +494,7 @@ export async function getDeveloperDirectory(req: Request, res: Response): Promis
           totalSolved: 0,
           totalScore: 0,
           streak: u.current_streak || 0,
-          topSkills: ['Getting Started'],
+          topSkills: [],
           followerCount: followerCountMap.get(u.id) || 0,
           isFollowing: followingSet.has(u.id)
         });

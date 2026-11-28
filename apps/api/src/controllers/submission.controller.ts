@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import { Queue } from 'bullmq';
 import { SubmissionModel } from '../models/mongodb/submission.model.js';
@@ -502,19 +503,42 @@ export async function getActivityHeatmap(req: Request, res: Response): Promise<v
   try {
     const submissions = await SubmissionModel.find(
       { userId, isTestRun: false },
-      { createdAt: 1, verdict: 1, problemId: 1 }
+      { createdAt: 1, verdict: 1, problemId: 1, language: 1, executionTimeMs: 1, normalizedTimeMs: 1 }
     )
       .sort({ createdAt: 1 })
       .lean();
 
     const activityByDate: Record<string, number> = {};
     const solvedProblemIds = new Set<string>();
+    const languageCountMap = new Map<string, number>();
+    const subsByProblem = new Map<string, any[]>();
+    let solvedToday = false;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
 
     for (const sub of submissions) {
       const dateStr = new Date(sub.createdAt).toISOString().split('T')[0];
       activityByDate[dateStr] = (activityByDate[dateStr] || 0) + 1;
+
+      if (sub.language) {
+        const lang = String(sub.language).toLowerCase();
+        languageCountMap.set(lang, (languageCountMap.get(lang) || 0) + 1);
+      }
+
+      if (sub.problemId) {
+        const list = subsByProblem.get(sub.problemId) || [];
+        list.push(sub);
+        subsByProblem.set(sub.problemId, list);
+      }
+
       if (sub.verdict === 'ACCEPTED') {
         solvedProblemIds.add(sub.problemId);
+        if (dateStr === todayStr) {
+          solvedToday = true;
+        }
       }
     }
 
@@ -523,11 +547,6 @@ export async function getActivityHeatmap(req: Request, res: Response): Promise<v
     let currentStreak = 0;
     let longestStreak = 0;
     let tempStreak = 0;
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
 
     for (let i = 0; i < uniqueDates.length; i++) {
       if (i === 0) {
@@ -552,13 +571,81 @@ export async function getActivityHeatmap(req: Request, res: Response): Promise<v
       currentStreak = 0;
     }
 
+    // Compute real language distribution
+    const totalLangRuns = Array.from(languageCountMap.values()).reduce((sum, c) => sum + c, 0);
+    const languageBreakdown = Array.from(languageCountMap.entries())
+      .map(([language, count]) => ({
+        language,
+        count,
+        percentage: totalLangRuns > 0 ? Math.round((count / totalLangRuns) * 100) : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Compute real average latency reduction across multi-attempt solved problems
+    const latencyDrops: number[] = [];
+    for (const problemSubs of subsByProblem.values()) {
+      const acceptedSubs = problemSubs.filter((s) => s.verdict === 'ACCEPTED');
+      if (acceptedSubs.length === 0 || problemSubs.length < 2) continue;
+      const initialTime = problemSubs[0]?.executionTimeMs || 0;
+      const bestTime = Math.min(...acceptedSubs.map((s) => s.executionTimeMs || initialTime));
+      if (initialTime > 0 && bestTime <= initialTime) {
+        latencyDrops.push(((initialTime - bestTime) / initialTime) * 100);
+      }
+    }
+    const avgEvolutionDelta =
+      latencyDrops.length > 0
+        ? Math.round((latencyDrops.reduce((s, d) => s + d, 0) / latencyDrops.length) * 10) / 10
+        : null;
+
+    // Resolve solved problems difficulty & topic mastery
+    const difficultyBreakdown = { easy: 0, medium: 0, hard: 0 };
+    const topicCountMap = new Map<string, number>();
+
+    if (solvedProblemIds.size > 0) {
+      try {
+        const solvedArr = Array.from(solvedProblemIds);
+        const validObjectIds = solvedArr
+          .filter((id) => mongoose.Types.ObjectId.isValid(id))
+          .map((id) => new mongoose.Types.ObjectId(id));
+
+        const solvedProblems: any[] = await ProblemModel.find({
+          $or: [{ _id: { $in: validObjectIds } }, { _id: { $in: solvedArr } }]
+        })
+          .select('difficulty tags')
+          .lean();
+
+        for (const p of solvedProblems) {
+          const diff = (p.difficulty || 'MEDIUM').toUpperCase();
+          if (diff === 'EASY') difficultyBreakdown.easy++;
+          else if (diff === 'HARD') difficultyBreakdown.hard++;
+          else difficultyBreakdown.medium++;
+
+          for (const tag of p.tags || []) {
+            topicCountMap.set(tag, (topicCountMap.get(tag) || 0) + 1);
+          }
+        }
+      } catch {
+        // Ignore if problem metadata lookup fails in mocked/offline contexts
+      }
+    }
+
+    const masteredTopics = Array.from(topicCountMap.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
     res.status(200).json(
       createSuccessResponse({
         activityByDate,
         totalSubmissions: submissions.length,
         problemsSolved: solvedProblemIds.size,
         currentStreak,
-        longestStreak
+        longestStreak,
+        solvedToday,
+        difficultyBreakdown,
+        languageBreakdown,
+        masteredTopics,
+        avgEvolutionDelta
       })
     );
   } catch (err: any) {

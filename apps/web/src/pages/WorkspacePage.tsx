@@ -596,9 +596,12 @@ export function WorkspacePage() {
         setIsLeftCollapsed(false);
         setIsZenMode(false);
       }
-      // Invalidate submissions & dashboard cache so fresh stats appear
+      // Invalidate submissions & dashboard/summary caches so fresh stats appear
       useDataCacheStore.getState().invalidate('submissions_problem_');
       useDataCacheStore.getState().invalidate('dashboard_data_');
+      useDataCacheStore.getState().invalidate('user_progress_');
+      useDataCacheStore.getState().invalidate('platform_catalog_summary');
+      useDataCacheStore.getState().invalidate('home_feed_');
       fetchProblemSubmissions(true);
     } catch (err: any) {
       console.warn('[WorkspacePage] Evaluation report deferred or not found:', err.message);

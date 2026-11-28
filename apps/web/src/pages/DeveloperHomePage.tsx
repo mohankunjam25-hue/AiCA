@@ -22,7 +22,7 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { api } from '../services/api';
-import { useIsMobile } from '../hooks';
+import { useIsMobile, useCatalogSummary, useUserProgressSummary } from '../hooks';
 
 const MobileHomeView = React.lazy(() =>
   import('../components/mobile/MobileHomeView').then((m) => ({ default: m.MobileHomeView }))
@@ -34,8 +34,9 @@ interface ProblemSummary {
   slug: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string[];
+  description?: string;
   totalSubmissions?: number;
-  acceptanceRate?: number;
+  acceptanceRate?: number | null;
 }
 
 interface HomeFeedCacheData {
@@ -47,8 +48,12 @@ interface HomeFeedCacheData {
 export function DeveloperHomePage() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  const { summary: catalogSummary } = useCatalogSummary();
+  const { progress: userProgress } = useUserProgressSummary(isAuthenticated);
 
   const cacheKey = `home_feed_${user?.id || 'anon'}`;
   const initialCache = useDataCacheStore.getState().get<HomeFeedCacheData>(cacheKey);
@@ -132,16 +137,19 @@ export function DeveloperHomePage() {
     };
   }, [cacheKey]);
 
-  // Fallback POTD if catalog list is still resolving
-  const currentPOTD: ProblemSummary = dailyProblem || {
-    id: 'container-with-most-water',
-    slug: 'container-with-most-water',
-    title: 'Container With Most Water',
-    difficulty: 'MEDIUM',
-    tags: ['Arrays', 'Two-Pointers', 'Greedy'],
-    acceptanceRate: 62.5,
-    totalSubmissions: 48
-  };
+  // Real dynamic metrics (never fall back to fake sample numbers)
+  const resolvedStreak = userProgress?.currentStreak ?? profile?.currentStreak ?? 0;
+  const resolvedSolved = userProgress?.problemsSolved ?? profile?.problemsSolved ?? 0;
+  const resolvedSubmissions = userProgress?.totalSubmissions ?? profile?.totalSubmissions ?? 0;
+  const solvedToday = userProgress?.solvedToday ?? false;
+  const totalCatalog = catalogSummary?.totalProblems ?? problems.length;
+
+  const currentPOTD: ProblemSummary | null =
+    catalogSummary?.dailyChallenge || dailyProblem || problems[0] || null;
+  const spotlightProblems: ProblemSummary[] =
+    (catalogSummary?.spotlights && catalogSummary.spotlights.length > 0
+      ? catalogSummary.spotlights
+      : problems.slice(0, 2));
 
   const getDifficultyBadge = (diff: string) => {
     switch (diff) {
@@ -162,12 +170,13 @@ export function DeveloperHomePage() {
         <MobileHomeView
           greeting={greeting}
           userName={profile?.fullName || user?.username || 'Engineer'}
-          streak={profile?.currentStreak || 5}
-          problemsSolved={profile?.problemsSolved || 14}
-          totalSubmissions={profile?.totalSubmissions || 28}
+          streak={resolvedStreak}
+          problemsSolved={resolvedSolved}
+          totalSubmissions={resolvedSubmissions}
           currentPOTD={currentPOTD}
           lastActive={lastActive}
           problems={problems}
+          spotlights={spotlightProblems}
         />
       </Suspense>
     );
@@ -199,11 +208,11 @@ export function DeveloperHomePage() {
             {/* Quick Action Pills */}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <Link
-                to={`/workspace/${currentPOTD.slug || currentPOTD.id}`}
+                to={currentPOTD ? `/workspace/${currentPOTD.slug || currentPOTD.id}` : '/problems'}
                 className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Solve Daily Challenge
+                {currentPOTD ? 'Solve Daily Challenge' : 'Browse Problems'}
               </Link>
               <Link
                 to="/dashboard"
@@ -227,57 +236,71 @@ export function DeveloperHomePage() {
             {/* Ambient Background Gradient Accent */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-radial from-[#0969da]/10 via-transparent to-transparent pointer-events-none" />
 
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#0969da] dark:text-[#58a6ff] bg-[#0969da]/10 dark:bg-[#58a6ff]/15 px-2.5 py-1 rounded-md border border-[#0969da]/20 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  Official Problem of the Day
-                </span>
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${getDifficultyBadge(currentPOTD.difficulty)}`}>
-                  {currentPOTD.difficulty}
-                </span>
-              </div>
+            {currentPOTD ? (
+              <>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#0969da] dark:text-[#58a6ff] bg-[#0969da]/10 dark:bg-[#58a6ff]/15 px-2.5 py-1 rounded-md border border-[#0969da]/20 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      Official Problem of the Day
+                    </span>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${getDifficultyBadge(currentPOTD.difficulty)}`}>
+                      {currentPOTD.difficulty}
+                    </span>
+                  </div>
 
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
-                  {currentPOTD.title}
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
+                      {currentPOTD.title}
+                    </h2>
+                    <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1.5 leading-relaxed max-w-2xl line-clamp-2">
+                      {currentPOTD.description || 'Solve today’s selected algorithmic challenge inside the isolated execution workspace.'}
+                    </p>
+                  </div>
+
+                  {/* Tags and Benchmarks */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                    {currentPOTD.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-0.5 rounded-md bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de] dark:border-[#30363d] font-mono text-[11px]"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                    <span className="text-[#8c959f] dark:text-[#6e7681] text-xs font-mono ml-auto">
+                      Acceptance: {currentPOTD.acceptanceRate != null ? `${currentPOTD.acceptanceRate}%` : '--'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* POTD Launch Bar */}
+                <div className="pt-6 mt-4 border-t border-[#d0d7de] dark:border-[#30363d] flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs text-[#57606a] dark:text-[#8b949e] font-mono">
+                    <Terminal className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>{currentPOTD.totalSubmissions ?? 0} total submissions</span>
+                  </div>
+
+                  <Link
+                    to={`/workspace/${currentPOTD.slug || currentPOTD.id}`}
+                    className="px-5 py-2 rounded-lg text-xs font-bold bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white shadow-xs transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Launch in Interactive Workspace</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="py-8 text-center space-y-2">
+                <Sparkles className="w-6 h-6 text-[#0969da] mx-auto" />
+                <h2 className="text-base font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                  {loading ? 'Loading Problem of the Day...' : 'Explore Problem Catalog'}
                 </h2>
-                <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1.5 leading-relaxed max-w-2xl">
-                  Analyze vertical boundaries, calculate maximum geometric area between coordinate pointers, and implement an optimal single-pass linear time algorithm under 2000ms cgroup limits.
+                <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
+                  {loading ? 'Fetching today’s selected challenge from server.' : 'Open the problem hub to pick your next challenge.'}
                 </p>
               </div>
-
-              {/* Tags and Benchmarks */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                {currentPOTD.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-0.5 rounded-md bg-[#f6f8fa] dark:bg-[#21262d] text-[#57606a] dark:text-[#8b949e] border border-[#d0d7de] dark:border-[#30363d] font-mono text-[11px]"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-                <span className="text-[#8c959f] dark:text-[#6e7681] text-xs font-mono ml-auto">
-                  Acceptance: {currentPOTD.acceptanceRate || 62.5}%
-                </span>
-              </div>
-            </div>
-
-            {/* POTD Launch Bar */}
-            <div className="pt-6 mt-4 border-t border-[#d0d7de] dark:border-[#30363d] flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-[#57606a] dark:text-[#8b949e] font-mono">
-                <Terminal className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Isolated Linux cgroup target: &lt;20ms</span>
-              </div>
-
-              <Link
-                to={`/workspace/${currentPOTD.slug || currentPOTD.id}`}
-                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white shadow-xs transition flex items-center gap-2 cursor-pointer"
-              >
-                <span>Launch in Interactive Workspace</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            )}
           </div>
 
           {/* Right Column: Active Streak Card (4 Cols) */}
@@ -285,23 +308,31 @@ export function DeveloperHomePage() {
             <div>
               <div className="flex items-center justify-between text-[#57606a] dark:text-[#8b949e] mb-3">
                 <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-rose-500 animate-pulse" />
+                  <Flame className={`w-4 h-4 ${resolvedStreak > 0 ? 'text-rose-500 animate-pulse' : 'text-[#8c959f]'}`} />
                   Consecutive Streak
                 </span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  Active
+                <span
+                  className={`text-[11px] font-mono px-2 py-0.5 rounded-full border ${
+                    resolvedStreak > 0
+                      ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                      : 'bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] border-[#d0d7de] dark:border-[#30363d]'
+                  }`}
+                >
+                  {resolvedStreak > 0 ? 'Active' : 'Start Today'}
                 </span>
               </div>
 
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-black text-[#1f2328] dark:text-[#f0f6fc] font-mono">
-                  {profile?.currentStreak || 5}
+                  {resolvedStreak}
                 </span>
                 <span className="text-sm font-semibold text-[#57606a] dark:text-[#8b949e]">Days Active</span>
               </div>
 
               <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-2 leading-relaxed">
-                Submit an accepted pass for today&apos;s daily challenge or catalog problem to extend your streak to { (profile?.currentStreak || 5) + 1} days!
+                {solvedToday
+                  ? `Great work! You have an accepted submission today (${resolvedSolved} solved total).`
+                  : `Submit an accepted pass today to reach a ${resolvedStreak + 1}-day streak!`}
               </p>
             </div>
 
@@ -309,10 +340,15 @@ export function DeveloperHomePage() {
             <div className="space-y-2 pt-2">
               <div className="flex justify-between text-[11px] font-semibold text-[#57606a] dark:text-[#8b949e]">
                 <span>Today&apos;s Milestone</span>
-                <span className="text-emerald-600 dark:text-emerald-400">Ready to Submit</span>
+                <span className={solvedToday ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#656d76] dark:text-[#848d97]'}>
+                  {solvedToday ? 'Completed Today' : 'Ready to Submit'}
+                </span>
               </div>
               <div className="h-2 w-full rounded-full bg-[#f6f8fa] dark:bg-[#21262d] overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full" style={{ width: '70%' }} />
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full transition-all duration-500"
+                  style={{ width: solvedToday ? '100%' : '0%' }}
+                />
               </div>
             </div>
 
@@ -378,61 +414,37 @@ export function DeveloperHomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Spotlight 1: Extreme Speedup */}
-            <div className="p-5 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs flex flex-col justify-between space-y-4 hover:border-[#8c959f] dark:hover:border-[#6e7681] transition group">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded">
-                    +98.7% Speedup Target
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded border text-emerald-600 border-emerald-300">
-                    EASY
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
-                  Two Sum Optimal
-                </h4>
-                <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed">
-                  Refactor naive quadratic loops into a single-pass hash lookup table with O(1) matching time.
-                </p>
-              </div>
-
-              <Link
-                to="/workspace/two-sum-optimal"
-                className="text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline flex items-center gap-1 pt-2 border-t border-[#d0d7de]/60 dark:border-[#30363d]"
+            {spotlightProblems.slice(0, 2).map((spot) => (
+              <div
+                key={spot.id || spot.slug}
+                className="p-5 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs flex flex-col justify-between space-y-4 hover:border-[#8c959f] dark:hover:border-[#6e7681] transition group"
               >
-                <span>Optimize Solution</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            {/* Spotlight 2: Dynamic Intervals */}
-            <div className="p-5 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs flex flex-col justify-between space-y-4 hover:border-[#8c959f] dark:hover:border-[#6e7681] transition group">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
-                    Greedy Interval Merge
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded border text-amber-600 border-amber-300">
-                    MEDIUM
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0969da] dark:text-[#58a6ff] bg-[#0969da]/10 dark:bg-[#58a6ff]/15 border border-[#0969da]/20 px-2 py-0.5 rounded">
+                      {spot.tags[0] || 'Featured'}
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${getDifficultyBadge(spot.difficulty)}`}>
+                      {spot.difficulty}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
+                    {spot.title}
+                  </h4>
+                  <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed line-clamp-2">
+                    {spot.description || 'Implement an optimal solution under isolated sandbox constraints.'}
+                  </p>
                 </div>
-                <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc] group-hover:text-[#0969da] dark:group-hover:text-[#58a6ff] transition">
-                  Merge Intervals
-                </h4>
-                <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed">
-                  Sort coordinate intervals and merge contiguous overlaps in O(N log N) time without extra memory.
-                </p>
-              </div>
 
-              <Link
-                to="/workspace/merge-intervals"
-                className="text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline flex items-center gap-1 pt-2 border-t border-[#d0d7de]/60 dark:border-[#30363d]"
-              >
-                <span>Solve in Workspace</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+                <Link
+                  to={`/workspace/${spot.slug || spot.id}`}
+                  className="text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline flex items-center gap-1 pt-2 border-t border-[#d0d7de]/60 dark:border-[#30363d]"
+                >
+                  <span>Solve in Workspace</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            ))}
 
             {/* Spotlight 3: Algorithm Visualizer Guide */}
             <div className="p-5 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs flex flex-col justify-between space-y-4 hover:border-[#8c959f] dark:hover:border-[#6e7681] transition group">
@@ -475,7 +487,7 @@ export function DeveloperHomePage() {
               to="/problems"
               className="text-xs font-semibold text-[#0969da] dark:text-[#58a6ff] hover:underline flex items-center gap-1"
             >
-              <span>Explore All Problems ({problems.length || 50})</span>
+              <span>Explore All Problems ({totalCatalog})</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
