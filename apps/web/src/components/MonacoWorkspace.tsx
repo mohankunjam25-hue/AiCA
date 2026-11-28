@@ -711,6 +711,27 @@ export function MonacoWorkspace({
         </div>
       </div>
 
+      {/* Mobile Coding Accessory Quick-Symbols Toolbar (Keeps soft keyboard focused) */}
+      <div className="md:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-[#f6f8fa] dark:bg-[#161b22] border-t border-[#d0d7de] dark:border-[#30363d] overflow-x-auto no-scrollbar shrink-0">
+        {['Tab', '{', '}', '(', ')', '[', ']', ':', ';', '=', '"', '->', '_'].map((sym) => (
+          <button
+            key={sym}
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              const editor = editorRef.current;
+              if (!editor) return;
+              editor.focus();
+              const text = sym === 'Tab' ? ' '.repeat(editorPrefs.tabSize || 4) : sym;
+              editor.trigger('mobile-accessory', 'type', { text });
+            }}
+            className="h-8 min-w-[34px] px-2 rounded-lg bg-white dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] font-mono text-xs font-bold text-[#1f2328] dark:text-[#f0f6fc] active:bg-[#0969da] active:text-white active:scale-95 transition shrink-0"
+          >
+            {sym}
+          </button>
+        ))}
+      </div>
+
       {/* Horizontal Drag Handle (Visible only when console is expanded) */}
       {!isConsoleCollapsed && (
         <div

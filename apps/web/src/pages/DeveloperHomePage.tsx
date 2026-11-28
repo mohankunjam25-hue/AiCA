@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Flame,
@@ -22,6 +22,11 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { api } from '../services/api';
+import { useIsMobile } from '../hooks';
+
+const MobileHomeView = React.lazy(() =>
+  import('../components/mobile/MobileHomeView').then((m) => ({ default: m.MobileHomeView }))
+);
 
 interface ProblemSummary {
   id: string;
@@ -43,6 +48,7 @@ export function DeveloperHomePage() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const cacheKey = `home_feed_${user?.id || 'anon'}`;
   const initialCache = useDataCacheStore.getState().get<HomeFeedCacheData>(cacheKey);
@@ -149,6 +155,23 @@ export function DeveloperHomePage() {
         return 'text-[#57606a] dark:text-[#8b949e] bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d]';
     }
   };
+
+  if (isMobile) {
+    return (
+      <Suspense fallback={null}>
+        <MobileHomeView
+          greeting={greeting}
+          userName={profile?.fullName || user?.username || 'Engineer'}
+          streak={profile?.currentStreak || 5}
+          problemsSolved={profile?.problemsSolved || 14}
+          totalSubmissions={profile?.totalSubmissions || 28}
+          currentPOTD={currentPOTD}
+          lastActive={lastActive}
+          problems={problems}
+        />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="flex-1 bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] pb-16 transition-colors duration-200">

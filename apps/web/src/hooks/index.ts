@@ -6,3 +6,4 @@ export * from './useWorkspaceSplitter';
 export * from './useOnlineStatus';
 export * from './useSSE';
 export * from './useScrollTrigger';
+export * from './useIsMobile';

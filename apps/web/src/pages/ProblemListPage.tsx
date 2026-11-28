@@ -44,12 +44,15 @@ import axios from 'axios';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
-import { useDebounce } from '../hooks';
+import { useDebounce, useIsMobile } from '../hooks';
 import { ProblemGridCard, ProblemTableRow } from '../components/ProblemListItems';
 import { getErrorMessage } from '../utils/errorUtils';
 
 const ShareProblemModal = React.lazy(() =>
   import('../components/ShareProblemModal').then((m) => ({ default: m.ShareProblemModal }))
+);
+const MobileProblemCatalog = React.lazy(() =>
+  import('../components/mobile/MobileProblemCatalog').then((m) => ({ default: m.MobileProblemCatalog }))
 );
 
 export type ProblemHubTab = 'unsolved' | 'solved' | 'pending' | 'all' | 'tracks' | 'practice';
@@ -263,6 +266,7 @@ const SORT_OPTIONS: { label: string; value: ProblemSortOption }[] = [
 export function ProblemListPage() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
+  const isMobile = useIsMobile();
 
   // Hub View States (Option B: Default view strictly shows New & Unsolved challenges)
   const [activeTab, setActiveTab] = useState<ProblemHubTab>('unsolved');
@@ -533,6 +537,57 @@ export function ProblemListPage() {
   const solvedCount = profile?.problemsSolved ?? 14;
   const totalCatalog = 50;
   const progressPercent = Math.round((solvedCount / totalCatalog) * 100);
+
+  if (isMobile) {
+    return (
+      <>
+        <Suspense
+          fallback={
+            <div className="flex-1 flex items-center justify-center p-12 bg-[#f6f8fa] dark:bg-[#010409]">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0969da]" />
+            </div>
+          }
+        >
+          <MobileProblemCatalog
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            search={search}
+            setSearch={setSearch}
+            difficulty={difficulty}
+            setDifficulty={setDifficulty}
+            selectedTag={selectedTag}
+            setSelectedTag={setSelectedTag}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            problems={problems}
+            loading={loading}
+            error={error}
+            pagination={pagination}
+            page={page}
+            setPage={setPage}
+            topicTags={TOPIC_TAGS}
+            sortOptions={SORT_OPTIONS}
+            onClearFilters={handleClearFilters}
+            onOpenShareModal={handleOpenShareModal}
+            onDeletePractice={handleDeletePractice}
+            onRetry={fetchProblems}
+            tracks={CURATED_TRACKS}
+            problemStatusMap={problemStatusMap}
+            onSelectTrack={handleTrackSelect}
+          />
+        </Suspense>
+        <Suspense fallback={null}>
+          {Boolean(shareTargetProblem) && (
+            <ShareProblemModal
+              isOpen={Boolean(shareTargetProblem)}
+              onClose={() => setShareTargetProblem(null)}
+              problem={shareTargetProblem}
+            />
+          )}
+        </Suspense>
+      </>
+    );
+  }
 
   return (
     <div className="flex-1 bg-[#f6f8fa] dark:bg-[#010409] text-[#1f2328] dark:text-[#e6edf3] pb-16 transition-colors duration-200">
