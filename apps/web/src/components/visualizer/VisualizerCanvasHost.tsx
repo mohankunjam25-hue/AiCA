@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import {
   Sparkles,
   Maximize2,
@@ -19,11 +19,16 @@ import { SystemStructureRenderer } from './renderers/SystemStructureRenderer';
 import { SynchronizedCodeViewer } from './ui/SynchronizedCodeViewer';
 import { PlaybackControlsToolbar } from './ui/PlaybackControlsToolbar';
 import { StepNarrationCard } from './ui/StepNarrationCard';
-import { AlgorithmSearchModal } from './search/AlgorithmSearchModal';
 import { AlgorithmQuickBar } from './search/AlgorithmQuickBar';
 import { InputControlBar } from './inputs/InputControlBar';
 import { TelemetryHUD } from './telemetry/TelemetryHUD';
 import { SupportedLanguage } from './core/types';
+
+const AlgorithmSearchModal = React.lazy(() =>
+  import('./search/AlgorithmSearchModal').then((m) => ({
+    default: m.AlgorithmSearchModal
+  }))
+);
 
 interface VisualizerCanvasHostProps {
   initialAlgorithm?: string;
@@ -285,13 +290,17 @@ export function VisualizerCanvasHost({
         </div>
       </div>
 
-      {/* Global Command Palette Modal (Ctrl+K) */}
-      <AlgorithmSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectAlgorithm={(id) => setSelectedAlgoKey(id)}
-        currentAlgoId={currentAlgoDef.id}
-      />
+      {/* Global Command Palette Modal (Ctrl+K, Lazy-Loaded On Demand) */}
+      {isSearchOpen && (
+        <Suspense fallback={null}>
+          <AlgorithmSearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            onSelectAlgorithm={(id) => setSelectedAlgoKey(id)}
+            currentAlgoId={currentAlgoDef.id}
+          />
+        </Suspense>
+      )}
     </>
   );
 }
