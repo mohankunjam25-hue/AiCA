@@ -590,6 +590,7 @@ export function WorkspacePage() {
       const res = await api.get(`/submissions/${submissionId}/report`);
       setReport(res.data.data);
       setActiveLeftTab('report');
+      setMobileWorkspaceTab('problem');
       // If user had left panel collapsed or was in zen mode, restore left panel so report is immediately visible
       if (isLeftCollapsed || isZenMode) {
         setIsLeftCollapsed(false);
@@ -734,31 +735,68 @@ export function WorkspacePage() {
 
         {/* Right: Adaptive Segmented Switcher & Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
-          {/* Mobile/Tablet Viewport Segmented Control (< 1024px) */}
-          <div className="flex lg:hidden items-center bg-[#eaeef2] dark:bg-[#21262d] p-0.5 rounded-lg border border-[#d0d7de] dark:border-[#30363d] text-xs">
+          {/* Mobile/Tablet Native 4-Tab Segmented Switcher (< 1024px) */}
+          <div className="flex lg:hidden items-center bg-[#eaeef2] dark:bg-[#21262d] p-0.5 rounded-xl border border-[#d0d7de] dark:border-[#30363d] text-[11px] overflow-x-auto no-scrollbar">
             <button
               type="button"
-              onClick={() => setMobileWorkspaceTab('problem')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
-                mobileWorkspaceTab === 'problem'
+              onClick={() => {
+                setActiveLeftTab('desc');
+                setMobileWorkspaceTab('problem');
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer whitespace-nowrap ${
+                mobileWorkspaceTab === 'problem' && activeLeftTab === 'desc'
                   ? 'bg-white dark:bg-[#161b22] text-[#1f2328] dark:text-[#e6edf3] shadow-xs'
                   : 'text-[#656d76] dark:text-[#848d97]'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Details</span>
+              <span>Problem</span>
             </button>
             <button
               type="button"
               onClick={() => setMobileWorkspaceTab('editor')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer whitespace-nowrap ${
                 mobileWorkspaceTab === 'editor'
                   ? 'bg-[#8250df] text-white shadow-xs'
                   : 'text-[#656d76] dark:text-[#848d97]'
               }`}
             >
               <Code2 className="w-3.5 h-3.5" />
-              <span>Editor</span>
+              <span>Code</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveLeftTab('report');
+                setMobileWorkspaceTab('problem');
+              }}
+              className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer whitespace-nowrap ${
+                mobileWorkspaceTab === 'problem' && activeLeftTab === 'report'
+                  ? 'bg-white dark:bg-[#161b22] text-[#1f2328] dark:text-[#e6edf3] shadow-xs'
+                  : 'text-[#656d76] dark:text-[#848d97]'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Report</span>
+              {report && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2ea043]" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                fetchProblemSubmissions();
+                setActiveLeftTab('submissions');
+                setMobileWorkspaceTab('problem');
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer whitespace-nowrap ${
+                mobileWorkspaceTab === 'problem' && activeLeftTab === 'submissions'
+                  ? 'bg-white dark:bg-[#161b22] text-[#1f2328] dark:text-[#e6edf3] shadow-xs'
+                  : 'text-[#656d76] dark:text-[#848d97]'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>History</span>
             </button>
           </div>
 
@@ -920,13 +958,13 @@ export function WorkspacePage() {
         ref={containerRef}
         className="flex-1 min-h-0 w-full flex flex-col lg:flex-row gap-0 p-2 sm:p-3 overflow-hidden bg-[#f6f8fa] dark:bg-[#010409] relative"
       >
-        {/* Left Pane (Description / Report / Comparison) */}
+        {/* Left Pane (Description / Report / Comparison) - Always 100% on mobile, resizable on lg+ */}
         {!isZenMode && (!isLeftCollapsed || isEditorCollapsed) && (
           <div
-            style={{ width: isEditorCollapsed ? '100%' : `${leftWidth}%` }}
+            style={{ '--left-pane-w': isEditorCollapsed ? '100%' : `${leftWidth}%` } as React.CSSProperties}
             className={`${
               mobileWorkspaceTab === 'problem' || isEditorCollapsed ? 'flex' : 'hidden'
-            } lg:flex flex-col h-full min-h-0 overflow-hidden w-full lg:w-auto shrink-0 transition-[width] duration-200`}
+            } lg:flex flex-col h-full min-h-0 overflow-hidden w-full lg:w-[var(--left-pane-w)] shrink-0 transition-[width] duration-200`}
           >
             <div className="flex-1 min-h-0 h-full overflow-y-auto overscroll-contain pr-0 lg:pr-1.5 space-y-4">
           {activeLeftTab === 'desc' && (
@@ -1390,13 +1428,13 @@ export function WorkspacePage() {
           </div>
         )}
 
-        {/* Right Pane (Monaco Editor Workspace) */}
+        {/* Right Pane (Monaco Editor Workspace) - Always 100% on mobile, resizable on lg+ */}
         {!isEditorCollapsed && (
           <div
-            style={{ width: isZenMode || isLeftCollapsed ? '100%' : `${100 - leftWidth}%` }}
+            style={{ '--right-pane-w': isZenMode || isLeftCollapsed ? '100%' : `${100 - leftWidth}%` } as React.CSSProperties}
             className={`${
               mobileWorkspaceTab === 'editor' ? 'flex' : 'hidden'
-            } lg:flex flex-col h-full min-h-0 w-full lg:w-auto flex-1 min-w-0 transition-[width] duration-150`}
+            } lg:flex flex-col h-full min-h-0 w-full lg:w-[var(--right-pane-w)] flex-1 min-w-0 transition-[width] duration-150`}
           >
             <MonacoWorkspace
               problem={problem}

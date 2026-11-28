@@ -31,6 +31,13 @@ import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { getErrorMessage } from '../utils/errorUtils';
+import { useIsMobile } from '../hooks';
+
+const MobileLeaderboardView = React.lazy(() =>
+  import('../components/mobile/MobileLeaderboardView').then((m) => ({
+    default: m.MobileLeaderboardView
+  }))
+);
 
 interface ProblemItem {
   id: string;
@@ -188,6 +195,7 @@ const LeaderboardRowItem = React.memo(
 export function LeaderboardPage() {
   const user = useAuthStore((s) => s.user);
   const currentUserId = user?.id;
+  const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState<'global' | 'problem'>('global');
   const [problems, setProblems] = useState<ProblemItem[]>([]);
@@ -365,6 +373,48 @@ export function LeaderboardPage() {
     const q = globalSearch.toLowerCase().trim();
     return globalRankings.filter((r) => r.username.toLowerCase().includes(q));
   }, [globalRankings, globalSearch]);
+
+  if (isMobile) {
+    return (
+      <>
+        <Suspense
+          fallback={
+            <div className="flex-1 flex items-center justify-center p-12 bg-[#f6f8fa] dark:bg-[#010409]">
+              <Loader2 className="w-6 h-6 animate-spin text-[#8250df]" />
+            </div>
+          }
+        >
+          <MobileLeaderboardView
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            globalSearch={globalSearch}
+            setGlobalSearch={setGlobalSearch}
+            problems={problems}
+            selectedProblem={selectedProblem}
+            setSelectedProblem={setSelectedProblem}
+            loading={loading}
+            fetchError={fetchError}
+            podiumEntries={podiumEntries}
+            filteredGlobalRankings={filteredGlobalRankings}
+            rankings={rankings}
+            currentUserId={currentUserId}
+            myGlobalStanding={myGlobalStanding}
+            onSelectDeveloper={handleSelectDeveloper}
+            onRetry={() => activeTab === 'global' ? fetchGlobalLeaderboard(true) : fetchProblemLeaderboard(selectedProblem, true)}
+          />
+        </Suspense>
+        {selectedDeveloper && (
+          <Suspense fallback={null}>
+            <DeveloperSolvedDrawer
+              userId={selectedDeveloper.userId}
+              initialUsername={selectedDeveloper.username}
+              onClose={() => setSelectedDeveloper(null)}
+            />
+          </Suspense>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

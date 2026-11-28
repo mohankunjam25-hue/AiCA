@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -45,6 +45,13 @@ import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { api } from '../services/api';
 import { calculateUserBadges, DynamicBadge } from '../utils/badgeCalculator';
 import { getErrorMessage } from '../utils/errorUtils';
+import { useIsMobile } from '../hooks';
+
+const MobileProfileView = React.lazy(() =>
+  import('../components/mobile/MobileProfileView').then((m) => ({
+    default: m.MobileProfileView
+  }))
+);
 
 export interface DynamicEvolutionItem {
   id: string;
@@ -70,6 +77,7 @@ export function ProfilePage() {
   const logout = useAuthStore((s) => s.logout);
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const isMobile = useIsMobile();
   const editorPrefs = useEditorPreferencesStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -330,6 +338,35 @@ export function ProfilePage() {
 
   return (
     <div className="flex-1 bg-[#FAFAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 selection:bg-emerald-100 selection:text-emerald-950">
+      {isMobile ? (
+        <Suspense fallback={null}>
+          <MobileProfileView
+            username={user?.username || 'Engineer'}
+            fullName={profile?.fullName || fullName}
+            bio={profile?.bio || bio}
+            avatarUrl={profile?.avatarUrl || avatarUrl}
+            activityStats={activityStats}
+            badges={dynamicBadges}
+            submissions={realSubmissions}
+            theme={theme}
+            setTheme={setTheme}
+            copiedLink={copiedLink}
+            onShare={handleShare}
+            onOpenEditModal={() => setIsEditModalOpen(true)}
+            onLogout={handleLogoutConfirm}
+            currentPassword={currentPassword}
+            setCurrentPassword={setCurrentPassword}
+            newPassword={newPassword}
+            setNewPassword={setNewPassword}
+            confirmPassword={confirmPassword}
+            setConfirmPassword={setConfirmPassword}
+            passwordStatus={passwordStatus}
+            updatingPassword={updatingPassword}
+            onChangePassword={handleChangePassword}
+          />
+        </Suspense>
+      ) : (
+        <>
       {/* ================================================================== */}
       {/* 1. HERO IDENTITY CARD                                              */}
       {/* ================================================================== */}
@@ -1822,6 +1859,8 @@ export function ProfilePage() {
           </main>
         </div>
       </div>
+        </>
+      )}
 
       {/* ================================================================== */}
       {/* 5. EDIT PROFILE MODAL                                              */}

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { TopHeader } from './components/TopHeader';
 import { StudentViewBanner } from './components/StudentViewBanner';
+import { MobileBottomNav } from './components/mobile/MobileBottomNav';
 
 const SidebarDrawer = React.lazy(() =>
   import('./components/SidebarDrawer').then((m) => ({ default: m.SidebarDrawer }))
@@ -124,7 +125,7 @@ function AppLayout() {
       )}
 
       <div className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : ''}`}>
-        <main className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : ''}`}>
+        <main className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : !isAuthPage ? 'pb-20 md:pb-0' : ''}`}>
           <ErrorBoundary level="route">
             <Suspense fallback={<PageLoadingFallback />}>
               <Routes>
@@ -274,7 +275,7 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
       {!isAuthPage && !isStudioPage && (
-        <footer className="border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
+        <footer className="hidden md:block border-t border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#161b22] py-8 text-center text-xs text-[#57606a] dark:text-[#8b949e] transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="font-bold text-[#1f2328] dark:text-[#e6edf3]">AI Code Evolution Lab</span>
@@ -301,6 +302,8 @@ function AppLayout() {
         </footer>
       )}
       </div>
+      {/* Native Mobile Bottom Navigation Bar */}
+      <MobileBottomNav />
     </div>
   );
 }
