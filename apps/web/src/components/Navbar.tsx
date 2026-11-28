@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Trophy,
@@ -13,8 +13,11 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';
-import { SidebarDrawer } from './SidebarDrawer';
 import { AiCALogo } from './AiCALogo';
+
+const SidebarDrawer = React.lazy(() =>
+  import('./SidebarDrawer').then((m) => ({ default: m.SidebarDrawer }))
+);
 
 export function Navbar() {
   const user = useAuthStore((s) => s.user);
@@ -24,6 +27,7 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasOpenedSidebar, setHasOpenedSidebar] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -38,7 +42,10 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Hamburger Button (Opens GitHub-style flyout drawer) */}
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => {
+                setHasOpenedSidebar(true);
+                setSidebarOpen(true);
+              }}
               aria-label="Open Navigation Sidebar"
               className="p-1.5 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#21262d] text-[#656d76] dark:text-[#848d97] hover:text-[#1f2328] dark:hover:text-[#f0f6fc] hover:bg-[#eaeef2] dark:hover:bg-[#30363d] transition cursor-pointer flex items-center justify-center"
               title="Open Navigation Menu"
@@ -196,11 +203,15 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* GitHub-Style Flyout Sidebar Drawer */}
-      <SidebarDrawer
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {/* GitHub-Style Flyout Sidebar Drawer (Lazy-loaded on first open) */}
+      {hasOpenedSidebar && (
+        <Suspense fallback={null}>
+          <SidebarDrawer
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

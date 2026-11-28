@@ -1,9 +1,12 @@
 import React, { useState, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { SidebarDrawer } from './components/SidebarDrawer';
 import { TopHeader } from './components/TopHeader';
 import { StudentViewBanner } from './components/StudentViewBanner';
+
+const SidebarDrawer = React.lazy(() =>
+  import('./components/SidebarDrawer').then((m) => ({ default: m.SidebarDrawer }))
+);
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { PageLoadingFallback } from './components/ui/PageLoadingFallback';
@@ -76,6 +79,12 @@ function DashboardRoute() {
 function AppLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasOpenedSidebar, setHasOpenedSidebar] = useState(false);
+
+  const handleOpenSidebar = () => {
+    setHasOpenedSidebar(true);
+    setSidebarOpen(true);
+  };
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isStudioPage =
     location.pathname.startsWith('/lftl') ||
@@ -100,15 +109,19 @@ function AppLayout() {
       {/* Top Utility Header Bar with Profile & Logout dropdown */}
       {!isAuthPage && (
         <TopHeader
-          onOpenSidebar={() => setSidebarOpen(true)}
+          onOpenSidebar={handleOpenSidebar}
         />
       )}
 
-      {/* GitHub-style Flyout Sidebar Drawer (Slides in on Hamburger click, Closes on Close click) */}
-      <SidebarDrawer
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {/* GitHub-style Flyout Sidebar Drawer (Lazy-loaded on first open to keep initial shell lightweight) */}
+      {hasOpenedSidebar && (
+        <Suspense fallback={null}>
+          <SidebarDrawer
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        </Suspense>
+      )}
 
       <div className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : ''}`}>
         <main className={`flex-1 flex flex-col min-w-0 ${isStudioPage ? 'min-h-0 overflow-hidden' : ''}`}>
