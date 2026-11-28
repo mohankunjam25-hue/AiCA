@@ -38,14 +38,20 @@ import {
   LANGUAGE_CONFIGS
 } from '@aica/shared';
 import { MonacoWorkspace } from '../components/MonacoWorkspace';
-import { EvaluationReportView } from '../components/EvaluationReportView';
 import { useClipboard, useWorkspaceSplitter, useKeyboardShortcuts } from '../hooks';
 
 const ShareProblemModal = React.lazy(() =>
   import('../components/ShareProblemModal').then((m) => ({ default: m.ShareProblemModal }))
 );
-import { SolutionComparisonView } from '../components/SolutionComparisonView';
-import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
+const EvaluationReportView = React.lazy(() =>
+  import('../components/EvaluationReportView').then((m) => ({ default: m.EvaluationReportView }))
+);
+const SolutionComparisonView = React.lazy(() =>
+  import('../components/SolutionComparisonView').then((m) => ({ default: m.SolutionComparisonView }))
+);
+const MultiSolutionComparisonView = React.lazy(() =>
+  import('../components/MultiSolutionComparisonView').then((m) => ({ default: m.MultiSolutionComparisonView }))
+);
 import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
@@ -1012,14 +1018,23 @@ export function WorkspacePage() {
           {activeLeftTab === 'report' && (
             <div>
               {report ? (
-                <EvaluationReportView
-                  key={report.id || report.submissionId}
-                  report={report}
-                  onCompareRequest={handleCompareClick}
-                  onReportUpdate={setReport}
-                  isMaximized={isEditorCollapsed}
-                  onToggleMaximize={toggleEditorCollapse}
-                />
+                <Suspense
+                  fallback={
+                    <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#0969da] dark:text-[#58a6ff]" />
+                      <span className="text-xs font-mono">Loading Evaluation Report...</span>
+                    </div>
+                  }
+                >
+                  <EvaluationReportView
+                    key={report.id || report.submissionId}
+                    report={report}
+                    onCompareRequest={handleCompareClick}
+                    onReportUpdate={setReport}
+                    isMaximized={isEditorCollapsed}
+                    onToggleMaximize={toggleEditorCollapse}
+                  />
+                </Suspense>
               ) : (
                 <div className="p-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
                   Submit code to generate an AI evaluation report and complexity profile.
@@ -1073,14 +1088,23 @@ export function WorkspacePage() {
                     )}
                   </div>
 
-                  {compareViewMode === 'matrix' && multiComparison ? (
-                    <MultiSolutionComparisonView
-                      comparison={multiComparison}
-                      onSelectSolutionForEditor={(code, language) => handleLoadIntoEditor({ code, language })}
-                    />
-                  ) : comparison ? (
-                    <SolutionComparisonView comparison={comparison} />
-                  ) : null}
+                  <Suspense
+                    fallback={
+                      <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+                        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                        <span className="text-xs font-mono">Loading Comparison Engine...</span>
+                      </div>
+                    }
+                  >
+                    {compareViewMode === 'matrix' && multiComparison ? (
+                      <MultiSolutionComparisonView
+                        comparison={multiComparison}
+                        onSelectSolutionForEditor={(code, language) => handleLoadIntoEditor({ code, language })}
+                      />
+                    ) : comparison ? (
+                      <SolutionComparisonView comparison={comparison} />
+                    ) : null}
+                  </Suspense>
                 </>
               ) : (
                 <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-6">
