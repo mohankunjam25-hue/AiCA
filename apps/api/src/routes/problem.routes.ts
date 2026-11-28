@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getProblems,
+  getCatalogSummary,
   getProblemById,
   createProblem,
   updateProblem,
@@ -14,6 +15,7 @@ const router = Router();
 
 // Public catalog and student endpoints
 router.get('/', optionalAuth, getProblems);
+router.get('/summary', optionalAuth, getCatalogSummary);
 
 // Dedicated Admin / Instructor endpoints (must precede /:id)
 router.get('/admin/all', authenticateToken, requireRole('ADMIN', 'INSTRUCTOR'), getAdminProblems);

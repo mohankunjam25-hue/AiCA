@@ -271,6 +271,108 @@ export async function getProblems(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getCatalogSummary(req: Request, res: Response): Promise<void> {
+  if (!checkMongoReady(res)) return;
+
+  try {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const cacheKey = `cache:problems:summary:${todayKey}`;
+    const cached = await CacheService.get<any>(cacheKey);
+    if (cached) {
+      res.status(200).json(createSuccessResponse(cached));
+      return;
+    }
+
+    const problems: any[] = await ProblemModel.find({
+      status: { $in: ['PUBLISHED', null] },
+      isCustomPractice: { $ne: true }
+    })
+      .select('title slug difficulty tags description totalSubmissions acceptedSubmissions createdAt')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const byDifficulty = { easy: 0, medium: 0, hard: 0 };
+    const tagCountMap = new Map<string, number>();
+
+    for (const p of problems) {
+      const diff = (p.difficulty || 'MEDIUM').toUpperCase();
+      if (diff === 'EASY') byDifficulty.easy++;
+      else if (diff === 'HARD') byDifficulty.hard++;
+      else byDifficulty.medium++;
+
+      const tags: string[] = Array.isArray(p.tags) ? p.tags : [];
+      for (const t of tags) {
+        tagCountMap.set(t, (tagCountMap.get(t) || 0) + 1);
+      }
+    }
+
+    const topics = Array.from(tagCountMap.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const topicCounts: Record<string, number> = {};
+    for (const item of topics) {
+      topicCounts[item.tag] = item.count;
+    }
+
+    const formatSummaryItem = (p: any) => {
+      const totalSubs = p.totalSubmissions || 0;
+      const acceptedSubs = p.acceptedSubmissions || 0;
+      return {
+        id: p._id ? p._id.toString() : p.id || '',
+        title: p.title,
+        slug: p.slug,
+        difficulty: (p.difficulty || 'MEDIUM') as 'EASY' | 'MEDIUM' | 'HARD',
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        description: p.description || '',
+        totalSubmissions: totalSubs,
+        acceptanceRate: totalSubs > 0 ? Math.round((acceptedSubs / totalSubs) * 1000) / 10 : null
+      };
+    };
+
+    let dailyChallenge = null;
+    if (problems.length > 0) {
+      const dayOfYear = Math.floor(
+        (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      dailyChallenge = formatSummaryItem(problems[dayOfYear % problems.length]);
+    }
+
+    // Select up to 3 representative spotlight challenges spanning Easy/Medium/Hard
+    const byPopularity = [...problems].sort(
+      (a, b) => (b.totalSubmissions || 0) - (a.totalSubmissions || 0)
+    );
+    const chosen: any[] = [];
+    for (const diff of ['EASY', 'MEDIUM', 'HARD']) {
+      const match = byPopularity.find(
+        (p) => (p.difficulty || 'MEDIUM').toUpperCase() === diff && !chosen.includes(p)
+      );
+      if (match) chosen.push(match);
+    }
+    for (const p of byPopularity) {
+      if (chosen.length >= 3) break;
+      if (!chosen.includes(p)) chosen.push(p);
+    }
+
+    const summary = {
+      totalProblems: problems.length,
+      byDifficulty,
+      topicCounts,
+      topics,
+      dailyChallenge,
+      spotlights: chosen.map(formatSummaryItem)
+    };
+
+    await CacheService.set(cacheKey, summary, 300);
+    res.status(200).json(createSuccessResponse(summary));
+  } catch (err: any) {
+    console.error('[ProblemController] getCatalogSummary error:', err.message);
+    res.status(500).json(
+      createErrorResponse('INTERNAL_ERROR', 'Failed to retrieve catalog summary', [{ issue: err.message }])
+    );
+  }
+}
+
 export async function getProblemById(req: Request, res: Response): Promise<void> {
   if (!checkMongoReady(res)) return;
 

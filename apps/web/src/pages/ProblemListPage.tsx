@@ -44,7 +44,7 @@ import axios from 'axios';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDataCacheStore } from '../store/useDataCacheStore';
-import { useDebounce, useIsMobile } from '../hooks';
+import { useDebounce, useIsMobile, useCatalogSummary, useUserProgressSummary } from '../hooks';
 import { ProblemGridCard, ProblemTableRow } from '../components/ProblemListItems';
 import { getErrorMessage } from '../utils/errorUtils';
 
@@ -231,7 +231,7 @@ const CURATED_TRACKS: CuratedTrack[] = [
   }
 ];
 
-const TOPIC_TAGS = [
+const DEFAULT_TOPIC_TAGS = [
   'All Topics',
   'Arrays',
   'Strings',
@@ -243,18 +243,6 @@ const TOPIC_TAGS = [
   'Binary-Search',
   'Trees'
 ];
-
-const TOPIC_COUNTS: Record<string, number> = {
-  Arrays: 16,
-  Strings: 12,
-  'Hash-Table': 10,
-  'Two-Pointers': 8,
-  'Sliding-Window': 6,
-  'Dynamic-Programming': 8,
-  Greedy: 6,
-  'Binary-Search': 5,
-  Trees: 7
-};
 
 const SORT_OPTIONS: { label: string; value: ProblemSortOption }[] = [
   { label: 'Latest Added', value: 'latest' },
@@ -534,9 +522,28 @@ export function ProblemListPage() {
     search.trim() !== '' ||
     sortBy !== 'latest';
 
-  const solvedCount = profile?.problemsSolved ?? 14;
-  const totalCatalog = 50;
-  const progressPercent = Math.round((solvedCount / totalCatalog) * 100);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { summary: catalogSummary } = useCatalogSummary();
+  const { progress: userProgress } = useUserProgressSummary(isAuthenticated);
+
+  const solvedCount = userProgress?.problemsSolved ?? profile?.problemsSolved ?? 0;
+  const totalCatalog = catalogSummary?.totalProblems ?? (pagination.total || 0);
+  const progressPercent = totalCatalog > 0 ? Math.round((solvedCount / totalCatalog) * 100) : 0;
+
+  const easySolved = userProgress?.difficultyBreakdown?.easy ?? 0;
+  const medSolved = userProgress?.difficultyBreakdown?.medium ?? 0;
+  const hardSolved = userProgress?.difficultyBreakdown?.hard ?? 0;
+  const easyTotal = catalogSummary?.byDifficulty?.easy ?? 0;
+  const medTotal = catalogSummary?.byDifficulty?.medium ?? 0;
+  const hardTotal = catalogSummary?.byDifficulty?.hard ?? 0;
+
+  const dynamicTopics = catalogSummary?.topics || [];
+  const dynamicTopicTags = useMemo(() => {
+    if (dynamicTopics.length === 0) return DEFAULT_TOPIC_TAGS;
+    return ['All Topics', ...dynamicTopics.map((t) => t.tag)];
+  }, [dynamicTopics]);
+
+  const dailyChallenge = catalogSummary?.dailyChallenge || null;
 
   if (isMobile) {
     return (
@@ -565,7 +572,7 @@ export function ProblemListPage() {
             pagination={pagination}
             page={page}
             setPage={setPage}
-            topicTags={TOPIC_TAGS}
+            topicTags={dynamicTopicTags}
             sortOptions={SORT_OPTIONS}
             onClearFilters={handleClearFilters}
             onOpenShareModal={handleOpenShareModal}
@@ -1149,7 +1156,7 @@ export function ProblemListPage() {
                         }}
                         className="bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] text-xs font-semibold text-[#1f2328] dark:text-[#f0f6fc] rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-[#0969da] dark:focus:ring-[#58a6ff] outline-none cursor-pointer"
                       >
-                        {TOPIC_TAGS.map((t) => (
+                        {dynamicTopicTags.map((t) => (
                           <option key={t} value={t}>
                             {t}
                           </option>
@@ -1332,9 +1339,21 @@ export function ProblemListPage() {
 
                 {/* Segmented Progress Bar */}
                 <div className="h-2 w-full rounded-full bg-[#f6f8fa] dark:bg-[#21262d] overflow-hidden flex mt-2.5">
-                  <div className="bg-[#2ea043] h-full" style={{ width: '48%' }} title="Easy: 8" />
-                  <div className="bg-[#bb8009] h-full" style={{ width: '30%' }} title="Medium: 5" />
-                  <div className="bg-[#cf222e] h-full" style={{ width: '12%' }} title="Hard: 1" />
+                  <div
+                    className="bg-[#2ea043] h-full transition-all duration-300"
+                    style={{ width: `${totalCatalog > 0 ? (easySolved / totalCatalog) * 100 : 0}%` }}
+                    title={`Easy: ${easySolved}`}
+                  />
+                  <div
+                    className="bg-[#bb8009] h-full transition-all duration-300"
+                    style={{ width: `${totalCatalog > 0 ? (medSolved / totalCatalog) * 100 : 0}%` }}
+                    title={`Medium: ${medSolved}`}
+                  />
+                  <div
+                    className="bg-[#cf222e] h-full transition-all duration-300"
+                    style={{ width: `${totalCatalog > 0 ? (hardSolved / totalCatalog) * 100 : 0}%` }}
+                    title={`Hard: ${hardSolved}`}
+                  />
                 </div>
               </div>
 
@@ -1345,21 +1364,27 @@ export function ProblemListPage() {
                     <span className="w-2 h-2 rounded-full bg-[#2ea043]" />
                     Easy
                   </span>
-                  <span className="font-mono text-[#656d76] dark:text-[#848d97]">8 / 20</span>
+                  <span className="font-mono text-[#656d76] dark:text-[#848d97]">
+                    {easySolved} / {easyTotal}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[#9a6700] dark:text-[#d29922]">
                     <span className="w-2 h-2 rounded-full bg-[#bb8009]" />
                     Medium
                   </span>
-                  <span className="font-mono text-[#656d76] dark:text-[#848d97]">5 / 20</span>
+                  <span className="font-mono text-[#656d76] dark:text-[#848d97]">
+                    {medSolved} / {medTotal}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[#cf222e] dark:text-[#f85149]">
                     <span className="w-2 h-2 rounded-full bg-[#cf222e]" />
                     Hard
                   </span>
-                  <span className="font-mono text-[#656d76] dark:text-[#848d97]">1 / 10</span>
+                  <span className="font-mono text-[#656d76] dark:text-[#848d97]">
+                    {hardSolved} / {hardTotal}
+                  </span>
                 </div>
               </div>
 
@@ -1375,34 +1400,36 @@ export function ProblemListPage() {
             </div>
 
             {/* Widget 2: Daily Challenge (POTD) Launcher */}
-            <div className="p-4 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3 relative overflow-hidden">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Daily Challenge
-                </span>
-                <span className="text-[10px] font-mono font-bold text-[#656d76] dark:text-[#8b949e]">
-                  Today
-                </span>
-              </div>
+            {dailyChallenge && (
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Daily Challenge
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-[#656d76] dark:text-[#8b949e]">
+                    Today
+                  </span>
+                </div>
 
-              <div>
-                <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
-                  Container With Most Water
-                </h4>
-                <p className="text-[11px] text-[#656d76] dark:text-[#8b949e] mt-1 leading-relaxed">
-                  Two-pointer geometric liquid storage challenge. Run under 20ms kernel budget.
-                </p>
-              </div>
+                <div>
+                  <h4 className="text-sm font-bold text-[#1f2328] dark:text-[#f0f6fc]">
+                    {dailyChallenge.title}
+                  </h4>
+                  <p className="text-[11px] text-[#656d76] dark:text-[#8b949e] mt-1 leading-relaxed line-clamp-2">
+                    {dailyChallenge.description || `${dailyChallenge.difficulty} algorithmic optimization challenge.`}
+                  </p>
+                </div>
 
-              <Link
-                to="/workspace/container-with-most-water"
-                className="w-full py-2 px-3 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Solve Today&apos;s Challenge</span>
-              </Link>
-            </div>
+                <Link
+                  to={`/workspace/${dailyChallenge.slug || dailyChallenge.id}`}
+                  className="w-full py-2 px-3 rounded-lg bg-[#1f883d] hover:bg-[#1a7f37] dark:bg-[#238636] dark:hover:bg-[#2ea043] text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Solve Today&apos;s Challenge</span>
+                </Link>
+              </div>
+            )}
 
             {/* Widget 3: Topic Taxonomy Cloud */}
             <div className="p-4 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-3">
@@ -1413,29 +1440,35 @@ export function ProblemListPage() {
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {Object.entries(TOPIC_COUNTS).map(([topic, count]) => (
-                  <button
-                    key={topic}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTag(topic === selectedTag ? 'All Topics' : topic);
-                      setActiveTab('all');
-                      setPage(1);
-                    }}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer flex items-center gap-1.5 border ${
-                      selectedTag === topic
-                        ? 'bg-[#0969da] text-white border-[#0969da] font-semibold'
-                        : 'bg-[#f6f8fa] dark:bg-[#0d1117] text-[#656d76] dark:text-[#848d97] border-[#d0d7de] dark:border-[#30363d] hover:border-[#8c959f] dark:hover:border-[#6e7681]'
-                    }`}
-                  >
-                    <span>{topic}</span>
-                    <span className={`text-[10px] font-mono ${selectedTag === topic ? 'text-white/80' : 'text-[#8c959f] dark:text-[#6e7681]'}`}>
-                      {count}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {dynamicTopics.length === 0 ? (
+                <p className="text-[11px] text-[#656d76] dark:text-[#848d97] py-1">
+                  Topic distribution will populate automatically as catalog challenges are published.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {dynamicTopics.map(({ tag: topic, count }) => (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTag(topic === selectedTag ? 'All Topics' : topic);
+                        setActiveTab('all');
+                        setPage(1);
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer flex items-center gap-1.5 border ${
+                        selectedTag === topic
+                          ? 'bg-[#0969da] text-white border-[#0969da] font-semibold'
+                          : 'bg-[#f6f8fa] dark:bg-[#0d1117] text-[#656d76] dark:text-[#848d97] border-[#d0d7de] dark:border-[#30363d] hover:border-[#8c959f] dark:hover:border-[#6e7681]'
+                      }`}
+                    >
+                      <span>{topic}</span>
+                      <span className={`text-[10px] font-mono ${selectedTag === topic ? 'text-white/80' : 'text-[#8c959f] dark:text-[#6e7681]'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </aside>
         </div>

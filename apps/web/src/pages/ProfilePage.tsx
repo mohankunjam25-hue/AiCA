@@ -45,7 +45,7 @@ import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { api } from '../services/api';
 import { calculateUserBadges, DynamicBadge } from '../utils/badgeCalculator';
 import { getErrorMessage } from '../utils/errorUtils';
-import { useIsMobile } from '../hooks';
+import { useIsMobile, useCatalogSummary } from '../hooks';
 
 const MobileProfileView = React.lazy(() =>
   import('../components/mobile/MobileProfileView').then((m) => ({
@@ -210,13 +210,27 @@ export function ProfilePage() {
     navigate('/login');
   }, [logout, navigate]);
 
+  const { summary: catalogSummary } = useCatalogSummary();
   const [realSubmissions, setRealSubmissions] = useState<any[]>([]);
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
-  const [activityStats, setActivityStats] = useState({
+  const [activityStats, setActivityStats] = useState<{
+    solved: number;
+    total: number;
+    streak: number;
+    longestStreak: number;
+    difficultyBreakdown: { easy: number; medium: number; hard: number };
+    languageBreakdown: Array<{ language: string; count: number; percentage: number }>;
+    masteredTopics: Array<{ tag: string; count: number }>;
+    avgEvolutionDelta: number | null;
+  }>({
     solved: profile?.problemsSolved ?? 0,
     total: profile?.totalSubmissions ?? 0,
     streak: profile?.currentStreak ?? 0,
-    longestStreak: 0
+    longestStreak: 0,
+    difficultyBreakdown: { easy: 0, medium: 0, hard: 0 },
+    languageBreakdown: [],
+    masteredTopics: [],
+    avgEvolutionDelta: null
   });
   const [loadingActivity, setLoadingActivity] = useState(false);
 
@@ -240,7 +254,11 @@ export function ProfilePage() {
               solved: h.problemsSolved ?? profile?.problemsSolved ?? 0,
               total: h.totalSubmissions ?? profile?.totalSubmissions ?? 0,
               streak: h.currentStreak ?? profile?.currentStreak ?? 0,
-              longestStreak: h.longestStreak ?? 0
+              longestStreak: h.longestStreak ?? 0,
+              difficultyBreakdown: h.difficultyBreakdown ?? { easy: 0, medium: 0, hard: 0 },
+              languageBreakdown: Array.isArray(h.languageBreakdown) ? h.languageBreakdown : [],
+              masteredTopics: Array.isArray(h.masteredTopics) ? h.masteredTopics : [],
+              avgEvolutionDelta: h.avgEvolutionDelta ?? null
             });
             if (h.activityByDate) {
               setActivityMap(h.activityByDate);
@@ -307,10 +325,10 @@ export function ProfilePage() {
           (a, b) => (a.runtimeMs || a.executionTimeMs || 0) - (b.runtimeMs || b.executionTimeMs || 0)
         )[0];
 
-        const initTime = initial.runtimeMs || initial.executionTimeMs || best.runtimeMs || best.executionTimeMs || 50;
-        const optTime = best.runtimeMs || best.executionTimeMs || 10;
-        const speedup = initTime > optTime ? Math.round(((initTime - optTime) / initTime) * 100) : 0;
-        const memMb = Math.round(((best.memoryKb || best.memoryUsedKb || 16000) / 1024) * 10) / 10;
+        const initTime = initial.runtimeMs ?? initial.executionTimeMs ?? best.runtimeMs ?? best.executionTimeMs ?? 0;
+        const optTime = best.runtimeMs ?? best.executionTimeMs ?? 0;
+        const speedup = initTime > optTime && initTime > 0 ? Math.round(((initTime - optTime) / initTime) * 100) : 0;
+        const memMb = Math.round(((best.memoryKb ?? best.memoryUsedKb ?? 0) / 1024) * 10) / 10;
 
         evos.push({
           id: `evo-${probId}`,
@@ -405,7 +423,13 @@ export function ProfilePage() {
                     {profile?.fullName || user?.username}
                   </h1>
                   <span className="text-xs font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full font-semibold">
-                    Level 4 • Diamond
+                    {activityStats.solved >= 25
+                      ? 'Grandmaster'
+                      : activityStats.solved >= 15
+                      ? 'Master'
+                      : activityStats.solved >= 5
+                      ? 'Knight'
+                      : 'Challenger'} • {activityStats.solved} Solved
                   </span>
                 </div>
 
@@ -855,12 +879,16 @@ export function ProfilePage() {
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] font-mono">
-                            {profile?.problemsSolved || 14}
+                            {activityStats.solved}
                           </span>
-                          <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-medium">/ 50 Catalog</span>
+                          <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-medium">
+                            / {catalogSummary?.totalProblems ?? 0} Catalog
+                          </span>
                         </div>
                         <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md w-fit">
-                          <span>8 Easy</span> • <span>5 Medium</span> • <span>1 Hard</span>
+                          <span>{activityStats.difficultyBreakdown.easy} Easy</span> •{' '}
+                          <span>{activityStats.difficultyBreakdown.medium} Medium</span> •{' '}
+                          <span>{activityStats.difficultyBreakdown.hard} Hard</span>
                         </div>
                       </div>
 
@@ -871,10 +899,10 @@ export function ProfilePage() {
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] font-mono">
-                            98.4%
+                            {activityStats.avgEvolutionDelta !== null ? `${activityStats.avgEvolutionDelta}%` : '--'}
                           </span>
                           <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
-                            Avg Drop
+                            {activityStats.avgEvolutionDelta !== null ? 'Avg Drop' : 'No Iterations'}
                           </span>
                         </div>
                         <p className="text-[11px] text-[#57606a] dark:text-[#8b949e] mt-2 font-medium">
@@ -889,7 +917,7 @@ export function ProfilePage() {
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] font-mono">
-                            {profile?.totalSubmissions || 42}
+                            {activityStats.total}
                           </span>
                           <span className="text-xs text-[#57606a] dark:text-[#8b949e] font-medium">Isolated passes</span>
                         </div>
@@ -905,7 +933,7 @@ export function ProfilePage() {
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-3xl font-black text-[#1f2328] dark:text-[#f0f6fc] font-mono flex items-center gap-1">
-                            {profile?.currentStreak || 5} <span className="text-xl">Days</span>
+                            {activityStats.streak} <span className="text-xl">Days</span>
                           </span>
                         </div>
                         <p className="text-[11px] text-[#57606a] dark:text-[#8b949e] mt-2 font-medium">
@@ -969,34 +997,43 @@ export function ProfilePage() {
                         <Code2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         Language Distribution
                       </h3>
-                      <div className="h-3 w-full rounded-full bg-[#f6f8fa] dark:bg-[#21262d] flex overflow-hidden">
-                        <div className="bg-emerald-500 h-full" style={{ width: '48%' }} title="Python 48%" />
-                        <div className="bg-indigo-500 h-full" style={{ width: '30%' }} title="TypeScript 30%" />
-                        <div className="bg-amber-500 h-full" style={{ width: '14%' }} title="C++ 14%" />
-                        <div className="bg-teal-400 h-full" style={{ width: '8%' }} title="JavaScript 8%" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                          <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc]">Python</span>
-                          <span className="text-[#57606a] dark:text-[#8b949e] font-mono ml-auto">48%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full bg-indigo-500" />
-                          <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc]">TypeScript</span>
-                          <span className="text-[#57606a] dark:text-[#8b949e] font-mono ml-auto">30%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full bg-amber-500" />
-                          <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc]">C++</span>
-                          <span className="text-[#57606a] dark:text-[#8b949e] font-mono ml-auto">14%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full bg-teal-400" />
-                          <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc]">JavaScript</span>
-                          <span className="text-[#57606a] dark:text-[#8b949e] font-mono ml-auto">8%</span>
-                        </div>
-                      </div>
+                      {activityStats.languageBreakdown.length === 0 ? (
+                        <p className="text-xs text-[#57606a] dark:text-[#8b949e] py-2">
+                          No code submissions recorded yet. Submit a solution in the IDE to track language breakdown.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="h-3 w-full rounded-full bg-[#f6f8fa] dark:bg-[#21262d] flex overflow-hidden">
+                            {activityStats.languageBreakdown.map((item, idx) => {
+                              const barColors = ['bg-emerald-500', 'bg-indigo-500', 'bg-amber-500', 'bg-teal-400'];
+                              return (
+                                <div
+                                  key={item.language}
+                                  className={`${barColors[idx % barColors.length]} h-full transition-all`}
+                                  style={{ width: `${item.percentage}%` }}
+                                  title={`${item.language} ${item.percentage}%`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            {activityStats.languageBreakdown.map((item, idx) => {
+                              const dotColors = ['bg-emerald-500', 'bg-indigo-500', 'bg-amber-500', 'bg-teal-400'];
+                              return (
+                                <div key={item.language} className="flex items-center gap-2">
+                                  <span className={`w-3 h-3 rounded-full ${dotColors[idx % dotColors.length]}`} />
+                                  <span className="font-semibold text-[#1f2328] dark:text-[#f0f6fc] capitalize">
+                                    {item.language === 'cpp' ? 'C++' : item.language}
+                                  </span>
+                                  <span className="text-[#57606a] dark:text-[#8b949e] font-mono ml-auto">
+                                    {item.percentage}%
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="p-6 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-xs space-y-4">
@@ -1004,23 +1041,30 @@ export function ProfilePage() {
                         <Sparkles className="w-4 h-4 text-purple-500" />
                         Mastered Algorithmic Paradigms
                       </h3>
-                      <div className="flex flex-wrap gap-2 text-xs font-medium">
-                        <span className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                          Hash Tables (O(1) Lookups)
-                        </span>
-                        <span className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
-                          Two Pointers & Sliding Window
-                        </span>
-                        <span className="px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
-                          Dynamic Programming (Memoization)
-                        </span>
-                        <span className="px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
-                          Binary Search Trees
-                        </span>
-                        <span className="px-3 py-1.5 rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] text-[#1f2328] dark:text-[#f0f6fc] border border-[#d0d7de] dark:border-[#30363d]">
-                          Monotonic Stacks & Queues
-                        </span>
-                      </div>
+                      {activityStats.masteredTopics.length === 0 ? (
+                        <p className="text-xs text-[#57606a] dark:text-[#8b949e] py-2">
+                          Solve challenges across topics to unlock verified paradigm tags.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 text-xs font-medium">
+                          {activityStats.masteredTopics.map((topic, idx) => {
+                            const tagStyles = [
+                              'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+                              'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60',
+                              'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800/60',
+                              'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
+                            ];
+                            return (
+                              <span
+                                key={topic.tag}
+                                className={`px-3 py-1.5 rounded-lg border ${tagStyles[idx % tagStyles.length]}`}
+                              >
+                                {topic.tag} ({topic.count})
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

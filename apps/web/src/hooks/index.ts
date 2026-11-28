@@ -7,3 +7,4 @@ export * from './useOnlineStatus';
 export * from './useSSE';
 export * from './useScrollTrigger';
 export * from './useIsMobile';
+export * from './usePlatformSummary';
