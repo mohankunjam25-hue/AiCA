@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -39,8 +39,11 @@ import {
 } from '@aica/shared';
 import { MonacoWorkspace } from '../components/MonacoWorkspace';
 import { EvaluationReportView } from '../components/EvaluationReportView';
-import { ShareProblemModal } from '../components/ShareProblemModal';
 import { useClipboard, useWorkspaceSplitter, useKeyboardShortcuts } from '../hooks';
+
+const ShareProblemModal = React.lazy(() =>
+  import('../components/ShareProblemModal').then((m) => ({ default: m.ShareProblemModal }))
+);
 import { SolutionComparisonView } from '../components/SolutionComparisonView';
 import { MultiSolutionComparisonView } from '../components/MultiSolutionComparisonView';
 import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
@@ -1449,12 +1452,16 @@ export function WorkspacePage() {
         </div>
       )}
 
-      {/* Social & Deep-Linking Share Modal */}
-      <ShareProblemModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        problem={problem}
-      />
+      {/* Social & Deep-Linking Share Modal (Lazy Loaded On Demand) */}
+      <Suspense fallback={null}>
+        {isShareModalOpen && (
+          <ShareProblemModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+            problem={problem}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

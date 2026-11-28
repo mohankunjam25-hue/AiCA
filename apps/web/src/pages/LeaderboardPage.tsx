@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Trophy,
@@ -34,6 +34,152 @@ interface ProblemItem {
   difficulty?: ProblemDifficulty;
 }
 
+function getRankBadge(rank: number) {
+  if (rank === 1) return <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 font-black flex items-center justify-center text-xs">🥇</span>;
+  if (rank === 2) return <span className="w-6 h-6 rounded-full bg-slate-400/20 text-slate-400 font-bold flex items-center justify-center text-xs">🥈</span>;
+  if (rank === 3) return <span className="w-6 h-6 rounded-full bg-amber-700/20 text-amber-600 font-bold flex items-center justify-center text-xs">🥉</span>;
+  return <span className="w-6 h-6 text-[#656d76] dark:text-[#848d97] font-mono text-xs flex items-center justify-center font-bold">#{rank}</span>;
+}
+
+function getGlobalTierBadge(score: number) {
+  if (score >= 400) {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+        Grandmaster
+      </span>
+    );
+  }
+  if (score >= 250) {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
+        Master
+      </span>
+    );
+  }
+  if (score >= 100) {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+        Knight
+      </span>
+    );
+  }
+  return (
+    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+      Challenger
+    </span>
+  );
+}
+
+interface LeaderboardRowItemProps {
+  entry: GlobalLeaderboardEntry;
+  isMe: boolean;
+  onSelectDeveloper: (userId: string, username: string) => void;
+}
+
+const LeaderboardRowItem = React.memo(
+  function LeaderboardRowItem({ entry, isMe, onSelectDeveloper }: LeaderboardRowItemProps) {
+    return (
+      <tr
+        id={`leaderboard-row-${entry.userId}`}
+        onClick={() => onSelectDeveloper(entry.userId, entry.username)}
+        className={`transition cursor-pointer group ${
+          isMe
+            ? 'bg-[#8250df]/10 dark:bg-[#8250df]/15 ring-1 ring-inset ring-[#8250df]/30 hover:bg-[#8250df]/20'
+            : 'hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]/50'
+        }`}
+        title={`Click to inspect all ${entry.problemsSolved} problems solved by ${entry.username}`}
+      >
+        {/* Rank */}
+        <td className="py-3 px-4 text-center">{getRankBadge(entry.rank)}</td>
+
+        {/* Developer & League */}
+        <td className="py-3 px-4 font-sans">
+          <div className="flex items-center gap-2.5">
+            {entry.avatarUrl ? (
+              <img
+                src={entry.avatarUrl}
+                alt={entry.username}
+                loading="lazy"
+                decoding="async"
+                className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#8250df]/20"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-[#8250df]/10 text-[#8250df] flex items-center justify-center text-xs font-bold shrink-0">
+                {entry.username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <Link
+              to={`/developers/${entry.username}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] hover:text-[#8250df] dark:hover:text-[#bc8cff] hover:underline transition cursor-pointer"
+              title={`View ${entry.username}'s full public portfolio`}
+            >
+              {entry.username}
+            </Link>
+            {isMe && (
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#8250df] text-white">
+                YOU
+              </span>
+            )}
+            {getGlobalTierBadge(entry.totalScore)}
+          </div>
+        </td>
+
+        {/* Problems Solved */}
+        <td className="py-3 px-4">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectDeveloper(entry.userId, entry.username);
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#dafbe1] dark:bg-[#1a7f37]/20 text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b]/30 group-hover:border-[#1a7f37] group-hover:bg-[#c2f6cb] dark:group-hover:bg-[#1a7f37]/35 transition cursor-pointer"
+            title={`Inspect ${entry.problemsSolved} solved problems`}
+          >
+            <CheckCircle2 className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950]" />
+            <span>{entry.problemsSolved} Solved</span>
+            <ArrowRight className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950] opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+          </button>
+        </td>
+
+        {/* Streak */}
+        <td className="py-3 px-4">
+          {entry.streak > 0 ? (
+            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
+              <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+              {entry.streak} days
+            </span>
+          ) : (
+            <span className="text-[#8c959f]">--</span>
+          )}
+        </td>
+
+        {/* Avg Runtime */}
+        <td className="py-3 px-4 text-[#1f2328] dark:text-[#f0f6fc]">
+          <span className="inline-flex items-center gap-1 font-mono">
+            <Clock className="w-3 h-3 text-[#656d76] dark:text-[#848d97]" />
+            {Math.round(entry.avgRuntimeMs)}ms
+          </span>
+        </td>
+
+        {/* Total Score */}
+        <td className="py-3 px-4 text-right">
+          <span className="font-bold text-sm bg-gradient-to-r from-[#8250df] to-[#2da44e] bg-clip-text text-transparent">
+            {Math.round(entry.totalScore * 10) / 10}
+          </span>
+        </td>
+      </tr>
+    );
+  },
+  (prev, next) =>
+    prev.entry.userId === next.entry.userId &&
+    prev.entry.rank === next.entry.rank &&
+    prev.entry.totalScore === next.entry.totalScore &&
+    prev.entry.problemsSolved === next.entry.problemsSolved &&
+    prev.isMe === next.isMe &&
+    prev.onSelectDeveloper === next.onSelectDeveloper
+);
+
 export function LeaderboardPage() {
   const user = useAuthStore((s) => s.user);
   const currentUserId = user?.id;
@@ -56,6 +202,10 @@ export function LeaderboardPage() {
     userId: string;
     username: string;
   } | null>(null);
+
+  const handleSelectDeveloper = useCallback((userId: string, username: string) => {
+    setSelectedDeveloper({ userId, username });
+  }, []);
 
   // Fetch catalog problems on mount
   useEffect(() => {
@@ -138,44 +288,6 @@ export function LeaderboardPage() {
       fetchGlobalLeaderboard();
     }
   }, [activeTab, selectedProblem]);
-
-  // Rank badge styling
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) return <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 font-black flex items-center justify-center text-xs">🥇</span>;
-    if (rank === 2) return <span className="w-6 h-6 rounded-full bg-slate-400/20 text-slate-400 font-bold flex items-center justify-center text-xs">🥈</span>;
-    if (rank === 3) return <span className="w-6 h-6 rounded-full bg-amber-700/20 text-amber-600 font-bold flex items-center justify-center text-xs">🥉</span>;
-    return <span className="w-6 h-6 text-[#656d76] dark:text-[#848d97] font-mono text-xs flex items-center justify-center font-bold">#{rank}</span>;
-  };
-
-  // League tier badges
-  const getGlobalTierBadge = (score: number) => {
-    if (score >= 400) {
-      return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
-          Grandmaster
-        </span>
-      );
-    }
-    if (score >= 250) {
-      return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
-          Master
-        </span>
-      );
-    }
-    if (score >= 100) {
-      return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-          Knight
-        </span>
-      );
-    }
-    return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
-        Challenger
-      </span>
-    );
-  };
 
   const currentProblem = problems.find((p) => p.id === selectedProblem);
   const currentProblemTitle = currentProblem?.title || 'Problem Leaderboard';
@@ -513,101 +625,14 @@ export function LeaderboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#d0d7de]/60 dark:divide-[#30363d]/60">
-                  {filteredGlobalRankings.map((entry) => {
-                    const isMe = currentUserId && entry.userId === currentUserId;
-
-                    return (
-                      <tr
-                        key={entry.userId}
-                        id={`leaderboard-row-${entry.userId}`}
-                        onClick={() => setSelectedDeveloper({ userId: entry.userId, username: entry.username })}
-                        className={`transition cursor-pointer group ${
-                          isMe
-                            ? 'bg-[#8250df]/10 dark:bg-[#8250df]/15 ring-1 ring-inset ring-[#8250df]/30 hover:bg-[#8250df]/20'
-                            : 'hover:bg-[#f6f8fa] dark:hover:bg-[#21262d]/50'
-                        }`}
-                        title={`Click to inspect all ${entry.problemsSolved} problems solved by ${entry.username}`}
-                      >
-                        {/* Rank */}
-                        <td className="py-3 px-4 text-center">{getRankBadge(entry.rank)}</td>
-
-                        {/* Developer & League */}
-                        <td className="py-3 px-4 font-sans">
-                          <div className="flex items-center gap-2.5">
-                            {entry.avatarUrl ? (
-                              <img
-                                src={entry.avatarUrl}
-                                alt={entry.username}
-                                className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#8250df]/20"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-[#8250df]/10 text-[#8250df] flex items-center justify-center text-xs font-bold shrink-0">
-                                {entry.username.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <Link
-                              to={`/developers/${entry.username}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-semibold text-xs text-[#1f2328] dark:text-[#f0f6fc] hover:text-[#8250df] dark:hover:text-[#bc8cff] hover:underline transition cursor-pointer"
-                              title={`View ${entry.username}'s full public portfolio`}
-                            >
-                              {entry.username}
-                            </Link>
-                            {isMe && (
-                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#8250df] text-white">
-                                YOU
-                              </span>
-                            )}
-                            {getGlobalTierBadge(entry.totalScore)}
-                          </div>
-                        </td>
-
-                        {/* Problems Solved */}
-                        <td className="py-3 px-4">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedDeveloper({ userId: entry.userId, username: entry.username });
-                            }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#dafbe1] dark:bg-[#1a7f37]/20 text-[#1a7f37] dark:text-[#3fb950] border border-[#4ac26b]/30 group-hover:border-[#1a7f37] group-hover:bg-[#c2f6cb] dark:group-hover:bg-[#1a7f37]/35 transition cursor-pointer"
-                            title={`Inspect ${entry.problemsSolved} solved problems`}
-                          >
-                            <CheckCircle2 className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950]" />
-                            <span>{entry.problemsSolved} Solved</span>
-                            <ArrowRight className="w-3 h-3 text-[#1a7f37] dark:text-[#3fb950] opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-                          </button>
-                        </td>
-
-                        {/* Streak */}
-                        <td className="py-3 px-4">
-                          {entry.streak > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
-                              <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                              {entry.streak} days
-                            </span>
-                          ) : (
-                            <span className="text-[#8c959f]">--</span>
-                          )}
-                        </td>
-
-                        {/* Avg Runtime */}
-                        <td className="py-3 px-4 text-[#1f2328] dark:text-[#f0f6fc]">
-                          <span className="inline-flex items-center gap-1 font-mono">
-                            <Clock className="w-3 h-3 text-[#656d76] dark:text-[#848d97]" />
-                            {Math.round(entry.avgRuntimeMs)}ms
-                          </span>
-                        </td>
-
-                        {/* Total Score */}
-                        <td className="py-3 px-4 text-right">
-                          <span className="font-bold text-sm bg-gradient-to-r from-[#8250df] to-[#2da44e] bg-clip-text text-transparent">
-                            {Math.round(entry.totalScore * 10) / 10}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredGlobalRankings.map((entry) => (
+                    <LeaderboardRowItem
+                      key={entry.userId}
+                      entry={entry}
+                      isMe={Boolean(currentUserId && entry.userId === currentUserId)}
+                      onSelectDeveloper={handleSelectDeveloper}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
