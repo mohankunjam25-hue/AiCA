@@ -187,17 +187,19 @@ export async function getEvaluationReport(req: Request, res: Response): Promise<
       return;
     }
 
-    // Dynamic fallback enrichment for earlier reports or problem taxonomy
+    // Verdict-safe fallback for legacy reports created prior to deterministic analytics
     if (!report.deterministicAnalytics) {
+      const isAcceptedReport = report.verdict === 'ACCEPTED';
       report.deterministicAnalytics = {
-        runtimePercentile: report.metrics?.percentileTime || 92.4,
-        memoryPercentile: report.metrics?.percentileMemory || 86.1,
-        cyclomaticComplexity: 3,
-        maxLoopDepth: 1,
-        qualityScore: 88,
-        qualityGrade: 'A',
-        codeSmells: [],
-        positivePatterns: ['Linear single-pass traversal', 'Efficient in-memory data representation']
+        runtimePercentile: isAcceptedReport ? (report.metrics?.percentileTime ?? 50) : 0,
+        memoryPercentile: isAcceptedReport ? (report.metrics?.percentileMemory ?? 50) : 0,
+        sampleSize: 0,
+        cyclomaticComplexity: 1,
+        maxLoopDepth: 0,
+        qualityScore: isAcceptedReport ? 80 : 0,
+        qualityGrade: isAcceptedReport ? 'B' : 'NEEDS_REFACTOR',
+        codeSmells: isAcceptedReport ? [] : [`Execution failed with verdict ${report.verdict}.`],
+        positivePatterns: []
       };
     }
 
@@ -282,8 +284,8 @@ export async function getSubmissionAiAnalysis(req: Request, res: Response): Prom
       codeSummary: ai.codeSummary,
       // 1. Code Quality & Review
       codeQuality: ai.codeQuality || {
-        score: 7,
-        qualityGrade: 'A',
+        score: report.verdict === 'ACCEPTED' ? 7 : 3,
+        qualityGrade: report.verdict === 'ACCEPTED' ? 'B' : 'NEEDS_REFACTOR',
         readabilityAnalysis: '',
         codeSmells: [],
         positivePractices: []

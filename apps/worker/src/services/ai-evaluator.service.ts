@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { GeminiAnalysisClient } from '@aica/ai-engine';
 import {
@@ -30,6 +31,25 @@ export interface AiEvaluationResult {
   reportId?: string;
   compositeScore?: number;
   error?: string;
+}
+
+export function computeNormalizedCodeHash(
+  problemId: string,
+  language: string,
+  verdict: string,
+  code: string
+): string {
+  const normalized = code
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+    .replace(/#.*$/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return crypto
+    .createHash('sha256')
+    .update(`${problemId}:${language.toLowerCase()}:${verdict}:${normalized}`)
+    .digest('hex')
+    .slice(0, 24);
 }
 
 export class AiEvaluatorService {
@@ -150,77 +170,119 @@ export class AiEvaluatorService {
     }
 
     // Fetch problem details for prompt context
-    const problem = await problemsCol.findOne({
-      _id: new mongoose.Types.ObjectId(problemId)
-    });
+    const problem = await problemsCol.findOne(
+      mongoose.Types.ObjectId.isValid(problemId)
+        ? { _id: new mongoose.Types.ObjectId(problemId) }
+        : { slug: problemId }
+    );
 
-    let aiReportPartial: any;
+    const codeHash = computeNormalizedCodeHash(problemId, language, deterministicVerdict, code);
+    const cacheKey = `ai_analysis_cache:${codeHash}`;
+
+    let aiReportPartial: any = null;
     let aiStatus: AIAnalysisStatus = 'COMPLETED';
     let aiErrorMessage = '';
 
-    // Isolated AI call with timeout protection
+    // 1. Check Normalized Code-Hash Cache (Redis -> MongoDB) to save free API credits
     try {
-      if (deps?.publishProgress) {
-        await deps.publishProgress(
-          submissionId,
-          'ANALYZING_AI',
-          deterministicVerdict,
-          3,
-          4,
-          { aiStatus: 'PENDING' }
-        );
+      if (deps?.redisPublisher && typeof deps.redisPublisher.get === 'function') {
+        const cachedRaw = await deps.redisPublisher.get(cacheKey);
+        if (cachedRaw) {
+          const parsedCached = JSON.parse(cachedRaw);
+          if (parsedCached?.codeSummary) {
+            aiReportPartial = { ...parsedCached, status: 'COMPLETED' };
+            aiStatus = 'COMPLETED';
+          }
+        }
       }
+      if (!aiReportPartial) {
+        const cachedDoc = await reportsCol.findOne({
+          codeHash,
+          'aiAnalysis.status': 'COMPLETED'
+        });
+        if (cachedDoc?.aiAnalysis?.status === 'COMPLETED' && cachedDoc.aiAnalysis?.codeSummary) {
+          aiReportPartial = { ...cachedDoc.aiAnalysis, status: 'COMPLETED' };
+          aiStatus = 'COMPLETED';
+        }
+      }
+    } catch {
+      // Cache lookup is strictly best-effort
+    }
 
-      await submissionsCol.updateOne(
-        { _id: new mongoose.Types.ObjectId(submissionId) },
-        { $set: { pipelineStatus: 'ANALYZING_AI', aiStatus: 'PENDING' } }
-      );
+    // 2. Isolated AI call with timeout protection (runs only on cache miss)
+    if (!aiReportPartial) {
+      try {
+        if (deps?.publishProgress) {
+          await deps.publishProgress(
+            submissionId,
+            'ANALYZING_AI',
+            deterministicVerdict,
+            3,
+            4,
+            { aiStatus: 'PENDING' }
+          );
+        }
 
-      const aiCallPromise =
-        deterministicVerdict === 'ACCEPTED'
-          ? this.aiClient.analyzeAcceptedSolution({
-              problemTitle: problem?.title || 'Coding Problem',
-              problemDescription: problem?.description || '',
-              constraints: problem?.constraints || [],
-              language,
-              code,
-              executionTimeMs,
-              memoryKb: memoryUsedKb
-            })
-          : this.aiClient.analyzeDiagnosticSolution({
-              problemTitle: problem?.title || 'Coding Problem',
-              problemDescription: problem?.description || '',
-              constraints: problem?.constraints || [],
-              language,
-              code,
-              verdict: deterministicVerdict,
-              failedTestSummary: `Failed with ${deterministicVerdict} on test evaluation. Passed ${passedCount}/${totalCount} test cases.`,
-              errorMessage: compileOutput
-            });
+        await submissionsCol.updateOne(
+          { _id: new mongoose.Types.ObjectId(submissionId) },
+          { $set: { pipelineStatus: 'ANALYZING_AI', aiStatus: 'PENDING' } }
+        );
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`AI analysis timed out after ${timeoutMs}ms`)),
-          timeoutMs
-        )
-      );
+        const aiCallPromise =
+          deterministicVerdict === 'ACCEPTED'
+            ? this.aiClient.analyzeAcceptedSolution({
+                problemTitle: problem?.title || 'Coding Problem',
+                problemDescription: problem?.description || '',
+                constraints: problem?.constraints || [],
+                language,
+                code,
+                executionTimeMs,
+                memoryKb: memoryUsedKb
+              })
+            : this.aiClient.analyzeDiagnosticSolution({
+                problemTitle: problem?.title || 'Coding Problem',
+                problemDescription: problem?.description || '',
+                constraints: problem?.constraints || [],
+                language,
+                code,
+                verdict: deterministicVerdict,
+                failedTestSummary: `Failed with ${deterministicVerdict} on test evaluation. Passed ${passedCount}/${totalCount} test cases.`,
+                errorMessage: compileOutput
+              });
 
-      aiReportPartial = await Promise.race([aiCallPromise, timeoutPromise]);
-      aiStatus = 'COMPLETED';
-    } catch (aiErr: any) {
-      console.warn(
-        `[AiEvaluatorService] AI analysis failed or timed out for submission ${submissionId}:`,
-        aiErr.message
-      );
-      aiStatus = 'FAILED';
-      aiErrorMessage = aiErr.message || 'AI analysis unavailable';
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`AI analysis timed out after ${timeoutMs}ms`)),
+            timeoutMs
+          )
+        );
 
-      aiReportPartial = {
-        status: 'FAILED',
-        mode: deterministicVerdict === 'ACCEPTED' ? 'OPTIMIZATION' : 'DIAGNOSTIC',
-        codeSummary: `AI background insights currently offline (${aiErrorMessage}). Deterministic code quality and taxonomy preserved.`,
-        optimizationSuggestions: []
-      };
+        aiReportPartial = await Promise.race([aiCallPromise, timeoutPromise]);
+        aiStatus = 'COMPLETED';
+
+        // Store completed AI result in Redis code-hash cache for future identical solutions (24h TTL)
+        try {
+          if (deps?.redisPublisher && typeof deps.redisPublisher.set === 'function') {
+            await deps.redisPublisher.set(cacheKey, JSON.stringify(aiReportPartial), 'EX', 86400);
+          }
+        } catch {
+          // Non-fatal cache write error
+        }
+      } catch (aiErr: any) {
+        console.warn(
+          `[AiEvaluatorService] AI analysis failed or timed out for submission ${submissionId}:`,
+          aiErr.message
+        );
+        aiStatus = 'FAILED';
+        aiErrorMessage = aiErr.message || 'AI analysis unavailable';
+
+        aiReportPartial = {
+          status: 'FAILED',
+          mode: deterministicVerdict === 'ACCEPTED' ? 'OPTIMIZATION' : 'DIAGNOSTIC',
+          codeSummary: `AI background insights currently offline (${aiErrorMessage}). Deterministic code quality and taxonomy preserved.`,
+          optimizationSuggestions: []
+        };
+      }
     }
 
     // Scoring calculation (refine with AI quality score if available)
@@ -266,7 +328,8 @@ export class AiEvaluatorService {
       memoryUsedKb,
       scoring.compositeScore,
       scoring.normalizedTimeMs,
-      scoring.normalizedMemoryKb
+      scoring.normalizedMemoryKb,
+      codeHash
     );
 
     // Persist update on Submission document
@@ -325,7 +388,8 @@ export class AiEvaluatorService {
     memoryUsedKb: number,
     compositeScore: number,
     normalizedTimeMs = 0,
-    normalizedMemoryKb = 0
+    normalizedMemoryKb = 0,
+    codeHash?: string
   ): Promise<string> {
     const existing = await reportsCol.findOne({ submissionId });
     const existingAi = existing?.aiAnalysis || {};
@@ -334,17 +398,17 @@ export class AiEvaluatorService {
       aiStatus === 'COMPLETED' && aiAnalysis?.theoreticalComplexity?.timeComplexity && aiAnalysis?.theoreticalComplexity?.timeComplexity !== 'N/A'
         ? aiAnalysis.theoreticalComplexity
         : (existingAi.theoreticalComplexity || aiAnalysis?.theoreticalComplexity || {
-            timeComplexity: 'O(N)',
-            spaceComplexity: 'O(1)',
-            explanation: 'Determined via AST analysis.'
+            timeComplexity: 'Pending AI',
+            spaceComplexity: 'Pending AI',
+            explanation: 'Theoretical complexity requires completed evaluation.'
           });
 
     const mergedCodeQuality =
       aiStatus === 'COMPLETED' && aiAnalysis?.codeQuality?.score
         ? { ...existingAi.codeQuality, ...aiAnalysis.codeQuality }
         : (existingAi.codeQuality || aiAnalysis?.codeQuality || {
-            score: 8,
-            readabilityAnalysis: 'Modular AST structure.',
+            score: verdict === 'ACCEPTED' ? 7 : 3,
+            readabilityAnalysis: 'Deterministic structural analysis applied.',
             codeSmells: [],
             positivePractices: []
           });
@@ -370,8 +434,8 @@ export class AiEvaluatorService {
       generatedAt: new Date().toISOString()
     };
 
-    const percentileTime = existing?.metrics?.percentileTime ?? 90;
-    const percentileMemory = existing?.metrics?.percentileMemory ?? 85;
+    const percentileTime = existing?.metrics?.percentileTime ?? (verdict === 'ACCEPTED' ? 50 : 0);
+    const percentileMemory = existing?.metrics?.percentileMemory ?? (verdict === 'ACCEPTED' ? 50 : 0);
 
     if (existing) {
       await reportsCol.updateOne(
@@ -382,6 +446,7 @@ export class AiEvaluatorService {
             pipelineStatus: 'COMPLETED',
             summary: `Evaluated test cases. Verdict: ${verdict}. AI Status: ${aiStatus}.`,
             aiAnalysis: aiAnalysisPayload,
+            ...(codeHash ? { codeHash } : {}),
             ...(existing.deterministicAnalytics ? { deterministicAnalytics: existing.deterministicAnalytics } : {}),
             metrics: {
               rawTimeMs: executionTimeMs,
@@ -407,6 +472,7 @@ export class AiEvaluatorService {
         pipelineStatus: 'COMPLETED',
         summary: `Evaluated test cases. Verdict: ${verdict}. AI Status: ${aiStatus}.`,
         aiAnalysis: aiAnalysisPayload,
+        ...(codeHash ? { codeHash } : {}),
         metrics: {
           rawTimeMs: executionTimeMs,
           normalizedTimeMs,

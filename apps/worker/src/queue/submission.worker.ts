@@ -217,11 +217,15 @@ export function startSubmissionWorker(): Worker {
           code,
           language: language as SupportedLanguage,
           executionTimeMs: outcome.maxExecutionTimeMs,
-          memoryUsedKb: outcome.maxMemoryKb
+          memoryUsedKb: outcome.maxMemoryKb,
+          verdict: outcome.verdict,
+          passedCount: outcome.passedCount,
+          totalCount: outcome.totalCount
         });
 
         // 2. Fetch past accepted submissions to calculate mathematical percentiles (LeetCode style)
-        let percentiles = { runtimePercentile: 91.5, memoryPercentile: 87.0 };
+        let percentiles = { runtimePercentile: 92.5, memoryPercentile: 88.0 };
+        let percentileSampleSize = 0;
         try {
           const pastAccepted = await submissionsCol
             .find({ problemId, verdict: 'ACCEPTED' }, { projection: { executionTimeMs: 1, memoryUsedKb: 1 } })
@@ -229,6 +233,7 @@ export function startSubmissionWorker(): Worker {
             .toArray();
           const pastTimes = pastAccepted.map((s: any) => s.executionTimeMs).filter((t: any) => typeof t === 'number');
           const pastMems = pastAccepted.map((s: any) => s.memoryUsedKb).filter((m: any) => typeof m === 'number');
+          percentileSampleSize = pastTimes.length;
           percentiles = PercentileCalculator.calculatePercentiles(
             outcome.maxExecutionTimeMs,
             outcome.maxMemoryKb,
@@ -258,6 +263,7 @@ export function startSubmissionWorker(): Worker {
         const deterministicAnalytics: DeterministicAnalytics = {
           runtimePercentile: percentiles.runtimePercentile,
           memoryPercentile: percentiles.memoryPercentile,
+          sampleSize: percentileSampleSize,
           cyclomaticComplexity: staticMetrics.cyclomaticComplexity,
           maxLoopDepth: staticMetrics.maxLoopDepth,
           qualityScore: staticMetrics.qualityScore,
@@ -269,13 +275,24 @@ export function startSubmissionWorker(): Worker {
         };
 
         const initialAiStatus: AIAnalysisStatus =
-          outcome.verdict === 'COMPILATION_ERROR' ? 'SKIPPED' : 'PENDING';
+          outcome.verdict === 'ACCEPTED' ? 'PENDING' : 'SKIPPED';
         const initialAiSummary =
           outcome.verdict === 'COMPILATION_ERROR'
             ? 'Compilation failed. AI analysis bypassed.'
             : outcome.verdict === 'ACCEPTED'
             ? `Accepted solution verified. Structural loop depth: ${staticMetrics.maxLoopDepth}, Complexity: ${staticMetrics.cyclomaticComplexity}.`
-            : `Evaluated test cases with verdict ${outcome.verdict}.`;
+            : `Evaluated ${outcome.totalCount} test cases (${outcome.passedCount}/${outcome.totalCount} passed). Verdict: ${outcome.verdict}. Automatic AI analysis bypassed; run Diagnostic Coach on demand for failure insights.`;
+
+        const estTimeComplexity =
+          matchedApproaches.matchedApproach?.timeComplexity ||
+          (staticMetrics.maxLoopDepth === 0
+            ? 'O(1) (Est.)'
+            : staticMetrics.maxLoopDepth === 1
+            ? 'O(N) (Est.)'
+            : `O(N^${staticMetrics.maxLoopDepth}) (Est.)`);
+        const estSpaceComplexity =
+          matchedApproaches.matchedApproach?.spaceComplexity ||
+          StaticCodeAnalyzer.estimateSpaceComplexity(code, language);
 
         // 4. Persist Initial Evaluation Report Document in MongoDB FIRST
         const reportInsert = await reportsCol.insertOne({
@@ -292,8 +309,8 @@ export function startSubmissionWorker(): Worker {
             mode: outcome.verdict === 'ACCEPTED' ? 'OPTIMIZATION' : 'DIAGNOSTIC',
             codeSummary: initialAiSummary,
             theoreticalComplexity: {
-              timeComplexity: matchedApproaches.matchedApproach?.timeComplexity || (staticMetrics.maxLoopDepth >= 2 ? 'O(N^2)' : 'O(N)'),
-              spaceComplexity: matchedApproaches.matchedApproach?.spaceComplexity || 'O(1)',
+              timeComplexity: estTimeComplexity,
+              spaceComplexity: estSpaceComplexity,
               explanation: `Computed deterministically via AST analysis. Maximum loop nesting depth: ${staticMetrics.maxLoopDepth}.`
             },
             codeQuality: {

@@ -84,6 +84,80 @@ function containsDuplicate(nums) {
     expect(result.qualityGrade).toBe('A+');
     expect(result.positivePatterns.some((p) => p.includes('hash-based'))).toBe(true);
   });
+
+  it('should classify two-pointer monotonic while loops (Valid Palindrome) as O(N) depth 1 instead of false O(N^2)', () => {
+    const validPalindromePy = `
+def isPalindrome(s: str) -> bool:
+    left, right = 0, len(s) - 1
+    while left < right:
+        while left < right and not s[left].isalnum():
+            left += 1
+        while left < right and not s[right].isalnum():
+            right -= 1
+        if s[left].lower() != s[right].lower():
+            return False
+        left += 1
+        right -= 1
+    return True
+`;
+    const result = StaticCodeAnalyzer.analyze({
+      code: validPalindromePy,
+      language: 'python',
+      executionTimeMs: 12,
+      memoryUsedKb: 14000,
+      verdict: 'ACCEPTED',
+      passedCount: 5,
+      totalCount: 5
+    });
+
+    expect(result.maxLoopDepth).toBe(1);
+    expect(result.codeSmells.some((s) => s.includes('Nested loop detected'))).toBe(false);
+    expect(result.positivePatterns.some((p) => p.includes('Two-pointer monotonic linear scan'))).toBe(true);
+    expect(['A+', 'A']).toContain(result.qualityGrade);
+  });
+
+  it('should cap qualityScore and avoid Grade A when verdict is RUNTIME_ERROR or failing', () => {
+    const result = StaticCodeAnalyzer.analyze({
+      code: 'def solve(s):\n    left, right = 0, len(s) - 1\n    while left < right:\n        left += 1\n',
+      language: 'python',
+      executionTimeMs: 15,
+      memoryUsedKb: 12000,
+      verdict: 'RUNTIME_ERROR',
+      passedCount: 2,
+      totalCount: 4
+    });
+
+    expect(result.qualityScore).toBeLessThanOrEqual(65);
+    expect(['C', 'NEEDS_REFACTOR']).toContain(result.qualityGrade);
+    expect(result.codeSmells.some((s) => s.includes('RUNTIME_ERROR'))).toBe(true);
+  });
+
+  it('should track brace-language loop depth accurately across inner if blocks and estimate space complexity', () => {
+    const jsNestedWithIf = `
+function pairs(nums) {
+    const out = [];
+    for (let i = 0; i < nums.length; i++) {
+        if (nums[i] > 0) {
+            out.push(nums[i]);
+        }
+        for (let j = i + 1; j < nums.length; j++) {
+            if (nums[i] === nums[j]) return true;
+        }
+    }
+    return false;
+}
+`;
+    const result = StaticCodeAnalyzer.analyze({
+      code: jsNestedWithIf,
+      language: 'javascript',
+      executionTimeMs: 25,
+      memoryUsedKb: 15000
+    });
+
+    expect(result.maxLoopDepth).toBe(2);
+    expect(StaticCodeAnalyzer.estimateSpaceComplexity(jsNestedWithIf, 'javascript')).toBe('O(N) (Est.)');
+    expect(StaticCodeAnalyzer.estimateSpaceComplexity('def f(n):\n    l, r = 0, len(n)-1\n    return l', 'python')).toBe('O(1) (Est.)');
+  });
 });
 
 describe('Percentile Analytics Calculator', () => {

@@ -804,7 +804,7 @@ export function WorkspacePage() {
           </div>
 
           {/* Desktop Subnav Tabs (>= 1024px) */}
-          <nav className="hidden lg:flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none">
+          <nav className="hidden lg:flex items-center gap-1 sm:gap-1.5 shrink-0">
             <button
               onClick={() => {
                 setActiveLeftTab('desc');

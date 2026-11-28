@@ -64,19 +64,28 @@ export function EvaluationReportView({
   const isFailed = ai?.status === 'FAILED';
   const isSkipped = ai?.status === 'SKIPPED';
 
-  // Deterministic Analytics Fallback & Derivation (Memoized to prevent object re-allocation)
+  // Deterministic Analytics Fallback & Derivation (Verdict-aware, zero fake A-grade on failed runs)
   const deterministic = useMemo(() => {
-    return report.deterministicAnalytics || {
-      runtimePercentile: report.metrics?.percentileTime || 92.4,
-      memoryPercentile: report.metrics?.percentileMemory || 86.1,
-      cyclomaticComplexity: 3,
-      maxLoopDepth: 1,
-      qualityScore: 88,
-      qualityGrade: 'A' as const,
-      codeSmells: [],
-      positivePatterns: ['Linear single-pass traversal', 'Efficient auxiliary space allocation']
+    if (report.deterministicAnalytics) {
+      return report.deterministicAnalytics;
+    }
+    return {
+      runtimePercentile: isAccepted ? (report.metrics?.percentileTime ?? 50) : 0,
+      memoryPercentile: isAccepted ? (report.metrics?.percentileMemory ?? 50) : 0,
+      sampleSize: 0,
+      cyclomaticComplexity: 1,
+      maxLoopDepth: 0,
+      qualityScore: isAccepted ? 80 : 0,
+      qualityGrade: (isAccepted ? 'B' : 'NEEDS_REFACTOR') as 'A+' | 'A' | 'B' | 'C' | 'NEEDS_REFACTOR',
+      codeSmells: isAccepted ? [] : [`Execution failed with ${report.verdict}.`],
+      positivePatterns: []
     };
-  }, [report.deterministicAnalytics, report.metrics?.percentileTime, report.metrics?.percentileMemory]);
+  }, [report.deterministicAnalytics, report.metrics?.percentileTime, report.metrics?.percentileMemory, report.verdict, isAccepted]);
+
+  const rawTimeMs = report.metrics?.rawTimeMs || 0;
+  const rawMemMb = Math.round((report.metrics?.rawMemoryKb || 0) / 1024);
+  const maxRuntimeAxisMs = Math.max(50, Math.ceil((rawTimeMs * 1.5) / 50) * 50);
+  const maxMemoryAxisMb = Math.max(32, Math.ceil((rawMemMb * 1.5) / 16) * 16);
 
   // Canonical Approaches Fallback: check report, or look up canonical by problemId (Memoized)
   const canonicalFallback = useMemo(() => {
@@ -277,11 +286,17 @@ export function EvaluationReportView({
                 </span>
               </div>
               <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
-                Your runtime beats{' '}
-                <strong className="text-[#1a7f37] dark:text-[#3fb950] font-bold">
-                  {deterministic.runtimePercentile}%
-                </strong>{' '}
-                of accepted solutions!
+                {deterministic.sampleSize === 0 ? (
+                  <>Baseline empirical estimate (insufficient historical accepted runs yet).</>
+                ) : (
+                  <>
+                    Your runtime beats{' '}
+                    <strong className="text-[#1a7f37] dark:text-[#3fb950] font-bold">
+                      {deterministic.runtimePercentile}%
+                    </strong>{' '}
+                    of {deterministic.sampleSize} accepted submissions!
+                  </>
+                )}
               </p>
 
               {/* Visual Histogram Track */}
@@ -293,11 +308,11 @@ export function EvaluationReportView({
                   />
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-[#57606a] dark:text-[#8b949e] font-mono mt-1">
-                  <span>0 ms (Fastest)</span>
+                  <span>0 ms</span>
                   <span className="text-[#0969da] dark:text-[#58a6ff] font-bold">
-                    You ({report.metrics?.rawTimeMs}ms)
+                    You ({rawTimeMs}ms)
                   </span>
-                  <span>250 ms (Max)</span>
+                  <span>{maxRuntimeAxisMs} ms</span>
                 </div>
               </div>
             </div>
@@ -310,15 +325,21 @@ export function EvaluationReportView({
                   Memory Distribution
                 </span>
                 <span className="text-xs font-mono font-bold text-[#8250df] dark:text-[#a371f7]">
-                  {Math.round((report.metrics?.rawMemoryKb || 0) / 1024)} MB
+                  {rawMemMb} MB
                 </span>
               </div>
               <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
-                Your memory beats{' '}
-                <strong className="text-[#1a7f37] dark:text-[#3fb950] font-bold">
-                  {deterministic.memoryPercentile}%
-                </strong>{' '}
-                of submissions!
+                {deterministic.sampleSize === 0 ? (
+                  <>Baseline empirical estimate (insufficient historical accepted runs yet).</>
+                ) : (
+                  <>
+                    Your memory beats{' '}
+                    <strong className="text-[#1a7f37] dark:text-[#3fb950] font-bold">
+                      {deterministic.memoryPercentile}%
+                    </strong>{' '}
+                    of submissions!
+                  </>
+                )}
               </p>
 
               {/* Visual Histogram Track */}
@@ -330,11 +351,11 @@ export function EvaluationReportView({
                   />
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-[#57606a] dark:text-[#8b949e] font-mono mt-1">
-                  <span>8 MB</span>
+                  <span>0 MB</span>
                   <span className="text-[#8250df] dark:text-[#a371f7] font-bold">
-                    You ({Math.round((report.metrics?.rawMemoryKb || 0) / 1024)} MB)
+                    You ({rawMemMb} MB)
                   </span>
-                  <span>64 MB</span>
+                  <span>{maxMemoryAxisMb} MB</span>
                 </div>
               </div>
             </div>
@@ -383,7 +404,11 @@ export function EvaluationReportView({
                     : 'bg-[#bb80091a] text-[#9a6700] dark:text-[#d29922]'
                 }`}
               >
-                {deterministic.maxLoopDepth <= 1 ? 'Linear O(N)' : `O(N^${deterministic.maxLoopDepth})`}
+                {deterministic.maxLoopDepth === 0
+                  ? 'O(1)'
+                  : deterministic.maxLoopDepth === 1
+                  ? 'Linear O(N)'
+                  : `O(N^${deterministic.maxLoopDepth})`}
               </span>
             </div>
           </div>
@@ -404,7 +429,11 @@ export function EvaluationReportView({
             </span>
             <div className="text-sm font-bold font-mono text-[#9a6700] dark:text-[#d29922]">
               {ai?.theoreticalComplexity?.timeComplexity ||
-                (deterministic.maxLoopDepth >= 2 ? 'O(N^2)' : 'O(N)')}
+                (deterministic.maxLoopDepth === 0
+                  ? 'O(1) (Est.)'
+                  : deterministic.maxLoopDepth === 1
+                  ? 'O(N) (Est.)'
+                  : `O(N^${deterministic.maxLoopDepth}) (Est.)`)}
             </div>
           </div>
 
@@ -413,7 +442,7 @@ export function EvaluationReportView({
               Theoretical Space
             </span>
             <div className="text-sm font-bold font-mono text-[#0969da] dark:text-[#58a6ff]">
-              {ai?.theoreticalComplexity?.spaceComplexity || 'O(1)'}
+              {ai?.theoreticalComplexity?.spaceComplexity || 'Pending AI'}
             </div>
           </div>
         </div>
@@ -669,14 +698,14 @@ export function EvaluationReportView({
           </div>
 
           <div className="flex items-center gap-2">
-            {isFailed && (
+            {(isFailed || (isSkipped && report.verdict !== 'COMPILATION_ERROR')) && (
               <button
                 onClick={handleRetryAi}
                 disabled={isRetrying}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0969da] hover:bg-[#0860ca] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] text-white text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {isRetrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                Retry AI Call
+                {isFailed ? 'Retry AI Call' : 'Run AI Diagnostic'}
               </button>
             )}
             {isPending && (
@@ -702,10 +731,12 @@ export function EvaluationReportView({
             <Loader2 className="w-4 h-4 text-[#0969da] dark:text-[#58a6ff] animate-spin shrink-0" />
             <div>
               <h4 className="text-xs font-bold text-[#0969da] dark:text-[#58a6ff]">
-                Deep Refactoring Vectors Generating
+                {isAccepted ? 'Deep Refactoring Vectors Generating' : 'Failure Diagnostic Insights Generating'}
               </h4>
               <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
-                All core test cases passed! Deep asymptotic complexity and refactoring insights are being generated in the background.
+                {isAccepted
+                  ? 'All core test cases passed! Deep asymptotic complexity and refactoring insights are being generated in the background.'
+                  : `Analyzing ${report.verdict} execution to identify root cause bugs, edge-case traps, and Socratic hints.`}
               </p>
             </div>
           </div>
@@ -716,7 +747,7 @@ export function EvaluationReportView({
             <div className="flex items-center gap-2 text-xs text-[#57606a] dark:text-[#8b949e]">
               <Sparkles className="w-4 h-4 text-[#d29922] shrink-0" />
               <span>
-                AI Code Coach is currently processing high volume. All core test evaluations, quality grades, and complexity metrics remain 100% active.
+                AI Code Coach is currently processing high volume. Deterministic test evaluations and structural complexity metrics remain active.
               </span>
             </div>
           </div>
@@ -726,7 +757,9 @@ export function EvaluationReportView({
           <div className="p-3.5 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] flex items-center gap-3">
             <HelpCircle className="w-4 h-4 text-[#8c959f] shrink-0" />
             <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
-              AI pedagogical analysis bypassed because the submission encountered a compilation error. Fix compilation issues to unlock AI insights.
+              {report.verdict === 'COMPILATION_ERROR'
+                ? 'AI pedagogical analysis bypassed because the submission encountered a compilation error. Fix compilation issues to unlock AI insights.'
+                : `Automatic AI optimization was bypassed because test verification failed (${report.verdict}). Click "Run AI Diagnostic" above to analyze failing edge cases.`}
             </p>
           </div>
         )}
