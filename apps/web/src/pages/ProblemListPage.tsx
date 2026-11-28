@@ -706,9 +706,9 @@ export function ProblemListPage() {
                 >
                   <Icon className={`w-4 h-4 ${tab.badgeColor || ''}`} />
                   <span>{tab.label}</span>
-                  {tab.id === 'all' && pagination.total > 0 && (
+                  {tab.id === 'all' && totalCatalog > 0 && (
                     <span className="ml-0.5 text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] text-[#656d76] dark:text-[#848d97]">
-                      {pagination.total}
+                      {totalCatalog}
                     </span>
                   )}
                 </button>

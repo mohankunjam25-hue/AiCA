@@ -607,12 +607,24 @@ export async function getActivityHeatmap(req: Request, res: Response): Promise<v
         const validObjectIds = solvedArr
           .filter((id) => mongoose.Types.ObjectId.isValid(id))
           .map((id) => new mongoose.Types.ObjectId(id));
+        const slugOrOtherIds = solvedArr.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
-        const solvedProblems: any[] = await ProblemModel.find({
-          $or: [{ _id: { $in: validObjectIds } }, { _id: { $in: solvedArr } }]
-        })
-          .select('difficulty tags')
-          .lean();
+        const orConditions: any[] = [];
+        if (validObjectIds.length > 0) {
+          orConditions.push({ _id: { $in: validObjectIds } });
+        }
+        if (slugOrOtherIds.length > 0) {
+          orConditions.push({ slug: { $in: slugOrOtherIds } });
+        }
+
+        const solvedProblems: any[] =
+          orConditions.length > 0
+            ? await ProblemModel.find(
+                orConditions.length === 1 ? orConditions[0] : { $or: orConditions }
+              )
+                .select('difficulty tags')
+                .lean()
+            : [];
 
         for (const p of solvedProblems) {
           const diff = (p.difficulty || 'MEDIUM').toUpperCase();
@@ -624,8 +636,8 @@ export async function getActivityHeatmap(req: Request, res: Response): Promise<v
             topicCountMap.set(tag, (topicCountMap.get(tag) || 0) + 1);
           }
         }
-      } catch {
-        // Ignore if problem metadata lookup fails in mocked/offline contexts
+      } catch (metaErr: any) {
+        console.warn('[SubmissionController] Failed to resolve solved problem difficulty breakdown:', metaErr?.message);
       }
     }
 

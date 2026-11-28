@@ -188,6 +188,44 @@ describe('Dynamic Platform Summary & Zero-Hardcode Telemetry', () => {
     expect(d.avgEvolutionDelta).toBe(75);
   });
 
+  it('getActivityHeatmap separates ObjectIds and slugs so non-ObjectId problemIds never trigger Mongoose CastError', async () => {
+    const p1 = new mongoose.Types.ObjectId();
+    const today = new Date();
+
+    vi.spyOn(SubmissionModel, 'find').mockReturnValue({
+      sort: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([
+          { problemId: p1.toString(), verdict: 'ACCEPTED', language: 'python', executionTimeMs: 10, createdAt: today },
+          { problemId: 'two-sum-optimal', verdict: 'ACCEPTED', language: 'javascript', executionTimeMs: 15, createdAt: today }
+        ])
+      })
+    } as any);
+
+    const findSpy = vi.spyOn(ProblemModel, 'find').mockImplementation((query: any) => {
+      // Regression assertion: raw non-ObjectId strings must NEVER be passed to _id: { $in: ... }
+      const rawJson = JSON.stringify(query);
+      expect(rawJson).toContain('two-sum-optimal');
+      expect(rawJson).toContain('"slug"');
+      expect(JSON.stringify(query.$or?.[0] || query)).not.toContain('two-sum-optimal');
+      return {
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([
+            { _id: p1, difficulty: 'EASY', tags: ['Arrays'] },
+            { _id: new mongoose.Types.ObjectId(), slug: 'two-sum-optimal', difficulty: 'MEDIUM', tags: ['Hash-Table'] }
+          ])
+        })
+      } as any;
+    });
+
+    const { req, res } = mockReqRes({ user: { id: 'usr_mixed_ids' } });
+    await getActivityHeatmap(req, res);
+
+    expect(findSpy).toHaveBeenCalledTimes(1);
+    expect(res.statusCode).toBe(200);
+    expect(res.data.data.problemsSolved).toBe(2);
+    expect(res.data.data.difficultyBreakdown).toEqual({ easy: 1, medium: 1, hard: 0 });
+  });
+
   it('getDeveloperDirectory populates real topSkills instead of hardcoded placeholders', async () => {
     const probId = new mongoose.Types.ObjectId();
 
