@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   Play,
@@ -37,9 +37,14 @@ import { useSubmissionSSE, useLocalStorage, useKeyboardShortcuts, isMacOS, useOn
 import { useThemeStore } from '../store/useThemeStore';
 import { useEditorPreferencesStore } from '../store/useEditorPreferencesStore';
 import { toast } from '../store/useToastStore';
-import { CodeExecutionVisualizerModal } from './visualizer/CodeExecutionVisualizerModal';
 import { getErrorMessage } from '../utils/errorUtils';
 import { formatPipelineStage } from '../utils/statusPresentation';
+
+const CodeExecutionVisualizerModal = React.lazy(() =>
+  import('./visualizer/CodeExecutionVisualizerModal').then((m) => ({
+    default: m.CodeExecutionVisualizerModal
+  }))
+);
 
 interface MonacoWorkspaceProps {
   problem: Problem;
@@ -881,23 +886,34 @@ export function MonacoWorkspace({
         )}
       </div>
 
-      {/* 100% Deterministic Code Execution Visualizer Modal (Zero AI) */}
-      {visualizerFrames && visualizerFrames.length > 0 && (
-        <CodeExecutionVisualizerModal
-          isOpen={isVisualizerModalOpen}
-          onClose={() => setIsVisualizerModalOpen(false)}
-          frames={visualizerFrames}
-          code={code}
-          language={language as any}
-          problemTitle={problem.title}
-          problem={problem}
-          sampleInput={
-            customStdin.trim() ||
-            problem.testCases?.[0]?.input ||
-            (problem as any).examples?.[0]?.input ||
-            ''
+      {/* 100% Deterministic Code Execution Visualizer Modal (Zero AI, Lazy-Loaded On Demand) */}
+      {isVisualizerModalOpen && visualizerFrames && visualizerFrames.length > 0 && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-lg text-xs font-medium text-[#1f2328] dark:text-[#f0f6fc]">
+                <Loader2 className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-400" />
+                <span>Loading Execution Visualizer...</span>
+              </div>
+            </div>
           }
-        />
+        >
+          <CodeExecutionVisualizerModal
+            isOpen={isVisualizerModalOpen}
+            onClose={() => setIsVisualizerModalOpen(false)}
+            frames={visualizerFrames}
+            code={code}
+            language={language as any}
+            problemTitle={problem.title}
+            problem={problem}
+            sampleInput={
+              customStdin.trim() ||
+              problem.testCases?.[0]?.input ||
+              (problem as any).examples?.[0]?.input ||
+              ''
+            }
+          />
+        </Suspense>
       )}
     </div>
   );
