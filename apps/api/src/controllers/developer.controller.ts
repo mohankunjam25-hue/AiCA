@@ -210,18 +210,25 @@ export async function getDeveloperProfile(req: Request, res: Response): Promise<
     const validObjectIds = problemIds
       .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
       .map((id: string) => new mongoose.Types.ObjectId(id));
+    const nonObjectIds = problemIds.filter((id: string) => !mongoose.Types.ObjectId.isValid(id));
 
-    const problems = problemIds.length > 0
-      ? await ProblemModel.find({
-          $or: [{ _id: { $in: validObjectIds } }, { _id: { $in: problemIds } }]
-        })
-          .select('_id title slug difficulty tags')
-          .lean()
-      : [];
+    const profileOrConditions: any[] = [];
+    if (validObjectIds.length > 0) profileOrConditions.push({ _id: { $in: validObjectIds } });
+    if (nonObjectIds.length > 0) profileOrConditions.push({ slug: { $in: nonObjectIds } });
+
+    const problems =
+      profileOrConditions.length > 0
+        ? await ProblemModel.find(
+            profileOrConditions.length === 1 ? profileOrConditions[0] : { $or: profileOrConditions }
+          )
+            .select('_id slug title difficulty tags')
+            .lean()
+        : [];
 
     const problemMap = new Map<string, any>();
     for (const p of problems) {
       problemMap.set(p._id.toString(), p);
+      if (p.slug) problemMap.set(p.slug, p);
     }
 
     // Fetch real AI evaluation summaries when unlocked
@@ -394,13 +401,23 @@ export async function getDeveloperDirectory(req: Request, res: Response): Promis
         const validObjectIds = allSolvedProblemIds
           .filter((id: string) => mongoose.Types.ObjectId.isValid(id))
           .map((id: string) => new mongoose.Types.ObjectId(id));
-        const probs: any[] = await ProblemModel.find({
-          $or: [{ _id: { $in: validObjectIds } }, { _id: { $in: allSolvedProblemIds } }]
-        })
-          .select('_id tags')
-          .lean();
+        const slugIds = allSolvedProblemIds.filter((id: string) => !mongoose.Types.ObjectId.isValid(id));
+        const dirOrConditions: any[] = [];
+        if (validObjectIds.length > 0) dirOrConditions.push({ _id: { $in: validObjectIds } });
+        if (slugIds.length > 0) dirOrConditions.push({ slug: { $in: slugIds } });
+
+        const probs: any[] =
+          dirOrConditions.length > 0
+            ? await ProblemModel.find(
+                dirOrConditions.length === 1 ? dirOrConditions[0] : { $or: dirOrConditions }
+              )
+                .select('_id slug tags')
+                .lean()
+            : [];
         for (const p of probs) {
-          problemTagsMap.set(p._id.toString(), Array.isArray(p.tags) ? p.tags : []);
+          const tags = Array.isArray(p.tags) ? p.tags : [];
+          problemTagsMap.set(p._id.toString(), tags);
+          if (p.slug) problemTagsMap.set(p.slug, tags);
         }
       } catch {
         // Ignore if problem tags lookup fails
