@@ -15,28 +15,29 @@ export default defineConfig({
               return 'vendor-monaco';
             }
             // 2. Flowchart canvas (Isolated heavy visual graph editor - on-demand)
-            if (id.includes('@xyflow') || id.includes('xyflow')) {
+            if (id.includes('@xyflow') || id.includes('xyflow') || id.includes('d3-')) {
               return 'vendor-flowchart';
             }
             // 3. Icon library
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
-            // 4. React framework core
+            // 4. React framework core + Router (grouped cleanly to prevent circular CJS/ESM imports)
             if (
               id.includes('/react/') ||
               id.includes('/react-dom/') ||
               id.includes('/react-router-dom/') ||
               id.includes('/react-router/') ||
-              id.includes('/scheduler/')
+              id.includes('/@remix-run/') ||
+              id.includes('/scheduler/') ||
+              id.includes('/use-sync-external-store/')
             ) {
               return 'vendor-react-core';
             }
-            // 5. Shared state & API services
+            // 5. Shared API & Auth services
             if (id.includes('axios') || id.includes('zustand') || id.includes('@react-oauth/google')) {
               return 'vendor-services';
             }
-            return 'vendor-misc';
           }
         }
       }
