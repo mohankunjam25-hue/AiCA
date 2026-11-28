@@ -42,16 +42,19 @@ function HomeRoute() {
   const user = useAuthStore((s) => s.user);
   const isStudentPreviewMode = useAuthStore((s) => s.isStudentPreviewMode);
 
-  if (isInitializing) {
-    return <PageLoadingFallback message="Loading AiCA Evolution Lab..." />;
-  }
-
   if (isAuthenticated) {
     if ((user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') && !isStudentPreviewMode) {
       return <AdminDashboardPage />;
     }
     return <DeveloperHomePage />;
   }
+
+  // If rehydrating an existing saved user session, show brief non-blocking fallback;
+  // Guest/first-time visitors immediately get the Hero Landing Page with 0-second delay.
+  if (isInitializing && user) {
+    return <PageLoadingFallback message="Loading AiCA Evolution Lab..." />;
+  }
+
   return <HeroLandingPage />;
 }
 

@@ -14,15 +14,25 @@ export default defineConfig({
             if (id.includes('@monaco-editor') || id.includes('monaco-editor')) {
               return 'vendor-monaco';
             }
-            // 2. Icon library
+            // 2. Flowchart canvas (Isolated heavy visual graph editor - on-demand)
+            if (id.includes('@xyflow') || id.includes('xyflow')) {
+              return 'vendor-flowchart';
+            }
+            // 3. Icon library
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
-            // 3. React framework core
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+            // 4. React framework core
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/react-router-dom/') ||
+              id.includes('/react-router/') ||
+              id.includes('/scheduler/')
+            ) {
               return 'vendor-react-core';
             }
-            // 4. Shared state & API services
+            // 5. Shared state & API services
             if (id.includes('axios') || id.includes('zustand') || id.includes('@react-oauth/google')) {
               return 'vendor-services';
             }
