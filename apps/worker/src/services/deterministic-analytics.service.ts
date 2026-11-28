@@ -1,24 +1,80 @@
-import { SupportedLanguage, DeterministicAnalytics } from '@aica/shared';
+import { SupportedLanguage, DeterministicAnalytics, Verdict } from '@aica/shared';
 
 export interface CodeAnalysisInput {
   code: string;
   language: SupportedLanguage | string;
   executionTimeMs: number;
   memoryUsedKb: number;
+  verdict?: Verdict;
+  passedCount?: number;
+  totalCount?: number;
+}
+
+const LOOP_START_REGEX = /^\s*(for|while)\b/;
+const POINTER_CONDITION_REGEX = /\b([a-zA-Z_]\w*)\s*(?:<=|>=|<|>|!=)\s*([a-zA-Z_]\w*)/g;
+
+function extractComparisonIdentifiers(line: string): string[] {
+  const vars = new Set<string>();
+  const matches = line.matchAll(POINTER_CONDITION_REGEX);
+  for (const m of matches) {
+    if (m[1]) vars.add(m[1]);
+    if (m[2]) vars.add(m[2]);
+  }
+  return Array.from(vars);
+}
+
+function isMonotonicInnerWhile(
+  outerHeader: string,
+  innerHeader: string
+): boolean {
+  if (!/^\s*while\b/.test(outerHeader) || !/^\s*while\b/.test(innerHeader)) {
+    return false;
+  }
+  const outerVars = extractComparisonIdentifiers(outerHeader);
+  const innerVars = extractComparisonIdentifiers(innerHeader);
+  if (outerVars.length < 2 || innerVars.length === 0) return false;
+  // Inner while checks the same pointer/boundary variables as outer while (e.g. while left < right inside while left < right)
+  const shared = innerVars.filter((v) => outerVars.includes(v));
+  return shared.length >= 2;
 }
 
 export class StaticCodeAnalyzer {
+  /**
+   * Estimate space complexity deterministically via auxiliary allocation patterns.
+   */
+  public static estimateSpaceComplexity(code: string, language: string): string {
+    const cleaned = code
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .replace(/#.*$/gm, '');
+
+    const hasAuxCollection =
+      /\b(dict|set|Counter|defaultdict|deque|OrderedDict|Map|Set|WeakMap|Array|vector|unordered_map|unordered_set|map|stack|queue|priority_queue|HashMap|HashSet|ArrayList|LinkedList|Stack|Queue|StringBuilder)\b/.test(
+        cleaned
+      ) ||
+      /=\s*(\[\s*.*\]|\{\s*\})/.test(cleaned) ||
+      /\.append\s*\(|\.push\s*\(|\.add\s*\(|new\s+\w+\s*\[/.test(cleaned);
+
+    if (hasAuxCollection) {
+      return 'O(N) (Est.)';
+    }
+    if (language.toLowerCase() === 'python' || language.toLowerCase() === 'javascript') {
+      return 'O(1) (Est.)';
+    }
+    return 'O(1) (Est.)';
+  }
+
   /**
    * Deterministically analyze source code without any AI / external API.
    * Calculates loop depth, cyclomatic complexity, code smells, and quality score.
    */
   public static analyze(input: CodeAnalysisInput): Omit<DeterministicAnalytics, 'runtimePercentile' | 'memoryPercentile'> {
-    const { code, language } = input;
+    const { code, language, verdict, passedCount, totalCount } = input;
     const lines = code.split('\n');
 
     let maxLoopDepth = 0;
-    let currentDepth = 0;
     let cyclomaticComplexity = 1; // base complexity
+    let detectedTwoPointerScan = false;
     const codeSmells: string[] = [];
     const positivePatterns: string[] = [];
 
@@ -26,21 +82,23 @@ export class StaticCodeAnalyzer {
     const isPython = language.toLowerCase() === 'python';
     const isBraceLang = ['javascript', 'cpp', 'java'].includes(language.toLowerCase());
 
-    // Loop detection patterns
     const forRegex = /\bfor\b/;
     const whileRegex = /\bwhile\b/;
     const branchRegex = /\b(if|elif|else\s+if|switch|case|catch|\?\s*:)\b/;
     const logicalOperatorRegex = /(&&|\|\||\band\b|\bor\b)/g;
 
     // Track indentation for Python
-    const indentStack: number[] = [];
+    const pyLoopStack: Array<{ indent: number; header: string; monotonic: boolean }> = [];
+    // Track brace blocks for JS/C++/Java
+    const braceBlockStack: Array<{ isLoop: boolean; monotonic: boolean; header: string }> = [];
+    let pendingBraceLoop: { header: string } | null = null;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
 
       // Skip comments and empty lines
-      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('/*')) {
+      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
         continue;
       }
 
@@ -56,36 +114,68 @@ export class StaticCodeAnalyzer {
       // 2. Loop Nesting Depth Analysis
       if (isPython) {
         const indent = line.search(/\S/);
-        while (indentStack.length > 0 && indent <= indentStack[indentStack.length - 1]) {
-          indentStack.pop();
+        while (pyLoopStack.length > 0 && indent <= pyLoopStack[pyLoopStack.length - 1].indent) {
+          pyLoopStack.pop();
         }
 
-        if (forRegex.test(trimmed) || whileRegex.test(trimmed)) {
-          indentStack.push(indent);
-          maxLoopDepth = Math.max(maxLoopDepth, indentStack.length);
+        if (LOOP_START_REGEX.test(trimmed)) {
+          const parentLoop = pyLoopStack.length > 0 ? pyLoopStack[pyLoopStack.length - 1] : null;
+          const isMonotonic = Boolean(parentLoop && isMonotonicInnerWhile(parentLoop.header, trimmed));
+          if (isMonotonic) {
+            detectedTwoPointerScan = true;
+          }
+          pyLoopStack.push({ indent, header: trimmed, monotonic: isMonotonic });
+          const effectiveDepth = pyLoopStack.filter((l) => !l.monotonic).length;
+          maxLoopDepth = Math.max(maxLoopDepth, effectiveDepth);
         }
       } else if (isBraceLang) {
-        if (forRegex.test(trimmed) || whileRegex.test(trimmed)) {
-          currentDepth++;
-          maxLoopDepth = Math.max(maxLoopDepth, currentDepth);
+        // Strip quoted strings before scanning braces
+        const codeOnly = trimmed.replace(/(["'`])(?:\\.|(?!\1).)*\1/g, '');
+        if (forRegex.test(codeOnly) || whileRegex.test(codeOnly)) {
+          pendingBraceLoop = { header: codeOnly };
         }
-        if (trimmed.includes('}')) {
-          const closes = (trimmed.match(/}/g) || []).length;
-          currentDepth = Math.max(0, currentDepth - closes);
+
+        for (let c = 0; c < codeOnly.length; c++) {
+          const ch = codeOnly[c];
+          if (ch === '{') {
+            if (pendingBraceLoop) {
+              const parentLoop = [...braceBlockStack].reverse().find((b) => b.isLoop);
+              const isMonotonic = Boolean(
+                parentLoop && isMonotonicInnerWhile(parentLoop.header, pendingBraceLoop.header)
+              );
+              if (isMonotonic) {
+                detectedTwoPointerScan = true;
+              }
+              braceBlockStack.push({
+                isLoop: true,
+                monotonic: isMonotonic,
+                header: pendingBraceLoop.header
+              });
+              pendingBraceLoop = null;
+              const effectiveDepth = braceBlockStack.filter((b) => b.isLoop && !b.monotonic).length;
+              maxLoopDepth = Math.max(maxLoopDepth, effectiveDepth);
+            } else {
+              braceBlockStack.push({ isLoop: false, monotonic: false, header: '' });
+            }
+          } else if (ch === '}') {
+            if (braceBlockStack.length > 0) {
+              braceBlockStack.pop();
+            }
+          }
         }
       }
     }
 
-    // Fallback if no loop was detected (e.g. recursion, math, or single operation)
     maxLoopDepth = Math.max(maxLoopDepth, 0);
 
     // 3. Code Smells & Patterns Identification
     let penalty = 0;
 
-    // Nested loops smell
     if (maxLoopDepth >= 2) {
       codeSmells.push(`Nested loop detected (Depth: ${maxLoopDepth}). May cause quadratic O(N^${maxLoopDepth}) scaling.`);
       penalty += 15 * (maxLoopDepth - 1);
+    } else if (detectedTwoPointerScan) {
+      positivePatterns.push('Two-pointer monotonic linear scan O(N).');
     } else if (maxLoopDepth === 1) {
       positivePatterns.push('Single linear loop pass O(N) structural traversal.');
     } else {
@@ -123,15 +213,31 @@ export class StaticCodeAnalyzer {
       positivePatterns.push('Employs hash-based auxiliary data structures for fast O(1) lookups.');
     }
 
-    // Calculate Quality Score (1 to 100)
-    const qualityScore = Math.max(30, Math.min(100, 100 - penalty));
+    // Calculate Quality Score (1 to 100) with mandatory verdict gate
+    let qualityScore = Math.max(30, Math.min(100, 100 - penalty));
+
+    if (verdict && verdict !== 'ACCEPTED') {
+      const hasCounts = typeof passedCount === 'number' && typeof totalCount === 'number' && totalCount > 0;
+      const passRatio = hasCounts ? passedCount / totalCount : 0;
+      if (verdict === 'COMPILATION_ERROR') {
+        qualityScore = 20;
+      } else {
+        // Crashed or failing code must NEVER receive an A/A+ grade (capped strictly <= 65)
+        qualityScore = Math.min(qualityScore, Math.round(30 + passRatio * 35));
+      }
+      codeSmells.unshift(
+        hasCounts
+          ? `Verification failed (${verdict}: ${passedCount}/${totalCount} test cases passed).`
+          : `Verification failed with ${verdict}.`
+      );
+    }
 
     // Quality Grade
     let qualityGrade: 'A+' | 'A' | 'B' | 'C' | 'NEEDS_REFACTOR' = 'A';
     if (qualityScore >= 92) qualityGrade = 'A+';
     else if (qualityScore >= 82) qualityGrade = 'A';
     else if (qualityScore >= 70) qualityGrade = 'B';
-    else if (qualityScore >= 55) qualityGrade = 'C';
+    else if (qualityScore >= 50) qualityGrade = 'C';
     else qualityGrade = 'NEEDS_REFACTOR';
 
     return {

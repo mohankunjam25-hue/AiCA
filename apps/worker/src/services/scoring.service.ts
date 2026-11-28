@@ -49,7 +49,7 @@ export class ScoringService {
         normalizedMemoryKb,
         timeScore: 0,
         memoryScore: 0,
-        qualityScore: (input.aiQualityScore || 5) * 10,
+        qualityScore: 0,
         compositeScore: 0.0
       };
     }

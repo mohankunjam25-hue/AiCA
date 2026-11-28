@@ -86,6 +86,7 @@ export interface EvaluationReportMetrics {
 export interface DeterministicAnalytics {
   runtimePercentile: number;   // e.g. 92.4 (beats 92.4% of accepted submissions)
   memoryPercentile: number;    // e.g. 84.1 (beats 84.1% of accepted submissions)
+  sampleSize?: number;         // historical accepted submissions compared against
   cyclomaticComplexity: number;
   maxLoopDepth: number;
   qualityScore: number;        // 1 - 100

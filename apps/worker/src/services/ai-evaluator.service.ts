@@ -334,17 +334,17 @@ export class AiEvaluatorService {
       aiStatus === 'COMPLETED' && aiAnalysis?.theoreticalComplexity?.timeComplexity && aiAnalysis?.theoreticalComplexity?.timeComplexity !== 'N/A'
         ? aiAnalysis.theoreticalComplexity
         : (existingAi.theoreticalComplexity || aiAnalysis?.theoreticalComplexity || {
-            timeComplexity: 'O(N)',
-            spaceComplexity: 'O(1)',
-            explanation: 'Determined via AST analysis.'
+            timeComplexity: 'Pending AI',
+            spaceComplexity: 'Pending AI',
+            explanation: 'Theoretical complexity requires completed evaluation.'
           });
 
     const mergedCodeQuality =
       aiStatus === 'COMPLETED' && aiAnalysis?.codeQuality?.score
         ? { ...existingAi.codeQuality, ...aiAnalysis.codeQuality }
         : (existingAi.codeQuality || aiAnalysis?.codeQuality || {
-            score: 8,
-            readabilityAnalysis: 'Modular AST structure.',
+            score: verdict === 'ACCEPTED' ? 7 : 3,
+            readabilityAnalysis: 'Deterministic structural analysis applied.',
             codeSmells: [],
             positivePractices: []
           });
@@ -370,8 +370,8 @@ export class AiEvaluatorService {
       generatedAt: new Date().toISOString()
     };
 
-    const percentileTime = existing?.metrics?.percentileTime ?? 90;
-    const percentileMemory = existing?.metrics?.percentileMemory ?? 85;
+    const percentileTime = existing?.metrics?.percentileTime ?? (verdict === 'ACCEPTED' ? 50 : 0);
+    const percentileMemory = existing?.metrics?.percentileMemory ?? (verdict === 'ACCEPTED' ? 50 : 0);
 
     if (existing) {
       await reportsCol.updateOne(
