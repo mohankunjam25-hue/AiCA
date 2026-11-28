@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -23,6 +23,7 @@ import { useDataCacheStore } from '../store/useDataCacheStore';
 import { api } from '../services/api';
 import { ThemeToggle } from './ThemeToggle';
 import { AiCALogo } from './AiCALogo';
+import { useDebounce } from '../hooks';
 
 interface SidebarDrawerProps {
   isOpen: boolean;
@@ -125,9 +126,17 @@ export function SidebarDrawer({ isOpen, onClose }: SidebarDrawerProps) {
     navigate('/login');
   };
 
-  const filteredProblems = problems.filter((p) =>
-    p.title.toLowerCase().includes(filterSearch.toLowerCase().trim())
-  );
+  const debouncedSearch = useDebounce(filterSearch, 250);
+
+  const filteredProblems = useMemo(() => {
+    if (!debouncedSearch.trim()) return problems;
+    const query = debouncedSearch.toLowerCase().trim();
+    return problems.filter(
+      (p) =>
+        p.title.toLowerCase().includes(query) ||
+        p.tags?.some((t) => t.toLowerCase().includes(query))
+    );
+  }, [problems, debouncedSearch]);
 
   const getDifficultyColor = (diff: string) => {
     switch (diff) {
