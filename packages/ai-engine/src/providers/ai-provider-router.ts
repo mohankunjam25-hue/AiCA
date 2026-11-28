@@ -138,7 +138,7 @@ export class AiProviderRouter {
           kind: 'openai_compat',
           endpoint: 'https://api.groq.com/openai/v1/chat/completions',
           apiKey: process.env.GROQ_API_KEY.trim(),
-          model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+          model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
         });
       } else if (name === 'cerebras' && isUsableKey(process.env.CEREBRAS_API_KEY)) {
         providers.push({
@@ -154,7 +154,7 @@ export class AiProviderRouter {
           kind: 'openai_compat',
           endpoint: 'https://openrouter.ai/api/v1/chat/completions',
           apiKey: process.env.OPENROUTER_API_KEY.trim(),
-          model: process.env.OPENROUTER_MODEL || 'qwen/qwen3-coder:free',
+          model: process.env.OPENROUTER_MODEL || 'openrouter/free',
           extraHeaders: {
             'HTTP-Referer': process.env.FRONTEND_URL || 'https://ai-ca-six.vercel.app',
             'X-Title': 'AiCA Code Evolution Lab'
@@ -189,7 +189,7 @@ export class AiProviderRouter {
             name: 'gemini',
             kind: 'gemini',
             apiKey: geminiKey,
-            model: this.config.explicitGeminiModel || process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite'
+            model: this.config.explicitGeminiModel || process.env.GEMINI_MODEL || 'gemini-flash-lite-latest'
           });
         }
       }
@@ -244,7 +244,22 @@ export class AiProviderRouter {
       body: JSON.stringify(body)
     });
 
-    const data: any = await res.json().catch(() => ({}));
+    let data: any = {};
+    if (typeof (res as any).text === 'function') {
+      const rawBody = await res.text();
+      if (rawBody) {
+        try {
+          data = JSON.parse(rawBody);
+        } catch {
+          data = {};
+        }
+      }
+    } else if (typeof res.json === 'function') {
+      data = await res.json().catch((err: any) => {
+        if (err?.name === 'AbortError' || err?.name === 'TimeoutError') throw err;
+        return {};
+      });
+    }
     if (!res.ok) {
       const errMsg = data?.error?.message || data?.message || `HTTP ${res.status} from ${provider.name}`;
       // Some open-source free models reject strict response_format=json_object -> retry once without it
@@ -300,7 +315,7 @@ export class AiProviderRouter {
       );
     }
 
-    const timeoutMs = this.config.timeoutMs || 15000;
+    const timeoutMs = this.config.timeoutMs || 45000;
     const now = Date.now();
 
     // Try non-cooled providers first; if all are in cooldown, try earliest-expiring provider once
