@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Trophy,
@@ -20,8 +20,13 @@ import {
 import { LeaderboardEntry, GlobalLeaderboardEntry, ProblemDifficulty } from '@aica/shared';
 import { LeaderboardView } from '../components/LeaderboardView';
 import { LeaderboardPodium, PodiumEntry } from '../components/LeaderboardPodium';
-import { DeveloperSolvedDrawer } from '../components/DeveloperSolvedDrawer';
 import { DataFetchErrorCard } from '../components/ui/DataFetchErrorCard';
+
+const DeveloperSolvedDrawer = React.lazy(() =>
+  import('../components/DeveloperSolvedDrawer').then((m) => ({
+    default: m.DeveloperSolvedDrawer
+  }))
+);
 import { api } from '../services/api';
 import { useDataCacheStore } from '../store/useDataCacheStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -666,12 +671,25 @@ export function LeaderboardPage() {
         />
       )}
 
-      {/* Developer Solved Problems Slide-Over Drawer */}
-      <DeveloperSolvedDrawer
-        userId={selectedDeveloper?.userId || null}
-        initialUsername={selectedDeveloper?.username}
-        onClose={() => setSelectedDeveloper(null)}
-      />
+      {/* Developer Solved Problems Slide-Over Drawer (Lazy-Loaded On Demand) */}
+      {selectedDeveloper && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] shadow-lg text-xs font-medium text-[#1f2328] dark:text-[#f0f6fc]">
+                <Loader2 className="w-4 h-4 animate-spin text-[#8250df]" />
+                <span>Loading Developer Dossier...</span>
+              </div>
+            </div>
+          }
+        >
+          <DeveloperSolvedDrawer
+            userId={selectedDeveloper.userId}
+            initialUsername={selectedDeveloper.username}
+            onClose={() => setSelectedDeveloper(null)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
