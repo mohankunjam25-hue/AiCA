@@ -29,19 +29,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
     // Access token is strictly in-memory (never persisted to localStorage for XSS immunity)
     accessToken: null,
     isAuthenticated: false,
-    isInitializing: true,
+    // Guests start as isInitializing: false so public routes render instantly without waiting for network
+    isInitializing: !!savedUser,
     isStudentPreviewMode: savedPreview,
 
     /**
      * Silent fast-path background rehydration.
      * Hits /api/v1/auth/refresh with HttpOnly cookie to acquire an in-memory access token.
+     * Enforces a 3000ms timeout so a cold-starting backend never hangs the frontend.
      */
     initAuth: async () => {
       try {
         const res = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
           {},
-          { withCredentials: true }
+          { withCredentials: true, timeout: 3000 }
         );
         if (res.data?.data?.accessToken && res.data?.data?.user) {
           const { accessToken, user } = res.data.data;
@@ -55,7 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           return;
         }
       } catch {
-        // No active session or expired cookie
+        // No active session, cold-start timeout, or expired cookie
       }
       set({
         accessToken: null,
